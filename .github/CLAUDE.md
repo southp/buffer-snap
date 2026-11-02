@@ -8,8 +8,10 @@
   downloads iOS runtime build `SIM_RUNTIME_BUILD` (`docs/decisions/6-*.md`). When you bump `SIM_OS` in `justfile`,
   bump the Xcode path and `SIM_RUNTIME_BUILD` in `ci.yml` with it (`xcrun simctl runtime list` shows your build).
 - When it fails, the run's `test-artifacts` artifact has `build/snapshot-failures/` (the PNG CI rendered) and the
-  `.xcresult` bundles: `gh run download <run-id> -n test-artifacts`. Compare that PNG with the reference in
-  `AppTests/__Snapshots__/` before deciding anything.
+  `.xcresult` bundles: `gh run download <run-id> -n test-artifacts -D <dir>`. Compare that PNG with the reference in
+  `AppTests/__Snapshots__/` before deciding anything. For the reference, failure and difference PNGs side by side,
+  run `xcrun xcresulttool export attachments --path <dir>/DerivedData/Logs/Test/<name>.xcresult --output-path <out>`
+  (`manifest.json` there names each file).
 - Don't add caching, a matrix or per-change test selection until CI time is a real problem (#6).
 - Renaming the `ci` job breaks the required check; change the branch rule with it.
 
