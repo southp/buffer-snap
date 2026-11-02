@@ -1,0 +1,18 @@
+# SwiftLint: default rules plus a few opt-ins.
+# Formatting is owned by swift-format (.swift-format); keep the two in agreement.
+
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - empty_count
+
+excluded:
+  - build
+  - DerivedData
+  - .build
+  - .worktrees
+
+# swift-format adds trailing commas to multi-line collection literals, which the
+# default `trailing_comma` rule forbids. Require them instead so both tools agree.
+trailing_comma:
+  mandatory_comma: true
