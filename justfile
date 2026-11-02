@@ -55,8 +55,12 @@ build: gen
         -derivedDataPath {{derived_data}} \
         | xcbeautify
 
+# Run the Core package's unit tests on macOS with `swift test` (no simulator, no Xcode project).
+test-core:
+    swift test --package-path Packages/BufferSnapCore
+
 # Run the unit tests on the pinned simulator.
-test: gen
+test: gen test-core
     #!/usr/bin/env bash
     set -euo pipefail
     udid="$(just _sim-udid)"
