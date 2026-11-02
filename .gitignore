@@ -69,3 +69,5 @@ build/
 DerivedData/
 # Git worktrees used for parallel issue branches.
 .worktrees/
+# sourcekit-lsp build server config, written by `just lsp` (machine-specific absolute paths).
+buildServer.json

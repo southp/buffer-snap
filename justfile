@@ -33,7 +33,7 @@ bootstrap:
         echo "       Run: sudo xcode-select -s /Applications/Xcode.app  (see #8)" >&2
         exit 1
     fi
-    for tool in xcodegen swiftlint xcbeautify; do
+    for tool in xcodegen swiftlint xcbeautify xcode-build-server; do
         if command -v "$tool" >/dev/null 2>&1; then
             echo "✓ $tool"
         else
@@ -87,6 +87,26 @@ run: build
         || echo "note: no simulator UI found; the app is running headless" >&2
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
+
+# Give editors project context: write buildServer.json for sourcekit-lsp and compile every target once.
+lsp: gen
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # xcode-build-server reads compiler flags from the build logs under build_root, so point it
+    # at our custom DerivedData rather than Xcode's default ~/Library/Developer/Xcode/DerivedData.
+    xcode-build-server config \
+        -project {{project}} \
+        -scheme {{scheme}} \
+        --build_root "{{justfile_directory()}}/{{derived_data}}"
+    # build-for-testing compiles the test target too. `just build` only compiles the app,
+    # which would leave AppTests/ without flags (no cross-target go-to-definition).
+    udid="$(just _sim-udid)"
+    xcodebuild build-for-testing \
+        -project {{project}} \
+        -scheme {{scheme}} \
+        -destination "id=${udid}" \
+        -derivedDataPath {{derived_data}} \
+        | xcbeautify
 
 # Check formatting (swift-format) and lint rules (SwiftLint); fails on any violation.
 lint:
