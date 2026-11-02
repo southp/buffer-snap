@@ -1,0 +1,72 @@
+name: CI
+
+# Lint and every test (Core + app + snapshots) on each PR and each push to main,
+# through the same `just` recipes developers run locally.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # A newer push to the same branch or PR supersedes the run in progress.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Branch protection requires this job by name (`ci`). Rename it only together with the rule.
+  ci:
+    # The only hosted image with Xcode 27.2; `macos-15`/`macos-26` stop at Xcode 26.
+    # See docs/decisions/6-xcode-27-runner.md.
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Select Xcode 27.2
+        # The Xcode developers use locally; SIM_OS in the justfile is its iOS runtime. The image's
+        # default Xcode is older. Bump this path together with SIM_OS.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.2.app
+          xcodebuild -version
+
+      - name: Install just
+        run: brew install just
+
+      - name: Install the pinned iOS simulator runtime
+        # The image lacks the iOS runtime the justfile pins (SIM_OS), so download it,
+        # rather than changing the pin. Skipped once the image ships it.
+        run: |
+          sim_os="$(just --evaluate SIM_OS)"
+          if xcrun simctl list runtimes -j \
+              | jq -e --arg os "$sim_os" '.runtimes[] | select(.isAvailable and .platform == "iOS" and .version == $os)' >/dev/null; then
+            echo "iOS $sim_os runtime already installed"
+          else
+            xcodebuild -downloadPlatform iOS -buildVersion "$sim_os"
+          fi
+          xcrun simctl list runtimes
+
+      - name: Bootstrap
+        run: just bootstrap
+
+      - name: Lint
+        run: just lint
+
+      - name: Test
+        run: just test
+
+      - name: Upload test artifacts
+        # Snapshot failures land in build/snapshot-failures/ (the actual PNG next to the path of the
+        # reference); the .xcresult has the full test log and attachments.
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-artifacts
+          path: |
+            build/snapshot-failures/**
+            build/**/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
