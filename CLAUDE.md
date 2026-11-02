@@ -14,11 +14,20 @@ Decisions and their reasons live in [`docs/decisions.md`](docs/decisions.md). Ap
 | `just build` | Builds the app for the iOS Simulator |
 | `just test` | Runs the unit tests on the pinned simulator (`SIM_DEVICE` / `SIM_OS`, overridable via env) |
 | `just run` | Builds, installs and launches the app on the pinned simulator |
+| `just lsp` | Writes `buildServer.json` (gitignored) and compiles every target, so `sourcekit-lsp` understands the project |
 | `just lint` | `swift format lint --strict` + `swiftlint --strict` on `src_dirs`; also runs as the pre-commit hook |
 | `just format` | Fixes formatting in place, then `swiftlint --fix` |
 | `just clean` | Removes `build/` and the generated project |
 
 When you add a source folder, append it to `src_dirs` at the top of `justfile` so it gets linted.
+
+## Editor (language server)
+
+`sourcekit-lsp` (ships with Xcode) gets project context from `xcode-build-server` through `buildServer.json`.
+
+- Run `just lsp` once per clone or worktree, and again after adding a **target** to `project.yml`.
+- A new **file** resolves after the next `just build` / `just test` (both regenerate the project first).
+- The build server reads compiler flags from build logs in `build/DerivedData`, so `just clean` drops context until the next build.
 
 ## Layout
 

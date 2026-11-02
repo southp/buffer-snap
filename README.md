@@ -40,7 +40,7 @@ The goal is to publicly launch the v1 in the app store within the [Buffer Commit
 Everything runs from the terminal through [`just`](https://github.com/casey/just) recipes, without opening the Xcode GUI.
 
 ### Prerequisites
-- Xcode with the iOS platform installed and selected, plus `xcodegen`, `swiftlint` and `xcbeautify` (see [#8](https://github.com/southp/buffer-snap/issues/8))
+- Xcode with the iOS platform installed and selected, plus `xcodegen`, `swiftlint` and `xcbeautify` (see [#8](https://github.com/southp/buffer-snap/issues/8)). `just bootstrap` installs any that are missing, plus `xcode-build-server`
 - `just` (`brew install just`)
 
 ### Getting started
@@ -56,8 +56,14 @@ just run         # build and launch the app in the iPhone Simulator
 | `just build` | Build for the iOS Simulator |
 | `just test` | Run unit tests on the pinned simulator (`SIM_DEVICE`, `SIM_OS`) |
 | `just run` | Build, install and launch on the pinned simulator |
+| `just lsp` | Set up the Swift language server for your editor |
 | `just lint` | Check formatting and lint rules (also the pre-commit hook) |
 | `just format` | Fix formatting in place |
 | `just clean` | Remove build output and the generated project |
+
+### Editor setup
+Any editor with LSP support works through Apple's `sourcekit-lsp`, which ships with Xcode. Run `just lsp` once per clone: it writes `buildServer.json` so the language server knows every target's build settings, which enables go-to-definition, references and diagnostics across files and targets.
+
+For Neovim 0.11+ with [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), add `vim.lsp.enable('sourcekit')` to your config.
 
 Project conventions are in [`CLAUDE.md`](CLAUDE.md), and the reasoning behind tooling choices is in [`docs/decisions.md`](docs/decisions.md).
