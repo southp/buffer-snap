@@ -1,30 +1,35 @@
 # BufferSnap
 
 Native iOS app (SwiftUI, iOS 18+, Swift 6 strict concurrency) with a terminal-only dev loop.
-Never open the Xcode GUI to build, run, or test. Use the `just` recipes below.
+Never open the Xcode GUI to build, run, or test.
 
-Decisions and their reasons live in [`docs/decisions.md`](docs/decisions.md). Append a row whenever you make one.
+This file holds only **repo-wide rules that rarely change**. Don't add per-issue sections here: put them where
+"Where things go" says.
 
 ## Commands
 
-| Recipe | What it does |
+Run `just --list`. Each recipe's comment in `justfile` is its documentation, so there's no recipe table here.
+
+## Where things go
+
+| What | Where |
 |---|---|
-| `just bootstrap` | One-time setup: checks Xcode is selected, installs missing CLI tools, creates the pinned simulator, enables `.githooks` |
-| `just gen` | Generates `BufferSnap.xcodeproj` from `project.yml` (the project is gitignored; edit `project.yml`, never the `.xcodeproj`) |
-| `just build` | Builds the app for the iOS Simulator |
-| `just test` | Runs the unit tests on the pinned simulator (`SIM_DEVICE` / `SIM_OS`, overridable via env) |
-| `just run` | Builds, installs and launches the app on the pinned simulator |
-| `just lint` | `swift format lint --strict` + `swiftlint --strict` on `src_dirs`; also runs as the pre-commit hook |
-| `just format` | Fixes formatting in place, then `swiftlint --fix` |
-| `just clean` | Removes `build/` and the generated project |
+| Notes for one area (conventions, gotchas) | That area's `CLAUDE.md`, e.g. `App/CLAUDE.md`. Claude Code loads it when you work in that folder |
+| A decision and why it was made | A new `docs/decisions/<issue>-<slug>.md` (format in [`docs/decisions/README.md`](docs/decisions/README.md)) |
+| A target's sources, settings and dependencies | That target's `target.yml` (e.g. `App/target.yml`). Only project-wide settings and the scheme go in `project.yml` |
+| A new Swift folder | Nothing to register: `just lint` covers every Swift file git knows about. A new target needs its `target.yml` added to `include:` in `project.yml` |
 
-When you add a source folder, append it to `src_dirs` at the top of `justfile` so it gets linted.
+## Working in parallel
 
-## Layout
+Several agents work at once, one per issue, each in its own git worktree.
 
-- `project.yml`: XcodeGen spec (targets, settings, scheme)
-- `App/`: the `BufferSnap` app target
-- `AppTests/`: the `BufferSnapTests` unit-test target (Swift Testing)
+- Work only inside your worktree (`.worktrees/issue-<N>-<slug>`, branch `issue/<N>-<slug>`). Never edit the main
+  checkout or another worktree.
+- Never `git checkout`/`git switch` to another branch, and never run a bare `git stash`: the stash is shared by
+  every worktree.
+- Edit only the area `CLAUDE.md` files your issue names. If another area needs a change, say so in the PR.
+- Your worktree has its own `build/` and its own simulator (`iPhone 16 (worktree: <dir>)`); `just` picks both
+  automatically. If a tool needs the device, use `just _sim-udid`, never another worktree's simulator.
 
 ## Workflow
 
@@ -33,11 +38,6 @@ When you add a source folder, append it to `src_dirs` at the top of `justfile` s
   Keep commits small and self-contained; each one must build, lint and test on its own.
 - Run `just test` **before** changing anything to get a baseline, so you can tell pre-existing failures from regressions.
 - Run `just lint` and `just test` before every commit.
-- Fix lint violations at the root; don't disable a rule without a documented reason in `docs/decisions.md`.
-
-## PR review
-
-- Every non-draft PR gets an automatic Claude review (`.github/workflows/claude-code-review.yml`) when it's opened, marked ready, or pushed to. The review checks the PR against this file and the acceptance criteria of the issue it `Closes`.
-- Comment `@claude <request>` on a PR or issue to have Claude act on it (`.github/workflows/claude.yml`), for example to push a fix to the PR branch. Only collaborators with write access can trigger it.
-- Both workflows run on Linux runners without Xcode, so Claude there can't run `just`. Run `just lint` and `just test` locally on anything it pushes before merging.
-- New PRs are prefilled from `.github/pull_request_template.md`. Fill in every section, including snapshot changes.
+- Fix lint violations at the root; don't disable a rule without a documented reason in `docs/decisions/`.
+- Every PR gets an automatic Claude review, and `@claude` can push fixes (see `.github/CLAUDE.md`). Claude in CI
+  can't run `just`, so run `just lint` and `just test` locally on anything it pushes before merging.

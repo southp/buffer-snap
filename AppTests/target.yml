@@ -1,0 +1,18 @@
+# XcodeGen spec for the BufferSnapTests unit-test target, included from the root project.yml.
+# Paths are relative to the repo root.
+targets:
+  BufferSnapTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AppTests
+        # Keep this spec and the area's CLAUDE.md out of the test bundle.
+        excludes:
+          - "target.yml"
+          - "**/*.md"
+    dependencies:
+      - target: BufferSnap
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap.tests
+        GENERATE_INFOPLIST_FILE: YES

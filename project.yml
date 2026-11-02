@@ -1,5 +1,13 @@
 name: BufferSnap
 
+# Each target's spec (sources, settings, dependencies, packages) lives in its own folder, so issues that
+# touch different targets edit different files. Paths inside included files are relative to this file.
+include:
+  - path: App/target.yml
+    relativePaths: false
+  - path: AppTests/target.yml
+    relativePaths: false
+
 options:
   bundleIdPrefix: me.southp
   deploymentTarget:
@@ -11,34 +19,6 @@ settings:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-
-targets:
-  BufferSnap:
-    type: application
-    platform: iOS
-    sources:
-      - App
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        TARGETED_DEVICE_FAMILY: "1"
-
-  BufferSnapTests:
-    type: bundle.unit-test
-    platform: iOS
-    sources:
-      - AppTests
-    dependencies:
-      - target: BufferSnap
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap.tests
-        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   BufferSnap:

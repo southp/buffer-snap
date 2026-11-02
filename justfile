@@ -3,15 +3,12 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# Pinned simulator, shared by local runs and CI so snapshots stay identical.
-# Override via env, e.g. `SIM_DEVICE="iPhone 17" just test`.
+# Pinned simulator model and runtime, shared by local runs and CI so snapshots stay identical.
+# Override via env, e.g. `SIM_DEVICE="iPhone 17" just test`. Each git worktree gets its own device
+# of this model ("iPhone 16 (worktree: <dir>)") so parallel agents never share a simulator.
 # SIM_OS is the iOS runtime bundled with the pinned Xcode (27.2); bump both together.
 SIM_DEVICE := env("SIM_DEVICE", "iPhone 16")
 SIM_OS := env("SIM_OS", "27.2")
-
-# Source folders checked by `lint` and `format`. Later issues append their folders.
-# swift-format has no exclude option, so `-r .` would walk build/ and DerivedData.
-src_dirs := "App AppTests"
 
 project := "BufferSnap.xcodeproj"
 scheme := "BufferSnap"
@@ -33,7 +30,7 @@ bootstrap:
         echo "       Run: sudo xcode-select -s /Applications/Xcode.app  (see #8)" >&2
         exit 1
     fi
-    for tool in xcodegen swiftlint xcbeautify; do
+    for tool in xcodegen swiftlint xcbeautify xcode-build-server; do
         if command -v "$tool" >/dev/null 2>&1; then
             echo "✓ $tool"
         else
@@ -41,7 +38,7 @@ bootstrap:
             brew install "$tool"
         fi
     done
-    echo "✓ simulator {{SIM_DEVICE}} (iOS {{SIM_OS}}): $(just _sim-udid)"
+    echo "✓ simulator $(just _sim-name) (iOS {{SIM_OS}}): $(just _sim-udid)"
     git config core.hooksPath .githooks
     echo "✓ git hooks: .githooks"
 
@@ -88,24 +85,119 @@ run: build
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
 
-# Check formatting (swift-format) and lint rules (SwiftLint); fails on any violation.
-lint:
-    swift format lint --strict -r {{src_dirs}}
-    swiftlint --strict --quiet
+# Give editors project context: write buildServer.json for sourcekit-lsp and compile every target once.
+lsp: gen
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # xcode-build-server reads compiler flags from the build logs under build_root, so point it
+    # at our custom DerivedData rather than Xcode's default ~/Library/Developer/Xcode/DerivedData.
+    xcode-build-server config \
+        -project {{project}} \
+        -scheme {{scheme}} \
+        --build_root "{{justfile_directory()}}/{{derived_data}}"
+    # build-for-testing compiles the test target too. `just build` only compiles the app,
+    # which would leave AppTests/ without flags (no cross-target go-to-definition).
+    udid="$(just _sim-udid)"
+    xcodebuild build-for-testing \
+        -project {{project}} \
+        -scheme {{scheme}} \
+        -destination "id=${udid}" \
+        -derivedDataPath {{derived_data}} \
+        | xcbeautify
 
-# Fix formatting in place, then auto-correct what SwiftLint can.
+# Check formatting (swift-format) and lint rules (SwiftLint) on every Swift file; fails on any violation.
+lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files=()
+    while IFS= read -r -d '' f; do files+=("$f"); done < <(just _swift-files)
+    swift format lint --strict "${files[@]}"
+    swiftlint lint --strict --quiet "${files[@]}"
+
+# Fix formatting in place on every Swift file, then auto-correct what SwiftLint can.
 format:
-    swift format -i -r {{src_dirs}}
-    swiftlint --fix --quiet
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files=()
+    while IFS= read -r -d '' f; do files+=("$f"); done < <(just _swift-files)
+    swift format -i "${files[@]}"
+    swiftlint --fix --quiet "${files[@]}"
+
+# Print every decision in docs/decisions/ as a table, oldest first.
+decisions:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {
+        printf 'DATE\tISSUE\tSTATUS\tDECISION\tFILE\n'
+        for f in docs/decisions/[0-9]*.md; do
+            awk -v file="$(basename "$f")" '
+                /^---$/ { fences++; next }
+                fences == 1 && $1 == "date:" { date = $2 }
+                fences == 1 && $1 == "issue:" { issue = $2 }
+                fences == 1 && $1 == "status:" { status = $2 }
+                fences >= 2 && /^# / { sub(/^# /, ""); title = $0; exit }
+                END { printf "%s\t#%s\t%s\t%s\t%s\n", date, issue, status, title, file }
+            ' "$f"
+        done | sort -t $'\t' -k1,1 -k2.2n
+    } | column -t -s $'\t'
+
+# Delete per-worktree simulators whose worktree no longer exists.
+sims-prune:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    live="$(git worktree list --porcelain | sed -n 's/^worktree //p' | xargs -I{} basename {})"
+    xcrun simctl list devices -j \
+        | jq -r '.devices[][] | select(.name | test(" \\(worktree: .+\\)$")) | "\(.udid)\t\(.name)"' \
+        | while IFS=$'\t' read -r udid name; do
+            dir="${name##*(worktree: }"
+            dir="${dir%)}"
+            if grep -qxF "$dir" <<<"$live"; then
+                echo "keep    $name"
+            else
+                xcrun simctl shutdown "$udid" 2>/dev/null || true
+                xcrun simctl delete "$udid"
+                echo "deleted $name"
+            fi
+        done
 
 # Remove build output and the generated Xcode project.
 clean:
     rm -rf build {{project}}
 
-# Print the UDID of the pinned simulator, creating it if missing.
+# NUL-separated list of every Swift file git tracks or would track (so new, uncommitted files count).
+# Gitignored paths like build/ and DerivedData are skipped, and new folders need no justfile edit.
+_swift-files:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    found=0
+    while IFS= read -r -d '' f; do
+        # --cached still lists tracked files deleted from the working tree.
+        if [[ -f "$f" ]]; then
+            printf '%s\0' "$f"
+            found=1
+        fi
+    done < <(git ls-files -z --cached --others --exclude-standard --deduplicate -- '*.swift')
+    # An empty list would make swift-format read stdin and hang.
+    if [[ "$found" == 0 ]]; then
+        echo "error: no Swift files found" >&2
+        exit 1
+    fi
+
+# Print this checkout's simulator name: SIM_DEVICE, plus the worktree's folder name in a linked worktree.
+_sim-name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "$(git rev-parse --path-format=absolute --git-dir)" == "$(git rev-parse --path-format=absolute --git-common-dir)" ]]; then
+        echo "{{SIM_DEVICE}}"
+    else
+        echo "{{SIM_DEVICE}} (worktree: $(basename "$(git rev-parse --show-toplevel)"))"
+    fi
+
+# Print the UDID of this checkout's simulator, creating it if missing.
 _sim-udid:
     #!/usr/bin/env bash
     set -euo pipefail
+    sim_name="$(just _sim-name)"
     runtimes="$(xcrun simctl list runtimes -j)"
     device_type="$(xcrun simctl list devicetypes -j | jq -r --arg name "{{SIM_DEVICE}}" \
         '.devicetypes[] | select(.name == $name) | .identifier')"
@@ -124,13 +216,13 @@ _sim-udid:
         echo "       Run: xcodebuild -downloadPlatform iOS  (see #8)" >&2
         exit 1
     fi
-    udid="$(xcrun simctl list devices available -j | jq -r --arg name "{{SIM_DEVICE}}" \
+    udid="$(xcrun simctl list devices available -j | jq -r --arg name "$sim_name" \
         --argjson runtimes "$(jq -R . <<<"$runtime_ids" | jq -s .)" \
         '[.devices | to_entries[] | select(.key as $k | $runtimes | index($k))
           | .value[] | select(.name == $name) | .udid] | first // empty')"
     if [[ -z "$udid" ]]; then
         runtime="$(head -n1 <<<"$runtime_ids")"
-        udid="$(xcrun simctl create "{{SIM_DEVICE}}" "$device_type" "$runtime")"
-        echo "created simulator '{{SIM_DEVICE}}' on $runtime" >&2
+        udid="$(xcrun simctl create "$sim_name" "$device_type" "$runtime")"
+        echo "created simulator '$sim_name' on $runtime" >&2
     fi
     echo "$udid"
