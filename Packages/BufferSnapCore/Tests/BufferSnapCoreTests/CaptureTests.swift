@@ -18,4 +18,9 @@ struct CaptureTests {
 
         #expect(decoded == capture)
     }
+
+    @Test func samplesCoverEveryKindWithUniqueIDs() {
+        #expect(Set(Capture.samples.map(\.kind)) == Set(Capture.Kind.allCases))
+        #expect(Set(Capture.samples.map(\.id)).count == Capture.samples.count)
+    }
 }
