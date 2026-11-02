@@ -1,17 +1,28 @@
 # XcodeGen spec for the BufferSnapTests unit-test target, included from the root project.yml.
 # Paths are relative to the repo root.
+packages:
+  # Snapshot tests render views to PNGs under AppTests/__Snapshots__/ (#13). Pinned exactly so every
+  # checkout renders and compares with the same code.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    exactVersion: 1.19.7
+
 targets:
   BufferSnapTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: AppTests
-        # Keep this spec and the area's CLAUDE.md out of the test bundle.
+        # Keep this spec, the area's CLAUDE.md and the reference PNGs out of the test bundle.
+        # SnapshotTesting reads the PNGs from the source tree (next to the test file), not the bundle.
         excludes:
           - "target.yml"
           - "**/*.md"
+          - "__Snapshots__/**"
     dependencies:
       - target: BufferSnap
+      - package: SnapshotTesting
+        product: SnapshotTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap.tests
