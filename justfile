@@ -46,7 +46,10 @@ bootstrap:
         echo "       Install Node.js 18+, e.g. brew install node" >&2
         exit 1
     fi
-    echo "✓ simulator $(just _sim-name) (iOS {{SIM_OS}}): $(just _sim-udid)"
+    # Assign first: a failing $(...) inside echo's arguments wouldn't stop the script.
+    sim_name="$(just _sim-name)"
+    udid="$(just _sim-udid)"
+    echo "✓ simulator ${sim_name} (iOS {{SIM_OS}}): ${udid}"
     git config core.hooksPath .githooks
     echo "✓ git hooks: .githooks"
 
