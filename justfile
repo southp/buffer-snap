@@ -67,7 +67,7 @@ build: gen
 test-core:
     swift test --package-path Packages/BufferSnapCore
 
-# Run the unit tests on the pinned simulator.
+# Run every test: Core's (test-core), then the app's unit and snapshot tests on the pinned simulator.
 test: gen test-core
     #!/usr/bin/env bash
     set -euo pipefail
