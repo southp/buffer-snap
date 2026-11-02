@@ -8,6 +8,7 @@ import UIKit
 ///
 /// Every snapshot test goes through this helper, so they all share one configuration:
 /// - the screen of the pinned `SIM_DEVICE` (iPhone 16, portrait), in light mode;
+/// - an en_US locale and a Gregorian calendar in GMT, so dates render the same on every machine;
 /// - a perceptual precision of 0.98, which absorbs antialiasing noise but not visible changes;
 /// - record mode only when `SNAPSHOT_RECORD=1` (`just snapshots-record`). Otherwise a missing
 ///   reference fails the test instead of being recorded silently.
@@ -24,9 +25,14 @@ func assertScreenSnapshot(
     column: UInt = #column
 ) {
     let isRecording = ProcessInfo.processInfo.environment["SNAPSHOT_RECORD"] == "1"
+    let pinnedView =
+        view
+        .environment(\.locale, ScreenSnapshot.locale)
+        .environment(\.timeZone, ScreenSnapshot.timeZone)
+        .environment(\.calendar, ScreenSnapshot.calendar)
     let failure = withSnapshotTesting(record: isRecording ? .all : .never, diffTool: .referenceAndActual) {
         verifySnapshot(
-            of: view,
+            of: pinnedView,
             as: .image(
                 perceptualPrecision: ScreenSnapshot.perceptualPrecision,
                 layout: .device(config: ScreenSnapshot.config),
@@ -80,6 +86,16 @@ private enum ScreenSnapshot {
 
     /// How swift-snapshot-testing starts the message when record mode writes a snapshot.
     static let recordedMessagePrefix = "Record mode is on."
+
+    /// Dates and number formats don't follow the Mac's or the simulator's settings.
+    static let locale = Locale(identifier: "en_US")
+    static let timeZone = TimeZone.gmt
+    static let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        calendar.timeZone = timeZone
+        return calendar
+    }()
 
     /// The pinned simulator's display, light mode.
     static let traits = UITraitCollection { traits in
