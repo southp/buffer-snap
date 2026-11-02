@@ -11,6 +11,9 @@ a thin SwiftUI shell over it.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
   only place that picks which implementations run.
 - **Models** are plain `Sendable` values (`Capture`).
+- **Views** (`App/Views/`) only render. `RootView` switches on `AppModel.route`; a screen (`CaptureListScreen`) owns
+  its feature model and feeds a stateless view (`CaptureListView`) plain values and closures. Conventions:
+  [`App/CLAUDE.md`](../App/CLAUDE.md).
 
 Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](decisions/5-core-ui-import-lint.md).
 
@@ -21,7 +24,7 @@ Arrows point from a layer to what it uses. Dashed boxes and arrows don't exist y
 ```mermaid
 flowchart TD
     subgraph shells["UI shells (SwiftUI)"]
-        App["App: BufferSnapApp"]
+        App["App: BufferSnapApp → RootView<br/>(SignInView, CaptureListScreen)"]
         Widget["Widget (added by #35;4)"]
     end
 
@@ -68,7 +71,7 @@ flowchart TD
 flowchart LR
     Intent["Widget App Intent"] -->|"add(_:)"| Store[("App Group JSON file<br/>(a CaptureStore)")]
     Store -->|"all()"| List["CaptureListModel.load()"]
-    List -->|captures| View["App: capture list"]
+    List -->|captures| View["App: CaptureListScreen → CaptureListView"]
 ```
 
 A capture made in the widget is written to the shared App Group store. When the app's list loads, it reads every

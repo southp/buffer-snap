@@ -2,6 +2,22 @@
 
 Notes for working on the app's views. Repo-wide rules are in the root `CLAUDE.md`.
 
+## Views
+
+Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `AppEnvironment` and owns `AppModel`
+(`@State`), and passes both to `RootView`, which switches on `AppModel.route`.
+
+- **A screen is a container; a view is stateless.** A `…Screen` (e.g. `CaptureListScreen`) owns its Core model in
+  `@State`, loads it (`.task`) and forwards actions to it. It renders through a `…View` that takes plain values plus
+  closures (`CaptureListView(captures:now:onDelete:)`), so a snapshot test can show any state without async loading.
+  A screen with no state of its own (`SignInView`) is just the view, with its action as a closure.
+- **No logic in views.** Routing, loading, deleting and every other state change belong to a Core model and its unit
+  tests. A view may only map values to pixels (a kind's SF Symbol, a status's color).
+- **Never read the clock or the locale in a view.** Take `now: Date` as a parameter (the screen feeds it from a
+  `TimelineView`), and read `locale`/`calendar` from the environment. That's what keeps snapshots identical on every
+  machine and every day. Snapshot tests count from `Capture.samplesReferenceDate`, the date `Capture.samples()` is
+  dated against.
+
 ## UI loop
 
 You can see the UI without the Xcode GUI in two ways: snapshot tests for one view in one state, and XcodeBuildMCP
@@ -17,7 +33,10 @@ Each view gets a snapshot test in `AppTests/` that renders it, full-screen, in e
 4. Iterate until it looks right, then commit the PNGs with the code.
 
 - Write snapshot tests with `assertScreenSnapshot(of:named:)` from `AppTests/Support/Snapshot.swift`. It owns the
-  device (iPhone 16, the pinned `SIM_DEVICE`), light mode and the 0.98 perceptual precision. Don't pass your own.
+  device (iPhone 16, the pinned `SIM_DEVICE`), light mode, the en_US locale with a Gregorian calendar in GMT, and
+  the 0.98 perceptual precision. Don't pass your own.
+- Snapshot a screen's stateless view, not the screen. Wrap it in a `NavigationStack` if the screen shows it in one,
+  so its title renders.
 - Name each snapshot after the state it shows (`named: "empty"`, `named: "signedOut"`), one PNG per state.
 - `just test` never records. A view that renders differently fails, and the failure names two PNGs: the reference
   in `AppTests/__Snapshots__/` and the new rendering in `build/snapshot-failures/`. Read both.
@@ -35,4 +54,9 @@ For multi-screen flows (navigation, sign-in, anything a single view can't show),
 - Run `just gen` first: the Xcode project is generated, so it may not exist yet.
 - Don't pass `persist: true`. It writes the machine-local UDID to `.xcodebuildmcp/config.yaml` in the repo.
 - Typical flow: `build_run_sim` → `snapshot_ui` (find tap targets) → `tap` → `screenshot`.
+- If a tap reports success but nothing happens, use a physical touch. The `tap` tool drives AXe with a simulated tap,
+  which SwiftUI buttons and swipe actions ignored on the iOS 27.2 simulator (#3), and it can't change the style. Run
+  the AXe binary bundled with XcodeBuildMCP instead (find it with
+  `find ~/.npm/_npx -path '*xcodebuildmcp/bundled/axe' -type f`):
+  `axe tap -x <x> -y <y> --tap-style physical --udid "$(just _sim-udid)"`. Its `axe swipe` worked as is.
 - Screenshots from a run don't replace snapshot tests. Once a screen looks right, cover its states with snapshots.
