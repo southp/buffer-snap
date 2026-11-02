@@ -3,9 +3,10 @@
 ## CI (`workflows/ci.yml`)
 
 - Every PR and every push to `main` runs one job, `ci`: `just bootstrap`, `just lint`, `just test`, the same
-  recipes you run locally. `main` requires it to pass. A newer push to the same branch cancels the older run.
-- It runs on the `xcode-27` image with Xcode 27.2 and downloads the iOS runtime `SIM_OS` names if the image lacks
-  it (`docs/decisions/6-*.md`). Bump the Xcode path in `ci.yml` together with `SIM_OS` in `justfile`.
+  recipes you run locally. Branch protection on `main` requires it to pass. A newer push to the same branch cancels the older run.
+- It runs on the `xcode-27` image with Xcode 27.2 and, if the image has no runtime for the pinned simulator,
+  downloads iOS runtime build `SIM_RUNTIME_BUILD` (`docs/decisions/6-*.md`). When you bump `SIM_OS` in `justfile`,
+  bump the Xcode path and `SIM_RUNTIME_BUILD` in `ci.yml` with it (`xcrun simctl runtime list` shows your build).
 - When it fails, the run's `test-artifacts` artifact has `build/snapshot-failures/` (the PNG CI rendered) and the
   `.xcresult` bundles: `gh run download <run-id> -n test-artifacts`. Compare that PNG with the reference in
   `AppTests/__Snapshots__/` before deciding anything.
