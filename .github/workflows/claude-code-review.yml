@@ -45,9 +45,11 @@ jobs:
 
             Review this pull request. The PR branch is checked out in the current directory.
 
-            1. Read `CLAUDE.md` and every doc it links (e.g. `docs/decisions/`). Treat its
-               rules as the review standard: workflow, commit format, lint policy, layout.
-               Flag violations and cite the rule.
+            1. Read the root `CLAUDE.md`, the `CLAUDE.md` of every directory the diff touches
+               (and of their parent directories), and any `docs/decisions/*.md` the PR adds.
+               Treat their rules as the review standard: workflow, commit format, lint policy,
+               where things go. Flag violations and cite the rule. In particular, flag per-issue
+               sections added to the root `CLAUDE.md`.
             2. Find the issue this PR closes: run
                `gh pr view ${{ github.event.pull_request.number }} --json body,closingIssuesReferences`,
                then `gh issue view <N>` for each closed issue. Check the diff against that

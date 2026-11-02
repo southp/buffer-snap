@@ -50,20 +50,18 @@ just run         # build and launch the app in the iPhone Simulator
 ```
 
 ### Recipes
-| Recipe | What it does |
-|---|---|
-| `just gen` | Generate `BufferSnap.xcodeproj` from `project.yml` |
-| `just build` | Build for the iOS Simulator |
-| `just test` | Run unit tests on the pinned simulator (`SIM_DEVICE`, `SIM_OS`) |
-| `just run` | Build, install and launch on the pinned simulator |
-| `just lsp` | Set up the Swift language server for your editor |
-| `just lint` | Check formatting and lint rules (also the pre-commit hook) |
-| `just format` | Fix formatting in place |
-| `just clean` | Remove build output and the generated project |
+Run `just --list` to see every recipe and what it does.
 
 ### Editor setup
 Any editor with LSP support works through Apple's `sourcekit-lsp`, which ships with Xcode. Run `just lsp` once per clone: it writes `buildServer.json` so the language server knows every target's build settings, which enables go-to-definition, references and diagnostics across files and targets.
 
 For Neovim 0.11+ with [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), add `vim.lsp.enable('sourcekit')` to your config.
+
+- Run `just lsp` once per clone or worktree, and again after adding a **target**.
+- A new **file** resolves after the next `just build` or `just test` (both regenerate the project first).
+- The build server reads compiler flags from build logs in `build/DerivedData`, so `just clean` drops context until the next build.
+
+### Parallel worktrees
+Each git worktree gets its own simulator (`iPhone 16 (worktree: <dir>)`), so tests in different worktrees can run at the same time. After removing worktrees, run `just sims-prune` to delete their simulators.
 
 Project conventions are in [`CLAUDE.md`](CLAUDE.md), and the reasoning behind tooling choices is in [`docs/decisions/`](docs/decisions/).
