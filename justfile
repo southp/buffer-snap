@@ -20,7 +20,7 @@ bundle_id := "me.southp.buffersnap"
 default:
     @just --list
 
-# One-time setup: check Xcode, install missing CLI tools, create the pinned simulator, enable git hooks.
+# One-time setup: check Xcode and npx, install missing CLI tools, create the pinned simulator, enable git hooks.
 bootstrap:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -38,6 +38,14 @@ bootstrap:
             brew install "$tool"
         fi
     done
+    # XcodeBuildMCP (.mcp.json) runs through npx, which comes with Node.js.
+    if command -v npx >/dev/null 2>&1; then
+        echo "✓ npx"
+    else
+        echo "error: npx is missing; Claude Code needs it to start XcodeBuildMCP (.mcp.json)." >&2
+        echo "       Install Node.js 18+, e.g. brew install node" >&2
+        exit 1
+    fi
     echo "✓ simulator $(just _sim-name) (iOS {{SIM_OS}}): $(just _sim-udid)"
     git config core.hooksPath .githooks
     echo "✓ git hooks: .githooks"
