@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Enabled by `just bootstrap` (git config core.hooksPath .githooks).
+# Blocks the commit on any swift-format or SwiftLint violation; run `just format` to fix.
+set -euo pipefail
+
+exec just lint
