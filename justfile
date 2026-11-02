@@ -118,6 +118,24 @@ format:
     swift format -i -r {{src_dirs}}
     swiftlint --fix --quiet
 
+# Print every decision in docs/decisions/ as a table, oldest first.
+decisions:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {
+        printf 'DATE\tISSUE\tSTATUS\tDECISION\tFILE\n'
+        for f in docs/decisions/[0-9]*.md; do
+            awk -v file="$(basename "$f")" '
+                /^---$/ { fences++; next }
+                fences == 1 && $1 == "date:" { date = $2 }
+                fences == 1 && $1 == "issue:" { issue = $2 }
+                fences == 1 && $1 == "status:" { status = $2 }
+                fences >= 2 && /^# / { sub(/^# /, ""); title = $0; exit }
+                END { printf "%s\t#%s\t%s\t%s\t%s\n", date, issue, status, title, file }
+            ' "$f"
+        done | sort -t $'\t' -k1,1 -k2.2n
+    } | column -t -s $'\t'
+
 # Remove build output and the generated Xcode project.
 clean:
     rm -rf build {{project}}

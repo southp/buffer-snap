@@ -45,7 +45,7 @@ jobs:
 
             Review this pull request. The PR branch is checked out in the current directory.
 
-            1. Read `CLAUDE.md` and every doc it links (e.g. `docs/decisions.md`). Treat its
+            1. Read `CLAUDE.md` and every doc it links (e.g. `docs/decisions/`). Treat its
                rules as the review standard: workflow, commit format, lint policy, layout.
                Flag violations and cite the rule.
             2. Find the issue this PR closes: run

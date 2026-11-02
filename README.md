@@ -66,4 +66,4 @@ Any editor with LSP support works through Apple's `sourcekit-lsp`, which ships w
 
 For Neovim 0.11+ with [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), add `vim.lsp.enable('sourcekit')` to your config.
 
-Project conventions are in [`CLAUDE.md`](CLAUDE.md), and the reasoning behind tooling choices is in [`docs/decisions.md`](docs/decisions.md).
+Project conventions are in [`CLAUDE.md`](CLAUDE.md), and the reasoning behind tooling choices is in [`docs/decisions/`](docs/decisions/).

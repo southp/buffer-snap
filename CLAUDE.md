@@ -3,7 +3,7 @@
 Native iOS app (SwiftUI, iOS 18+, Swift 6 strict concurrency) with a terminal-only dev loop.
 Never open the Xcode GUI to build, run, or test. Use the `just` recipes below.
 
-Decisions and their reasons live in [`docs/decisions.md`](docs/decisions.md). Append a row whenever you make one.
+Decisions and their reasons live in [`docs/decisions/`](docs/decisions/), one file per decision. See its README for the format.
 
 ## Commands
 
@@ -42,7 +42,7 @@ When you add a source folder, append it to `src_dirs` at the top of `justfile` s
   Keep commits small and self-contained; each one must build, lint and test on its own.
 - Run `just test` **before** changing anything to get a baseline, so you can tell pre-existing failures from regressions.
 - Run `just lint` and `just test` before every commit.
-- Fix lint violations at the root; don't disable a rule without a documented reason in `docs/decisions.md`.
+- Fix lint violations at the root; don't disable a rule without a documented reason in `docs/decisions/`.
 
 ## PR review
 
