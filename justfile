@@ -10,10 +10,6 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 SIM_DEVICE := env("SIM_DEVICE", "iPhone 16")
 SIM_OS := env("SIM_OS", "27.2")
 
-# Source folders checked by `lint` and `format`. Later issues append their folders.
-# swift-format has no exclude option, so `-r .` would walk build/ and DerivedData.
-src_dirs := "App AppTests"
-
 project := "BufferSnap.xcodeproj"
 scheme := "BufferSnap"
 derived_data := "build/DerivedData"
@@ -109,15 +105,23 @@ lsp: gen
         -derivedDataPath {{derived_data}} \
         | xcbeautify
 
-# Check formatting (swift-format) and lint rules (SwiftLint); fails on any violation.
+# Check formatting (swift-format) and lint rules (SwiftLint) on every Swift file; fails on any violation.
 lint:
-    swift format lint --strict -r {{src_dirs}}
-    swiftlint --strict --quiet
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files=()
+    while IFS= read -r -d '' f; do files+=("$f"); done < <(just _swift-files)
+    swift format lint --strict "${files[@]}"
+    swiftlint lint --strict --quiet "${files[@]}"
 
-# Fix formatting in place, then auto-correct what SwiftLint can.
+# Fix formatting in place on every Swift file, then auto-correct what SwiftLint can.
 format:
-    swift format -i -r {{src_dirs}}
-    swiftlint --fix --quiet
+    #!/usr/bin/env bash
+    set -euo pipefail
+    files=()
+    while IFS= read -r -d '' f; do files+=("$f"); done < <(just _swift-files)
+    swift format -i "${files[@]}"
+    swiftlint --fix --quiet "${files[@]}"
 
 # Print every decision in docs/decisions/ as a table, oldest first.
 decisions:
@@ -159,6 +163,25 @@ sims-prune:
 # Remove build output and the generated Xcode project.
 clean:
     rm -rf build {{project}}
+
+# NUL-separated list of every Swift file git tracks or would track (so new, uncommitted files count).
+# Gitignored paths like build/ and DerivedData are skipped, and new folders need no justfile edit.
+_swift-files:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    found=0
+    while IFS= read -r -d '' f; do
+        # --cached still lists tracked files deleted from the working tree.
+        if [[ -f "$f" ]]; then
+            printf '%s\0' "$f"
+            found=1
+        fi
+    done < <(git ls-files -z --cached --others --exclude-standard --deduplicate -- '*.swift')
+    # An empty list would make swift-format read stdin and hang.
+    if [[ "$found" == 0 ]]; then
+        echo "error: no Swift files found" >&2
+        exit 1
+    fi
 
 # Print this checkout's simulator name: SIM_DEVICE, plus the worktree's folder name in a linked worktree.
 _sim-name:

@@ -15,11 +15,9 @@ Decisions and their reasons live in [`docs/decisions/`](docs/decisions/), one fi
 | `just test` | Runs the unit tests on the pinned simulator (`SIM_DEVICE` / `SIM_OS`, overridable via env) |
 | `just run` | Builds, installs and launches the app on the pinned simulator |
 | `just lsp` | Writes `buildServer.json` (gitignored) and compiles every target, so `sourcekit-lsp` understands the project |
-| `just lint` | `swift format lint --strict` + `swiftlint --strict` on `src_dirs`; also runs as the pre-commit hook |
+| `just lint` | `swift format lint --strict` + `swiftlint --strict` on every Swift file git knows about; also runs as the pre-commit hook |
 | `just format` | Fixes formatting in place, then `swiftlint --fix` |
 | `just clean` | Removes `build/` and the generated project |
-
-When you add a source folder, append it to `src_dirs` at the top of `justfile` so it gets linted.
 
 ## Editor (language server)
 
