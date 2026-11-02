@@ -60,7 +60,7 @@ test: gen
     #!/usr/bin/env bash
     set -euo pipefail
     udid="$(just _sim-udid)"
-    xcodebuild test \
+    TEST_RUNNER_SNAPSHOT_RECORD="${SNAPSHOT_RECORD:-0}" TEST_RUNNER_SNAPSHOT_ARTIFACTS="{{justfile_directory()}}/build/snapshot-failures" xcodebuild test \
         -project {{project}} \
         -scheme {{scheme}} \
         -destination "id=${udid}" \
@@ -84,6 +84,10 @@ run: build
         || echo "note: no simulator UI found; the app is running headless" >&2
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
+
+# Run the tests in record mode: rewrite every snapshot PNG under AppTests/__Snapshots__/. Read the PNGs before committing.
+snapshots-record:
+    SNAPSHOT_RECORD=1 just test
 
 # Give editors project context: write buildServer.json for sourcekit-lsp and compile every target once.
 lsp: gen
