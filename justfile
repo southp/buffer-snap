@@ -20,7 +20,7 @@ bundle_id := "me.southp.buffersnap"
 default:
     @just --list
 
-# One-time setup: check Xcode, install missing CLI tools, create the pinned simulator, enable git hooks.
+# One-time setup: check Xcode and npx, install missing CLI tools, create the pinned simulator, enable git hooks.
 bootstrap:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -38,6 +38,14 @@ bootstrap:
             brew install "$tool"
         fi
     done
+    # XcodeBuildMCP (.mcp.json) runs through npx, which comes with Node.js.
+    if command -v npx >/dev/null 2>&1; then
+        echo "✓ npx"
+    else
+        echo "error: npx is missing; Claude Code needs it to start XcodeBuildMCP (.mcp.json)." >&2
+        echo "       Install Node.js 18+, e.g. brew install node" >&2
+        exit 1
+    fi
     echo "✓ simulator $(just _sim-name) (iOS {{SIM_OS}}): $(just _sim-udid)"
     git config core.hooksPath .githooks
     echo "✓ git hooks: .githooks"
@@ -60,7 +68,7 @@ test: gen
     #!/usr/bin/env bash
     set -euo pipefail
     udid="$(just _sim-udid)"
-    xcodebuild test \
+    TEST_RUNNER_SNAPSHOT_RECORD="${SNAPSHOT_RECORD:-0}" TEST_RUNNER_SNAPSHOT_ARTIFACTS="{{justfile_directory()}}/build/snapshot-failures" xcodebuild test \
         -project {{project}} \
         -scheme {{scheme}} \
         -destination "id=${udid}" \
@@ -84,6 +92,10 @@ run: build
         || echo "note: no simulator UI found; the app is running headless" >&2
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
+
+# Run the tests in record mode: rewrite every snapshot PNG under AppTests/__Snapshots__/. Read the PNGs before committing.
+snapshots-record:
+    SNAPSHOT_RECORD=1 just test
 
 # Give editors project context: write buildServer.json for sourcekit-lsp and compile every target once.
 lsp: gen
