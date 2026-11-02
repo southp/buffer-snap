@@ -3,8 +3,9 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# Pinned simulator, shared by local runs and CI so snapshots stay identical.
-# Override via env, e.g. `SIM_DEVICE="iPhone 17" just test`.
+# Pinned simulator model and runtime, shared by local runs and CI so snapshots stay identical.
+# Override via env, e.g. `SIM_DEVICE="iPhone 17" just test`. Each git worktree gets its own device
+# of this model ("iPhone 16 (worktree: <dir>)") so parallel agents never share a simulator.
 # SIM_OS is the iOS runtime bundled with the pinned Xcode (27.2); bump both together.
 SIM_DEVICE := env("SIM_DEVICE", "iPhone 16")
 SIM_OS := env("SIM_OS", "27.2")
@@ -41,7 +42,7 @@ bootstrap:
             brew install "$tool"
         fi
     done
-    echo "✓ simulator {{SIM_DEVICE}} (iOS {{SIM_OS}}): $(just _sim-udid)"
+    echo "✓ simulator $(just _sim-name) (iOS {{SIM_OS}}): $(just _sim-udid)"
     git config core.hooksPath .githooks
     echo "✓ git hooks: .githooks"
 
@@ -136,14 +137,44 @@ decisions:
         done | sort -t $'\t' -k1,1 -k2.2n
     } | column -t -s $'\t'
 
+# Delete per-worktree simulators whose worktree no longer exists.
+sims-prune:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    live="$(git worktree list --porcelain | sed -n 's/^worktree //p' | xargs -I{} basename {})"
+    xcrun simctl list devices -j \
+        | jq -r '.devices[][] | select(.name | test(" \\(worktree: .+\\)$")) | "\(.udid)\t\(.name)"' \
+        | while IFS=$'\t' read -r udid name; do
+            dir="${name##*(worktree: }"
+            dir="${dir%)}"
+            if grep -qxF "$dir" <<<"$live"; then
+                echo "keep    $name"
+            else
+                xcrun simctl shutdown "$udid" 2>/dev/null || true
+                xcrun simctl delete "$udid"
+                echo "deleted $name"
+            fi
+        done
+
 # Remove build output and the generated Xcode project.
 clean:
     rm -rf build {{project}}
 
-# Print the UDID of the pinned simulator, creating it if missing.
+# Print this checkout's simulator name: SIM_DEVICE, plus the worktree's folder name in a linked worktree.
+_sim-name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "$(git rev-parse --path-format=absolute --git-dir)" == "$(git rev-parse --path-format=absolute --git-common-dir)" ]]; then
+        echo "{{SIM_DEVICE}}"
+    else
+        echo "{{SIM_DEVICE}} (worktree: $(basename "$(git rev-parse --show-toplevel)"))"
+    fi
+
+# Print the UDID of this checkout's simulator, creating it if missing.
 _sim-udid:
     #!/usr/bin/env bash
     set -euo pipefail
+    sim_name="$(just _sim-name)"
     runtimes="$(xcrun simctl list runtimes -j)"
     device_type="$(xcrun simctl list devicetypes -j | jq -r --arg name "{{SIM_DEVICE}}" \
         '.devicetypes[] | select(.name == $name) | .identifier')"
@@ -162,13 +193,13 @@ _sim-udid:
         echo "       Run: xcodebuild -downloadPlatform iOS  (see #8)" >&2
         exit 1
     fi
-    udid="$(xcrun simctl list devices available -j | jq -r --arg name "{{SIM_DEVICE}}" \
+    udid="$(xcrun simctl list devices available -j | jq -r --arg name "$sim_name" \
         --argjson runtimes "$(jq -R . <<<"$runtime_ids" | jq -s .)" \
         '[.devices | to_entries[] | select(.key as $k | $runtimes | index($k))
           | .value[] | select(.name == $name) | .udid] | first // empty')"
     if [[ -z "$udid" ]]; then
         runtime="$(head -n1 <<<"$runtime_ids")"
-        udid="$(xcrun simctl create "{{SIM_DEVICE}}" "$device_type" "$runtime")"
-        echo "created simulator '{{SIM_DEVICE}}' on $runtime" >&2
+        udid="$(xcrun simctl create "$sim_name" "$device_type" "$runtime")"
+        echo "created simulator '$sim_name' on $runtime" >&2
     fi
     echo "$udid"
