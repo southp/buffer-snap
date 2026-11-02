@@ -34,3 +34,10 @@ When you add a source folder, append it to `src_dirs` at the top of `justfile` s
 - Run `just test` **before** changing anything to get a baseline, so you can tell pre-existing failures from regressions.
 - Run `just lint` and `just test` before every commit.
 - Fix lint violations at the root; don't disable a rule without a documented reason in `docs/decisions.md`.
+
+## PR review
+
+- Every non-draft PR gets an automatic Claude review (`.github/workflows/claude-code-review.yml`) when it's opened, marked ready, or pushed to. The review checks the PR against this file and the acceptance criteria of the issue it `Closes`.
+- Comment `@claude <request>` on a PR or issue to have Claude act on it (`.github/workflows/claude.yml`), for example to push a fix to the PR branch. Only collaborators with write access can trigger it.
+- Both workflows run on Linux runners without Xcode, so Claude there can't run `just`. Run `just lint` and `just test` locally on anything it pushes before merging.
+- New PRs are prefilled from `.github/pull_request_template.md`. Fill in every section, including snapshot changes.
