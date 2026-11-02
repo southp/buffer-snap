@@ -60,3 +60,12 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# BufferSnap
+#
+# The Xcode project is generated from project.yml by XcodeGen (`just gen`).
+*.xcodeproj/
+build/
+DerivedData/
+# Git worktrees used for parallel issue branches.
+.worktrees/
