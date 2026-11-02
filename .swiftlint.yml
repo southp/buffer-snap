@@ -16,3 +16,21 @@ excluded:
 # default `trailing_comma` rule forbids. Require them instead so both tools agree.
 trailing_comma:
   mandatory_comma: true
+
+custom_rules:
+  # Core must stay UI-free so `swift test` covers it on macOS without a simulator (see docs/architecture.md).
+  # The package compiles fine with SwiftUI on macOS, so only this rule catches a stray UI import.
+  no_ui_import_in_core:
+    name: "No UI import in Core"
+    message: "BufferSnapCore must not import a UI framework; move UI code to App/ (or Widget/)."
+    included: "Packages/BufferSnapCore/.*\\.swift$"
+    # Any attributes (`@preconcurrency`, `@testable`), then `import`, an optional kind (`import struct`), and the module.
+    regex: "^\\s*(@\\w+\\s+)*import\\s+((typealias|struct|class|enum|protocol|let|var|func)\\s+)?(SwiftUI|SwiftUICore|UIKit|AppKit|WidgetKit)\\b"
+    excluded_match_kinds:
+      - comment
+      - comment.mark
+      - comment.url
+      - doccomment
+      - doccomment.field
+      - string
+    severity: error
