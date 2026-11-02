@@ -37,17 +37,19 @@ jobs:
         run: brew install just
 
       - name: Install the pinned iOS simulator runtime
-        # The image lacks the iOS runtime the justfile pins (SIM_OS), so download it,
-        # rather than changing the pin. Skipped once the image ships it.
+        # The image lacks an iOS SIM_OS runtime that runs SIM_DEVICE, so download the same build
+        # developers have locally (`xcrun simctl runtime list`) rather than change the pins. Asking
+        # for "27.2" instead gets a device-specific runtime (iOS-27-2-iPhone19-4) without iPhone 16.
+        # Skipped once the image ships a runtime that works.
+        env:
+          SIM_RUNTIME_BUILD: 24B8117
         run: |
-          sim_os="$(just --evaluate SIM_OS)"
-          if xcrun simctl list runtimes -j \
-              | jq -e --arg os "$sim_os" '.runtimes[] | select(.isAvailable and .platform == "iOS" and .version == $os)' >/dev/null; then
-            echo "iOS $sim_os runtime already installed"
+          if just _sim-udid >/dev/null 2>&1; then
+            echo "The image already has a runtime for the pinned simulator"
           else
-            xcodebuild -downloadPlatform iOS -buildVersion "$sim_os"
+            xcodebuild -downloadPlatform iOS -buildVersion "$SIM_RUNTIME_BUILD"
           fi
-          xcrun simctl list runtimes
+          xcrun simctl runtime list
 
       - name: Bootstrap
         run: just bootstrap
