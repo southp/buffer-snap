@@ -4,7 +4,7 @@ import SwiftUI
 struct BufferSnapApp: App {
     var body: some Scene {
         WindowGroup {
-            Text("BufferSnap")
+            RootView()
         }
     }
 }
