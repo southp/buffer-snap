@@ -35,3 +35,29 @@ The goal is to publicly launch the v1 in the app store within the [Buffer Commit
 4. v1.2, audio: Capturing by audio works. This is where a general mechanism of internal trimming/processing of multimedia files will be introduced, and is likely more complicated than I thought. (~ Nov. 21)
 5. v1.3, video: Capturing by video works. It's likely the hardest part so hard to tell. 
    * No matter what, go feature-freeze on Nov. 25, update in the app store, and then submit my application to Buffer Commit no matter what on Nov. 28
+
+## Development
+Everything runs from the terminal through [`just`](https://github.com/casey/just) recipes, without opening the Xcode GUI.
+
+### Prerequisites
+- Xcode with the iOS platform installed and selected, plus `xcodegen`, `swiftlint` and `xcbeautify` (see [#8](https://github.com/southp/buffer-snap/issues/8))
+- `just` (`brew install just`)
+
+### Getting started
+```sh
+just bootstrap   # check Xcode, install missing tools, create the pinned simulator, enable git hooks
+just run         # build and launch the app in the iPhone Simulator
+```
+
+### Recipes
+| Recipe | What it does |
+|---|---|
+| `just gen` | Generate `BufferSnap.xcodeproj` from `project.yml` |
+| `just build` | Build for the iOS Simulator |
+| `just test` | Run unit tests on the pinned simulator (`SIM_DEVICE`, `SIM_OS`) |
+| `just run` | Build, install and launch on the pinned simulator |
+| `just lint` | Check formatting and lint rules (also the pre-commit hook) |
+| `just format` | Fix formatting in place |
+| `just clean` | Remove build output and the generated project |
+
+Project conventions are in [`CLAUDE.md`](CLAUDE.md), and the reasoning behind tooling choices is in [`docs/decisions.md`](docs/decisions.md).
