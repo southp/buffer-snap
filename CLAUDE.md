@@ -29,9 +29,9 @@ Decisions and their reasons live in [`docs/decisions/`](docs/decisions/), one fi
 
 ## Layout
 
-- `project.yml`: XcodeGen spec (targets, settings, scheme)
-- `App/`: the `BufferSnap` app target
-- `AppTests/`: the `BufferSnapTests` unit-test target (Swift Testing)
+- `project.yml`: XcodeGen root spec (project settings, scheme); includes each target's `target.yml`
+- `App/`: the `BufferSnap` app target (`App/target.yml`)
+- `AppTests/`: the `BufferSnapTests` unit-test target, Swift Testing (`AppTests/target.yml`)
 
 ## Workflow
 

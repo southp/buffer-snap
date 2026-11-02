@@ -1,0 +1,21 @@
+# XcodeGen spec for the BufferSnap app target, included from the root project.yml.
+# Paths are relative to the repo root.
+targets:
+  BufferSnap:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        # Keep this spec and the area's CLAUDE.md out of the app bundle.
+        excludes:
+          - "target.yml"
+          - "**/*.md"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1"
