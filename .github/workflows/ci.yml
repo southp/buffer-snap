@@ -41,13 +41,12 @@ jobs:
         # developers have locally (`xcrun simctl runtime list`) rather than change the pins. Asking
         # for "27.2" instead gets a device-specific runtime (iOS-27-2-iPhone19-4) without iPhone 16.
         # Skipped once the image ships a runtime that works.
-        env:
-          SIM_RUNTIME_BUILD: 24B8117
         run: |
           if just _sim-udid >/dev/null 2>&1; then
             echo "The image already has a runtime for the pinned simulator"
           else
-            xcodebuild -downloadPlatform iOS -buildVersion "$SIM_RUNTIME_BUILD"
+            build="$(just --evaluate SIM_RUNTIME_BUILD)"
+            xcodebuild -downloadPlatform iOS -buildVersion "$build"
           fi
           xcrun simctl runtime list
 

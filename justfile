@@ -7,8 +7,11 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # Override via env, e.g. `SIM_DEVICE="iPhone 17" just test`. Each git worktree gets its own device
 # of this model ("iPhone 16 (worktree: <dir>)") so parallel agents never share a simulator.
 # SIM_OS is the iOS runtime bundled with the pinned Xcode (27.2); bump both together.
+# SIM_RUNTIME_BUILD is that runtime's exact build (`xcrun simctl runtime list`): snapshots only match on
+# the same build, and it's how to download it (asking for the version can get a device-specific runtime).
 SIM_DEVICE := env("SIM_DEVICE", "iPhone 16")
 SIM_OS := env("SIM_OS", "27.2")
+SIM_RUNTIME_BUILD := env("SIM_RUNTIME_BUILD", "24B8117")
 
 project := "BufferSnap.xcodeproj"
 scheme := "BufferSnap"
@@ -224,15 +227,14 @@ _sim-udid:
         echo "error: Xcode has no simulator device type named '{{SIM_DEVICE}}'." >&2
         exit 1
     fi
-    # Runtimes that run this device type on the pinned iOS version. Device-specific
-    # runtimes (e.g. iOS-27-2-iPhone19-4) only list their own device type, so this
-    # also picks the general runtime for most devices.
-    runtime_ids="$(jq -r --arg os "{{SIM_OS}}" --arg type "$device_type" \
-        '.runtimes[] | select(.isAvailable and .version == $os)
+    # The pinned runtime build, if it's installed and runs this device type. Device-specific
+    # runtimes (e.g. iOS-27-2-iPhone19-4) only list their own device type, and have their own build.
+    runtime_ids="$(jq -r --arg os "{{SIM_OS}}" --arg build "{{SIM_RUNTIME_BUILD}}" --arg type "$device_type" \
+        '.runtimes[] | select(.isAvailable and .version == $os and .buildversion == $build)
          | select(any(.supportedDeviceTypes[]; .identifier == $type)) | .identifier' <<<"$runtimes")"
     if [[ -z "$runtime_ids" ]]; then
-        echo "error: no available iOS {{SIM_OS}} runtime supports '{{SIM_DEVICE}}'." >&2
-        echo "       Run: xcodebuild -downloadPlatform iOS  (see #8)" >&2
+        echo "error: the pinned iOS {{SIM_OS}} runtime (build {{SIM_RUNTIME_BUILD}}) for '{{SIM_DEVICE}}' isn't installed." >&2
+        echo "       Run: xcodebuild -downloadPlatform iOS -buildVersion {{SIM_RUNTIME_BUILD}}" >&2
         exit 1
     fi
     udid="$(xcrun simctl list devices available -j | jq -r --arg name "$sim_name" \
