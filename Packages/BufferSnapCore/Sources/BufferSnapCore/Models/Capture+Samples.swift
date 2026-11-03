@@ -26,6 +26,11 @@ extension Capture {
         ]
     }
 
+    /// The capture a Snapper widget button makes until real capture lands. It's dated now, so it tops the list.
+    public static func mock(kind: Kind) -> Capture {
+        Capture(kind: kind, status: .pending, text: "Mock \(kind.rawValue) capture")
+    }
+
     private static func sampleID(_ number: UInt8) -> UUID {
         UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, number))
     }
