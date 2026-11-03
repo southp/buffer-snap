@@ -38,6 +38,8 @@ Each view gets a snapshot test in `AppTests/` that renders it, full-screen, in e
 - Snapshot a screen's stateless view, not the screen. Wrap it in a `NavigationStack` if the screen shows it in one,
   so its title renders.
 - Name each snapshot after the state it shows (`named: "empty"`, `named: "signedOut"`), one PNG per state.
+- Keep truncated text out of snapshot fixtures: a truncated line can render 1px off on CI and fail a snapshot that
+  passes locally (`docs/decisions/27-no-truncated-text-in-snapshots.md`). Don't lower the precision to absorb it.
 - `just test` never records. A view that renders differently fails, and the failure names two PNGs: the reference
   in `AppTests/__Snapshots__/` and the new rendering in `build/snapshot-failures/`. Read both.
 - **Never re-record just to make a failing test pass.** Look at the diff first. Re-record only when the change is
