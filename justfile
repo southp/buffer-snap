@@ -151,6 +151,20 @@ format:
     swift format -i "${files[@]}"
     swiftlint --fix --quiet "${files[@]}"
 
+# Render the app icon's source, docs/design/app-icon.svg, to its PNG in the asset catalog. Needs Google Chrome and ffmpeg.
+app-icon:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+    { printf '<!doctype html><style>html,body{margin:0}svg{display:block}</style>'; cat docs/design/app-icon.svg; } > "$tmp/icon.html"
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --hide-scrollbars \
+        --force-device-scale-factor=1 --window-size=1024,1024 --user-data-dir="$tmp/profile" \
+        --screenshot="$tmp/icon.png" "file://$tmp/icon.html" > /dev/null 2>&1
+    # rgb24 drops the alpha channel, which App Store Connect rejects in an app icon.
+    ffmpeg -hide_banner -loglevel error -y -i "$tmp/icon.png" -frames:v 1 -update 1 -pix_fmt rgb24 \
+        App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+
 # Print every decision in docs/decisions/ as a table, oldest first.
 decisions:
     #!/usr/bin/env bash

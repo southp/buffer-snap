@@ -62,3 +62,9 @@ For multi-screen flows (navigation, sign-in, anything a single view can't show),
   `find ~/.npm/_npx -path '*xcodebuildmcp/bundled/axe' -type f`):
   `axe tap -x <x> -y <y> --tap-style physical --udid "$(just _sim-udid)"`. Its `axe swipe` worked as is.
 - Screenshots from a run don't replace snapshot tests. Once a screen looks right, cover its states with snapshots.
+
+## App icon
+
+`App/Assets.xcassets/AppIcon.appiconset/AppIcon.png` is generated from `docs/design/app-icon.svg`. Edit the SVG, run
+`just app-icon`, and commit both. It's one 1024×1024 PNG with no transparency, and iOS derives the other sizes and the
+dark and tinted looks. It's a stand-in until there's final branding (`docs/decisions/35-stand-in-app-icon.md`).
