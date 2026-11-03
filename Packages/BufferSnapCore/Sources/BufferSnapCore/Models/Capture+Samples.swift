@@ -20,7 +20,7 @@ extension Capture {
                 kind: .text,
                 createdAt: minutesAgo(1_440),
                 status: .submitted,
-                text: "Gym thought: nobody reads a thread past tweet three"
+                text: "Thread hook idea"
             ),
             Capture(id: sampleID(5), kind: .video, createdAt: minutesAgo(4_320), text: "Launch teaser"),
         ]
