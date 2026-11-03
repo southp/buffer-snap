@@ -1,6 +1,7 @@
 import BufferSnapCore
 import OSLog
 import SwiftUI
+import WidgetKit
 
 @main
 struct BufferSnapApp: App {
@@ -20,15 +21,23 @@ struct BufferSnapApp: App {
         }
     }
 
-    /// The App Group store the widget also writes to, seeded with the mock captures on the first launch.
+    /// The App Group store the widget also writes to, seeded with the mock captures on the first launch. Every write
+    /// through it reloads the widget, so its count never goes stale.
     private static func makeCaptureStore() -> any CaptureStore {
         let seed = Capture.samples(relativeTo: .now)
+        let store: any CaptureStore
         do {
-            return try JSONFileCaptureStore(fileURL: SharedStorage.capturesFileURL(), seedIfMissing: seed)
+            store = try JSONFileCaptureStore(fileURL: SharedStorage.capturesFileURL(), seedIfMissing: seed)
         } catch {
             // Still usable, but nothing persists or reaches the widget. Showing this comes with the MVP.
             Logger().error("Can't open the shared capture store: \(error)")
-            return InMemoryCaptureStore(seed: seed)
+            store = InMemoryCaptureStore(seed: seed)
         }
+        let reloadWidget: @Sendable () -> Void = {
+            WidgetCenter.shared.reloadTimelines(ofKind: SharedStorage.widgetKind)
+        }
+        // The seed above may have just changed the count of a widget added before this first launch.
+        reloadWidget()
+        return NotifyingCaptureStore(base: store, onChange: reloadWidget)
     }
 }
