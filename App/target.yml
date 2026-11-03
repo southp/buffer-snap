@@ -19,6 +19,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap
+        # Not XcodeGen's `entitlements:` key: without `properties` it overwrites this file with an empty one.
+        CODE_SIGN_ENTITLEMENTS: App/BufferSnap.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
