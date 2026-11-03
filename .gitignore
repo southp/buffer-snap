@@ -71,3 +71,6 @@ DerivedData/
 .worktrees/
 # sourcekit-lsp build server config, written by `just lsp` (machine-specific absolute paths).
 buildServer.json
+
+# Team and App Store Connect key details for `just deploy`. Template: .env.example.
+.env
