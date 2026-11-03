@@ -36,7 +36,9 @@ jobs:
         id: path
         # Fast path only for PRs whose changed files are all on this allowlist (docs, the PR template,
         # the Claude workflows). Anything else, ci.yml and justfile included, takes the full path,
-        # and so does every push to main.
+        # and so does every push to main. In a `case`, `*` also matches `/`, so `*.md` and `docs/*` match at any
+        # depth. That's on purpose, to cover each area's CLAUDE.md, and safe because target specs exclude Markdown
+        # from bundles. Don't make a Markdown file an input to the build without narrowing these patterns.
         env:
           EVENT: ${{ github.event_name }}
         run: |
