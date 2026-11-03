@@ -46,4 +46,13 @@ struct CaptureTests {
         #expect(shifted.map(\.id) == base.map(\.id))
         #expect(shifted.map(\.createdAt) == base.map { $0.createdAt.addingTimeInterval(3_600) })
     }
+
+    @Test(arguments: Capture.Kind.allCases)
+    func mockIsPendingAndNamesItsKind(kind: Capture.Kind) {
+        let capture = Capture.mock(kind: kind)
+
+        #expect(capture.kind == kind)
+        #expect(capture.status == .pending)
+        #expect(capture.text == "Mock \(kind.rawValue) capture")
+    }
 }
