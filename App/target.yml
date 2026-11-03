@@ -16,6 +16,7 @@ targets:
           - "**/*.md"
     dependencies:
       - package: BufferSnapCore
+      - target: BufferSnapWidget
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap
