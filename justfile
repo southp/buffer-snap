@@ -65,9 +65,9 @@ _bootstrap-tools:
         exit 1
     fi
 
-# Generate BufferSnap.xcodeproj from project.yml.
+# Generate BufferSnap.xcodeproj from project.yml. An unset team stays empty; XcodeGen alone would keep the literal variable.
 gen:
-    xcodegen generate --quiet
+    DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}" xcodegen generate --quiet
 
 # Build the app for the iOS Simulator.
 build: gen
