@@ -1,10 +1,12 @@
 import BufferSnapCore
 import SwiftUI
 
-/// The capture list's container: owns `CaptureListModel`, loads it, and forwards deletes to it.
+/// The capture list's container: owns `CaptureListModel`, loads it on appearing and on returning to the foreground,
+/// and forwards deletes to it.
 /// Everything it shows is drawn by the stateless `CaptureListView`.
 struct CaptureListScreen: View {
     @State private var model: CaptureListModel
+    @Environment(\.scenePhase) private var scenePhase
 
     init(store: any CaptureStore) {
         _model = State(initialValue: CaptureListModel(store: store))
@@ -24,6 +26,14 @@ struct CaptureListScreen: View {
         }
         .task {
             await model.load()
+        }
+        // The widget writes to the store while the app is in the background.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task {
+                    await model.load()
+                }
+            }
         }
     }
 }
