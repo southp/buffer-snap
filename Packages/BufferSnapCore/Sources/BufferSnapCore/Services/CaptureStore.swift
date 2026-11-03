@@ -1,7 +1,7 @@
 /// Where captures are kept between launches, shared by the app and the widget.
 ///
-/// The real implementation (a JSON file in the App Group, #4) will be an `actor`, so the API is
-/// `async throws` and `Sendable`.
+/// The real implementation, `JSONFileCaptureStore`, is an `actor` doing file I/O, so the API is `async throws` and
+/// `Sendable`.
 public protocol CaptureStore: Sendable {
     /// Every stored capture, in no particular order.
     func all() async throws -> [Capture]

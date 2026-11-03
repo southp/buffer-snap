@@ -18,7 +18,7 @@ public final class CaptureListModel {
         do {
             captures = try await store.all().sorted { $0.createdAt > $1.createdAt }
         } catch {
-            // Keep the last loaded list. Showing the error comes with the real store (#4).
+            // Keep the last loaded list. Showing the error comes with the MVP.
         }
     }
 
@@ -28,7 +28,7 @@ public final class CaptureListModel {
             try await store.delete(id: capture.id)
             captures.removeAll { $0.id == capture.id }
         } catch {
-            // Keep it listed, since the store still has it. Showing the error comes with the real store (#4).
+            // Keep it listed, since the store still has it. Showing the error comes with the MVP.
         }
     }
 }
