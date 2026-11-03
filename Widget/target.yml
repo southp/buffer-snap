@@ -1,0 +1,24 @@
+# XcodeGen spec for the Snapper widget extension, included from the root project.yml and embedded by App/target.yml.
+# Paths are relative to the repo root. Team, signing and version settings come from the project level: don't override them here.
+targets:
+  BufferSnapWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widget
+        # Keep this spec and the area's CLAUDE.md out of the extension bundle.
+        excludes:
+          - "target.yml"
+          - "**/*.md"
+    dependencies:
+      - package: BufferSnapCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap.widget
+        # Not XcodeGen's `entitlements:` key: without `properties` it overwrites this file with an empty one.
+        CODE_SIGN_ENTITLEMENTS: Widget/BufferSnapWidget.entitlements
+        GENERATE_INFOPLIST_FILE: YES
+        # Holds only NSExtension, which has no INFOPLIST_KEY_ setting; the rest is generated.
+        INFOPLIST_FILE: Widget/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Snapper
+        TARGETED_DEVICE_FAMILY: "1"
