@@ -1,0 +1,27 @@
+/// A `CaptureStore` that calls `onChange` after every successful write to the store it wraps.
+///
+/// The app wraps its store in this to reload the widget's timelines, so no mutation can forget to and Core stays
+/// free of WidgetKit.
+public struct NotifyingCaptureStore: CaptureStore {
+    private let base: any CaptureStore
+    private let onChange: @Sendable () -> Void
+
+    public init(base: any CaptureStore, onChange: @escaping @Sendable () -> Void) {
+        self.base = base
+        self.onChange = onChange
+    }
+
+    public func all() async throws -> [Capture] {
+        try await base.all()
+    }
+
+    public func add(_ capture: Capture) async throws {
+        try await base.add(capture)
+        onChange()
+    }
+
+    public func delete(id: Capture.ID) async throws {
+        try await base.delete(id: id)
+        onChange()
+    }
+}
