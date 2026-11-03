@@ -24,7 +24,19 @@ default:
     @just --list
 
 # One-time setup: check Xcode and npx, install missing CLI tools, create the pinned simulator, enable git hooks.
-bootstrap:
+bootstrap: _bootstrap-tools
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Assign first: a failing $(...) inside echo's arguments wouldn't stop the script.
+    sim_name="$(just _sim-name)"
+    udid="$(just _sim-udid)"
+    echo "✓ simulator ${sim_name} (iOS {{SIM_OS}}): ${udid}"
+    git config core.hooksPath .githooks
+    echo "✓ git hooks: .githooks"
+
+# The part of bootstrap that needs no simulator: check Xcode and npx, install missing CLI tools.
+# CI's fast path runs only this.
+_bootstrap-tools:
     #!/usr/bin/env bash
     set -euo pipefail
     dev_dir="$(xcode-select -p 2>/dev/null || true)"
@@ -49,12 +61,6 @@ bootstrap:
         echo "       Install Node.js 18+, e.g. brew install node" >&2
         exit 1
     fi
-    # Assign first: a failing $(...) inside echo's arguments wouldn't stop the script.
-    sim_name="$(just _sim-name)"
-    udid="$(just _sim-udid)"
-    echo "✓ simulator ${sim_name} (iOS {{SIM_OS}}): ${udid}"
-    git config core.hooksPath .githooks
-    echo "✓ git hooks: .githooks"
 
 # Generate BufferSnap.xcodeproj from project.yml.
 gen:
