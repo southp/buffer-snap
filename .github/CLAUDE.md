@@ -60,7 +60,8 @@ N=<PR number>
 git fetch origin pr-media
 export GIT_INDEX_FILE="$(mktemp -u)"
 git read-tree FETCH_HEAD
-for f in shot.png flow.gif flow.mp4; do
+files=(shot.png flow.gif flow.mp4)   # Only the files you have
+for f in "${files[@]}"; do
     git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),pr-$N/$(basename "$f")"
 done
 tree="$(git write-tree)"
