@@ -53,7 +53,9 @@ UI automation can time out right after a clean boot, while the machine is satura
 - List in the PR whatever you staged (status bar, removed widgets, cuts in the video).
 
 **Host** the files on the `pr-media` branch, in `pr-<N>/`. Never commit media to your issue branch: with rebase merges,
-the binaries would stay in `main`'s history forever. These steps use a temporary index, so they don't touch your worktree:
+the binaries would stay in `main`'s history forever. Hosting needs the PR's number, so open the PR as a draft first and
+mark it ready once the media is in: drafts aren't reviewed, so the review then sees the media. These steps use a
+temporary index, so they don't touch your worktree:
 
 ```sh
 N=<PR number>
