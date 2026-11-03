@@ -4,15 +4,22 @@
 
 - Every PR and every push to `main` runs one job, `ci`: `just bootstrap`, `just lint`, `just test`, the same
   recipes you run locally. Branch protection on `main` requires it to pass. A newer push to the same branch cancels the older run.
+- **Fast path:** a PR whose changed files are all on the safe list (`*.md`, `docs/*`, `LICENSE`,
+  `workflows/claude.yml`, `workflows/claude-code-review.yml`) runs lint and Core tests only, in about 90s. Everything
+  else takes the full path, as does every push to `main`. The "Choose the path" step prints its decision and the file
+  list. The list is an allowlist in that step: add to it only what can't affect the app or its snapshots.
 - It runs on the `xcode-27` image with Xcode 27.2 and, if the image has no runtime for the pinned simulator,
-  downloads iOS runtime build `SIM_RUNTIME_BUILD` (`docs/decisions/6-*.md`). When you bump `SIM_OS` in `justfile`,
-  bump the Xcode path and `SIM_RUNTIME_BUILD` in `ci.yml` with it (`xcrun simctl runtime list` shows your build).
+  downloads iOS runtime build `SIM_RUNTIME_BUILD` (`docs/decisions/6-*.md`). When you bump the pin, change `SIM_OS` and
+  `SIM_RUNTIME_BUILD` in `justfile` and the Xcode path in `ci.yml` together (`xcrun simctl runtime list` shows your
+  build), then re-record every snapshot.
 - When it fails, the run's `test-artifacts` artifact has `build/snapshot-failures/` (the PNG CI rendered) and the
   `.xcresult` bundles: `gh run download <run-id> -n test-artifacts -D <dir>`. Compare that PNG with the reference in
   `AppTests/__Snapshots__/` before deciding anything. For the reference, failure and difference PNGs side by side,
   run `xcrun xcresulttool export attachments --path <dir>/DerivedData/Logs/Test/<name>.xcresult --output-path <out>`
   (`manifest.json` there names each file).
-- Don't add caching, a matrix or per-change test selection until CI time is a real problem (#6).
+- The full path's cost is the simulator's first boot, which saturates the runner for minutes
+  (`docs/decisions/27-no-early-simulator-boot.md`). Don't run other work alongside it.
+- Don't add a matrix, or per-change test selection beyond the fast path. Caching is out of scope so far (#27).
 - Renaming the `ci` job breaks the required check; change the branch rule with it.
 
 ## Claude review
