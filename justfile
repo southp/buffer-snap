@@ -253,3 +253,5 @@ _sim-udid:
         echo "created simulator '$sim_name' on $runtime" >&2
     fi
     echo "$udid"
+
+# scratch #27
