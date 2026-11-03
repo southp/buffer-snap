@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Full-bleed square: iOS applies the rounded mask. Regenerate the PNG with `just app-icon`. -->
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2F9BFF"/>
+      <stop offset="1" stop-color="#0A4FE0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <!-- Viewfinder corners: capture. -->
+  <g fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="52" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M172 330 V232 A60 60 0 0 1 232 172 H330"/>
+    <path d="M694 172 H792 A60 60 0 0 1 852 232 V330"/>
+    <path d="M852 694 V792 A60 60 0 0 1 792 852 H694"/>
+    <path d="M330 852 H232 A60 60 0 0 1 172 792 V694"/>
+  </g>
+  <!-- Hand-drawn bolt: speed. Not an SF Symbol, which Apple's terms don't allow in app icons. -->
+  <path d="M566 262 L352 556 H496 L458 762 L672 468 H528 Z" fill="#fff" stroke="#fff" stroke-width="32" stroke-linejoin="round"/>
+</svg>
