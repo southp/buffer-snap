@@ -22,4 +22,5 @@ None
 
 ## Screenshots
 
-<!-- Optional. Before/after images for UI changes. -->
+<!-- Required if this PR changes what a user can see: a screenshot of each changed state, plus a screencast for a flow.
+     How to capture and host them: .github/CLAUDE.md. If nothing visible changes, write "None". -->
