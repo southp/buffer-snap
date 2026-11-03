@@ -19,8 +19,6 @@
   (`manifest.json` there names each file).
 - The full path's cost is the simulator's first boot, which saturates the runner for minutes
   (`docs/decisions/27-no-early-simulator-boot.md`). Don't run other work alongside it.
-- Keep truncated text out of snapshot fixtures: a truncated line can render 1px off on CI and fail a snapshot that
-  passes locally (`docs/decisions/27-no-truncated-text-in-snapshots.md`). Don't lower the precision to absorb it.
 - Don't add a matrix, or per-change test selection beyond the fast path. Caching is out of scope so far (#27).
 - Renaming the `ci` job breaks the required check; change the branch rule with it.
 
