@@ -38,6 +38,8 @@ Several agents work at once, one per issue, each in its own git worktree.
   Keep commits small and self-contained; each one must build, lint and test on its own.
 - Run `just test` **before** changing anything to get a baseline, so you can tell pre-existing failures from regressions.
 - Run `just lint` and `just test` before every commit.
+- A PR that changes what a user can see shows it in its body: screenshots, plus a screencast for a flow. How to
+  capture and host them is in `.github/CLAUDE.md`.
 - Fix lint violations at the root; don't disable a rule without a documented reason in `docs/decisions/`.
 - Every PR gets an automatic Claude review, and `@claude` can push fixes (see `.github/CLAUDE.md`). Claude in CI
   can't run `just`, so run `just lint` and `just test` locally on anything it pushes before merging.
