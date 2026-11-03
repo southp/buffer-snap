@@ -52,6 +52,18 @@ just run         # build and launch the app in the iPhone Simulator
 ### Recipes
 Run `just --list` to see every recipe and what it does.
 
+### Deploying to TestFlight
+`just deploy` archives, signs and uploads a build. Your iPhone then offers it as an update in the TestFlight app.
+
+One-time setup, after the Apple account steps in [#11](https://github.com/southp/buffer-snap/issues/11):
+
+```sh
+cp .env.example .env   # gitignored; then fill in your team ID and API key details
+just deploy
+```
+
+The recipe stops before building if a value or the API key file is missing, or if the git tree is dirty, so every build matches a commit. Certificates and profiles are managed by Apple through the API key, so none live in this repo.
+
 ### Editor setup
 Any editor with LSP support works through Apple's `sourcekit-lsp`, which ships with Xcode. Run `just lsp` once per clone: it writes `buildServer.json` so the language server knows every target's build settings, which enables go-to-definition, references and diagnostics across files and targets.
 
