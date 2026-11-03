@@ -24,6 +24,9 @@ jobs:
     # See docs/decisions/6-xcode-27-runner.md.
     runs-on: xcode-27
     timeout-minutes: 60
+    env:
+      SIM_OS: "27.0"
+      SIM_RUNTIME_BUILD: "24A434"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -115,11 +118,22 @@ jobs:
         env:
           FULL: ${{ steps.path.outputs.full }}
         run: |
-          if [[ "$FULL" == "true" ]]; then
-            just test
-          else
-            just test-core
-          fi
+          set +e
+          save() { mkdir -p "/tmp/out/$1"; cp -R build/snapshot-failures/. "/tmp/out/$1/"; rm -rf build/snapshot-failures; }
+          date -u +%T; just test; save rc-1
+          date -u +%T; just test; save rc-2
+          sudo xcode-select -s /Applications/Xcode_27.0.app
+          xcodebuild -version
+          rm -rf build/DerivedData
+          date -u +%T; just test; save x270
+          date -u +%T
+          find /tmp/out -name '*.png' -print0 | xargs -0 shasum
+
+      - name: EXPERIMENT upload renders
+        uses: actions/upload-artifact@v7
+        with:
+          name: renders
+          path: /tmp/out/**
 
       - name: Upload test artifacts
         # Snapshot failures land in build/snapshot-failures/ (the actual PNG next to the path of the
