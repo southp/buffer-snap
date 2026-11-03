@@ -3,6 +3,9 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
+# Signing and App Store Connect details for `just deploy`. See .env.example.
+set dotenv-load
+
 # Pinned simulator model and runtime, shared by local runs and CI so snapshots stay identical.
 # Override via env, e.g. `SIM_DEVICE="iPhone 17" just test`. Each git worktree gets its own device
 # of this model ("iPhone 16 (worktree: <dir>)") so parallel agents never share a simulator.
@@ -108,6 +111,61 @@ run: build
         || echo "note: no simulator UI found; the app is running headless" >&2
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
+
+# Archive, sign and upload a build to TestFlight. One-time setup: README, "Deploying to TestFlight".
+deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    missing=()
+    for name in DEVELOPMENT_TEAM ASC_KEY_ID ASC_ISSUER_ID; do
+        if [[ -z "${!name:-}" ]]; then
+            missing+=("$name")
+        fi
+    done
+    if [[ "${#missing[@]}" -gt 0 ]]; then
+        echo "error: not set: ${missing[*]}. Add to .env (template: .env.example) or the environment." >&2
+        exit 1
+    fi
+    key_path="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8}"
+    # dotenv files don't expand "~".
+    key_path="${key_path/#\~/$HOME}"
+    if [[ ! -f "$key_path" ]]; then
+        echo "error: no App Store Connect API key at $key_path. Set ASC_KEY_PATH or see #11." >&2
+        exit 1
+    fi
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo "error: the git tree is dirty. Commit or remove your changes, so the build matches a commit:" >&2
+        git status --short >&2
+        exit 1
+    fi
+    just gen
+    # A UTC timestamp always increases, on any machine, so local and CI builds never clash.
+    build_number="$(date -u +%Y%m%d%H%M)"
+    auth=(
+        -allowProvisioningUpdates
+        -authenticationKeyPath "$key_path"
+        -authenticationKeyID "$ASC_KEY_ID"
+        -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+    )
+    mkdir -p build
+    xcodebuild archive \
+        -project {{project}} \
+        -scheme {{scheme}} \
+        -configuration Release \
+        -destination "generic/platform=iOS" \
+        -derivedDataPath {{derived_data}} \
+        -archivePath build/BufferSnap.xcarchive \
+        CURRENT_PROJECT_VERSION="$build_number" \
+        "${auth[@]}" \
+        | xcbeautify
+    plutil -replace teamID -string "$DEVELOPMENT_TEAM" -o build/ExportOptions.plist ExportOptions.plist
+    xcodebuild -exportArchive \
+        -archivePath build/BufferSnap.xcarchive \
+        -exportPath build/export \
+        -exportOptionsPlist build/ExportOptions.plist \
+        "${auth[@]}" \
+        | xcbeautify
+    echo "Uploaded build $build_number. It reaches TestFlight once Apple has processed it (about 5-15 minutes)."
 
 # Run the tests in record mode: rewrite every snapshot PNG under AppTests/__Snapshots__/. Read the PNGs before committing.
 snapshots-record:
