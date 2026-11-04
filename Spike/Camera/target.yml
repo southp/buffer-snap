@@ -15,4 +15,5 @@ targets:
         INFOPLIST_FILE: Spike/Camera/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Spike Camera
         INFOPLIST_KEY_NSCameraUsageDescription: Spike test of the lock screen camera.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Spike test of recording while locked.
         TARGETED_DEVICE_FAMILY: "1"

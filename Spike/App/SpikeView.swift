@@ -71,7 +71,7 @@ struct SpikeView: View {
             seen.insert(url.path)
             let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
             var details = "files=\(names)"
-            for name in names where name.hasSuffix(".jpg") {
+            for name in names where name != "log.txt" {
                 let path = url.appendingPathComponent(name).path
                 let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int) ?? -1
                 details += " \(name)=\(size)b"

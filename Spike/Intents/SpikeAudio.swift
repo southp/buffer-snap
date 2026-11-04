@@ -21,7 +21,8 @@ enum SpikeRecorder {
             return "no App Group"
         }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.record, mode: .default)
+        // Round 2's plain `.record` session failed with `!int`: a background app can't interrupt other audio.
+        try session.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers])
         try session.setActive(true)
         let settings: [String: Any] = [
             AVFormatIDKey: kAudioFormatMPEG4AAC,
@@ -72,6 +73,14 @@ struct SpikeAudioStartIntent: AudioRecordingIntent, LiveActivityIntent {
         }
         do {
             SpikeLog.write("audio-recording", surface: "control", detail: try SpikeRecorder.start())
+            // Stop asks for the passcode, so this shows whether audio was captured while still locked.
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(10))
+                SpikeLog.write("audio-autostop", surface: "control", detail: SpikeRecorder.stop())
+                for activity in Activity<SpikeAudioAttributes>.activities {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+            }
         } catch {
             SpikeLog.write("audio-record-error", surface: "control", detail: "\(error)")
         }
