@@ -126,6 +126,56 @@ struct SpikeTextDefaultIntent: AppIntent {
     }
 }
 
+/// Round 2: the same prompt in the app's process (`LiveActivityIntent` runs there), with a parameter summary.
+struct SpikeTextInAppIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Spike text in app"
+    static let isDiscoverable = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+
+    @Parameter(title: "Idea", requestValueDialog: "What's the idea?")
+    var idea: String?
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Snap \(\.$idea)")
+    }
+
+    func perform() async throws -> some IntentResult {
+        SpikeLog.write("textapp-start", surface: "control")
+        do {
+            let value: String
+            if let idea {
+                value = idea
+            } else {
+                value = try await $idea.requestValue("What's the idea?")
+            }
+            await SpikeAction.run("textapp-done", surface: "control", detail: "chars=\(value.count)")
+        } catch {
+            SpikeLog.write("textapp-error", surface: "control", detail: "\(error)")
+            throw error
+        }
+        return .result()
+    }
+}
+
+/// Round 2: a required parameter, which the system should ask for before `perform()` runs.
+struct SpikeTextRequiredIntent: AppIntent {
+    static let title: LocalizedStringResource = "Spike text required"
+    static let isDiscoverable = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+
+    @Parameter(title: "Idea", requestValueDialog: "What's the idea?")
+    var idea: String
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Snap \(\.$idea)")
+    }
+
+    func perform() async throws -> some IntentResult {
+        await SpikeAction.run("textreq-done", surface: "control", detail: "chars=\(idea.count)")
+        return .result()
+    }
+}
+
 struct SpikeOpenAppIntent: AppIntent {
     static let title: LocalizedStringResource = "Spike open app"
     static let isDiscoverable = false

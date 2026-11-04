@@ -119,7 +119,7 @@ struct SpikeControlAlways: ControlWidget {
 struct SpikeControlText: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "spike.control.text") {
-            ControlWidgetButton(action: SpikeTextIntent(surface: "control")) {
+            ControlWidgetButton(action: SpikeTextInAppIntent()) {
                 Label("S3 Text", systemImage: "3.circle")
             }
         }
@@ -130,11 +130,11 @@ struct SpikeControlText: ControlWidget {
 struct SpikeControlTextDefault: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "spike.control.textdefault") {
-            ControlWidgetButton(action: SpikeTextDefaultIntent(surface: "control")) {
-                Label("S4 Text default", systemImage: "4.circle")
+            ControlWidgetButton(action: SpikeTextRequiredIntent()) {
+                Label("S4 Text required", systemImage: "4.circle")
             }
         }
-        .displayName("S4 Text default")
+        .displayName("S4 Text required")
     }
 }
 

@@ -112,6 +112,44 @@ run: build
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
 
+# The phone must be connected, unlocked and in Developer Mode. Registers the phone and any new extension's bundle ID.
+# Build for the iPhone in DEVICE_ID, install and launch it: a fast loop with development signing, skipping TestFlight.
+device:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    missing=()
+    for name in DEVICE_ID DEVELOPMENT_TEAM ASC_KEY_ID ASC_ISSUER_ID; do
+        if [[ -z "${!name:-}" ]]; then
+            missing+=("$name")
+        fi
+    done
+    if [[ "${#missing[@]}" -gt 0 ]]; then
+        echo "error: not set: ${missing[*]}. Add to .env (template: .env.example) or the environment." >&2
+        echo "       xcrun devicectl list devices shows each phone's identifier." >&2
+        exit 1
+    fi
+    key_path="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8}"
+    # dotenv files don't expand "~".
+    key_path="${key_path/#\~/$HOME}"
+    if [[ ! -f "$key_path" ]]; then
+        echo "error: no App Store Connect API key at $key_path. Set ASC_KEY_PATH or see #11." >&2
+        exit 1
+    fi
+    just gen
+    xcodebuild build \
+        -project {{project}} \
+        -scheme {{scheme}} \
+        -configuration Debug \
+        -destination "id=$DEVICE_ID" \
+        -derivedDataPath {{derived_data}} \
+        -allowProvisioningUpdates \
+        -authenticationKeyPath "$key_path" \
+        -authenticationKeyID "$ASC_KEY_ID" \
+        -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+        | xcbeautify
+    xcrun devicectl device install app --device "$DEVICE_ID" "{{derived_data}}/Build/Products/Debug-iphoneos/{{scheme}}.app"
+    xcrun devicectl device process launch --device "$DEVICE_ID" {{bundle_id}}
+
 # Archive, sign and upload a build to TestFlight. One-time setup: README, "Deploying to TestFlight".
 deploy:
     #!/usr/bin/env bash

@@ -3,6 +3,8 @@ import ActivityKit
 import AppIntents
 
 /// Throwaway (#10): recording from a locked phone needs a Live Activity started at once.
+/// Round 1 ran `AudioRecordingIntent` alone, in the widget's process, where neither the activity nor the session can
+/// start. `LiveActivityIntent` is documented to run in the app's process.
 struct SpikeAudioAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var startedAt: Date
@@ -49,7 +51,7 @@ enum SpikeRecorder {
     }
 }
 
-struct SpikeAudioStartIntent: AudioRecordingIntent {
+struct SpikeAudioStartIntent: AudioRecordingIntent, LiveActivityIntent {
     static let title: LocalizedStringResource = "Spike record"
     static let isDiscoverable = false
     static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
