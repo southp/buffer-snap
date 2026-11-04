@@ -9,9 +9,10 @@ on:
     branches: [main]
 
 concurrency:
-  # A newer push to the same branch or PR supersedes the run in progress.
+  # A newer push to a PR supersedes its run in progress. Runs on main never cancel each other, so
+  # merges are tested and deployed one after the other, in order (docs/decisions/9-deploy-on-merge.md).
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
