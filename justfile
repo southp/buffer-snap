@@ -148,6 +148,7 @@ deploy:
         -authenticationKeyIssuerID "$ASC_ISSUER_ID"
     )
     mkdir -p build
+    # Archive unsigned: signing here would make each fresh CI machine create another development certificate.
     xcodebuild archive \
         -project {{project}} \
         -scheme {{scheme}} \
@@ -156,8 +157,24 @@ deploy:
         -derivedDataPath {{derived_data}} \
         -archivePath build/BufferSnap.xcarchive \
         CURRENT_PROJECT_VERSION="$build_number" \
-        "${auth[@]}" \
+        CODE_SIGNING_ALLOWED=NO \
         | xcbeautify
+    # Export reads each target's entitlements from its signature, so ad hoc signatures carry them to the real signing.
+    # The linker already signs every binary, so a target missed here would lose its entitlements without any error.
+    app=build/BufferSnap.xcarchive/Products/Applications/BufferSnap.app
+    for extension in "$app"/PlugIns/*; do
+        case "$(basename "$extension")" in
+            BufferSnapWidget.appex)
+                entitlements=Widget/BufferSnapWidget.entitlements
+                ;;
+            *)
+                echo "error: add $(basename "$extension") and its entitlements to the deploy recipe." >&2
+                exit 1
+                ;;
+        esac
+        codesign --force --sign - --entitlements "$entitlements" "$extension"
+    done
+    codesign --force --sign - --entitlements App/BufferSnap.entitlements "$app"
     plutil -replace teamID -string "$DEVELOPMENT_TEAM" -o build/ExportOptions.plist ExportOptions.plist
     xcodebuild -exportArchive \
         -archivePath build/BufferSnap.xcarchive \
