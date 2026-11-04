@@ -66,6 +66,16 @@ just deploy
 
 The recipe stops before building if a value or the API key file is missing, or if the git tree is dirty, so every build matches a commit. Certificates and profiles are managed by Apple through the API key, so none live in this repo.
 
+### Testing on your iPhone
+`just device` builds, installs and launches on your phone, with no TestFlight round trip. It's how to test anything that behaves differently on a real or locked device.
+
+One-time setup:
+
+1. Add the phone to your developer account at [developer.apple.com/account/resources/devices](https://developer.apple.com/account/resources/devices). The build can't do this through the API key.
+2. Put its identifier in `.env` as `DEVICE_ID`. `xcrun devicectl list devices` shows it.
+
+The phone must be connected and unlocked. This replaces the TestFlight build until you install from TestFlight again.
+
 ### Editor setup
 Any editor with LSP support works through Apple's `sourcekit-lsp`, which ships with Xcode. Run `just lsp` once per clone: it writes `buildServer.json` so the language server knows every target's build settings, which enables go-to-definition, references and diagnostics across files and targets.
 
