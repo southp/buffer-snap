@@ -3,7 +3,8 @@
 ## CI (`workflows/ci.yml`)
 
 - Every PR and every push to `main` runs one job, `ci`: `just bootstrap`, `just lint`, `just test`, the same
-  recipes you run locally. Branch protection on `main` requires it to pass. A newer push to the same branch cancels the older run.
+  recipes you run locally. Branch protection on `main` requires it to pass. A newer push to a PR cancels its older run; runs on `main` never
+  cancel each other.
 - **Fast path:** a PR whose changed files are all on the safe list (`*.md`, `docs/*`, `LICENSE`,
   `workflows/claude.yml`, `workflows/claude-code-review.yml`) runs lint and Core tests only, in about 90s. Everything
   else takes the full path, as does every push to `main`. The "Choose the path" step prints its decision and the file
@@ -21,6 +22,16 @@
   (`docs/decisions/27-no-early-simulator-boot.md`). Don't run other work alongside it.
 - Don't add a matrix, or per-change test selection beyond the fast path. Caching is out of scope so far (#27).
 - Renaming the `ci` job breaks the required check; change the branch rule with it.
+
+## Deploy (`deploy` job in `workflows/ci.yml`)
+
+- Each push to `main` that passes `ci` runs `just deploy`, so every merge reaches TestFlight, docs-only ones included.
+  PRs never run this job and never see its secrets.
+- The recipe archives unsigned, so CI needs no certificate of its own (`docs/decisions/9-unsigned-archive.md`).
+- It needs the repo secrets `ASC_KEY_P8` (the `.p8` file's contents), `ASC_KEY_ID`, `ASC_ISSUER_ID` and `DEVELOPMENT_TEAM`.
+- Runs on `main` go one at a time, in order. GitHub keeps only one waiting run per group, so with three quick merges the
+  middle one is skipped: its commit is still tested and deployed as part of the newest (`docs/decisions/9-deploy-on-merge.md`).
+- A failed `deploy` doesn't block merging. The next merge deploys everything, or re-run the job from the Actions tab.
 
 ## Screenshots and screencasts
 

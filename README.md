@@ -53,7 +53,9 @@ just run         # build and launch the app in the iPhone Simulator
 Run `just --list` to see every recipe and what it does.
 
 ### Deploying to TestFlight
-`just deploy` archives, signs and uploads a build. Your iPhone then offers it as an update in the TestFlight app.
+Every merge to `main` deploys on its own: once `ci` passes, a new build goes to TestFlight.
+
+To upload from your machine, `just deploy` archives, signs and uploads a build. Your iPhone then offers it as an update in the TestFlight app.
 
 One-time setup, after the Apple account steps in [#11](https://github.com/southp/buffer-snap/issues/11):
 
