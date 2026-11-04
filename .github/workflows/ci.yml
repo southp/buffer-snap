@@ -3,6 +3,7 @@ name: CI
 # Lint and every test (Core + app + snapshots) on each PR and each push to main,
 # through the same `just` recipes developers run locally. PRs that change only safe files
 # (docs, see the "Choose the path" step) take a fast path: lint and Core tests, no simulator.
+# Once that passes on main, the `deploy` job uploads the commit to TestFlight.
 on:
   pull_request:
   push:
@@ -136,3 +137,44 @@ jobs:
             build/**/*.xcresult
           if-no-files-found: ignore
           retention-days: 7
+
+  # Only pushes to main run this job, so PRs, forks included, never reach the secrets below.
+  deploy:
+    needs: [ci]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: xcode-27
+    timeout-minutes: 30
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Select Xcode 27.2
+        # Same Xcode as the `ci` job. Bump this path together with SIM_OS.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.2.app
+          xcodebuild -version
+
+      - name: Install just
+        run: brew install just
+
+      - name: Install tools
+        # Not `just bootstrap`: an archive needs no simulator, so this skips creating one.
+        run: just _bootstrap-tools
+
+      - name: Write the App Store Connect API key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          key_path="$RUNNER_TEMP/AuthKey.p8"
+          (umask 077 && printf '%s' "$ASC_KEY_P8" >"$key_path")
+          echo "ASC_KEY_PATH=$key_path" >>"$GITHUB_ENV"
+
+      - name: Deploy
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+        run: just deploy
