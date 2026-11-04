@@ -9,6 +9,8 @@ include:
     relativePaths: false
   - path: Widget/target.yml
     relativePaths: false
+  - path: Spike/Camera/target.yml
+    relativePaths: false
 
 options:
   bundleIdPrefix: me.southp

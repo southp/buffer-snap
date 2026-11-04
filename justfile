@@ -174,6 +174,7 @@ deploy:
         esac
         codesign --force --sign - --entitlements "$entitlements" "$extension"
     done
+    codesign --force --sign - --entitlements Spike/Camera/SpikeCamera.entitlements "$app/Extensions/BufferSnapCamera.appex"
     codesign --force --sign - --entitlements App/BufferSnap.entitlements "$app"
     plutil -replace teamID -string "$DEVELOPMENT_TEAM" -o build/ExportOptions.plist ExportOptions.plist
     xcodebuild -exportArchive \

@@ -14,9 +14,13 @@ targets:
         excludes:
           - "target.yml"
           - "**/*.md"
+      - path: Spike/Shared
+      - path: Spike/Intents
+      - path: Spike/App
     dependencies:
       - package: BufferSnapCore
       - target: BufferSnapWidget
+      - target: BufferSnapCamera
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap
@@ -24,6 +28,10 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/BufferSnap.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
+        INFOPLIST_FILE: Spike/App/Info.plist
+        INFOPLIST_KEY_NSCameraUsageDescription: Spike test of the lock screen camera.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Spike test of recording while locked.
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
         # Skips the export-compliance prompt on every TestFlight build.
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

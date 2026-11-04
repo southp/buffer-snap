@@ -1,0 +1,18 @@
+targets:
+  BufferSnapCamera:
+    type: extensionkit-extension
+    platform: iOS
+    sources:
+      - path: Spike/Camera
+        excludes:
+          - "target.yml"
+      - path: Spike/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.southp.buffersnap.camera
+        CODE_SIGN_ENTITLEMENTS: Spike/Camera/SpikeCamera.entitlements
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Spike/Camera/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Spike Camera
+        INFOPLIST_KEY_NSCameraUsageDescription: Spike test of the lock screen camera.
+        TARGETED_DEVICE_FAMILY: "1"

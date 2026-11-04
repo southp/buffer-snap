@@ -17,7 +17,16 @@ struct BufferSnapApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(appModel: appModel, environment: environment)
+            TabView {
+                SpikeView()
+                    .tabItem {
+                        Label("Spike", systemImage: "lock")
+                    }
+                RootView(appModel: appModel, environment: environment)
+                    .tabItem {
+                        Label("App", systemImage: "tray")
+                    }
+            }
         }
     }
 

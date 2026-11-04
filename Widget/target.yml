@@ -10,6 +10,9 @@ targets:
         excludes:
           - "target.yml"
           - "**/*.md"
+      - path: Spike/Shared
+      - path: Spike/Intents
+      - path: Spike/Widget
     dependencies:
       - package: BufferSnapCore
     settings:
