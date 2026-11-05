@@ -2,8 +2,8 @@ import BufferSnapCore
 import SwiftUI
 
 /// The capture list's container: owns `CaptureListModel`, loads it on appearing, on returning to the foreground and
-/// when a send changes something, forwards deletes and resends to it, and passes sign-out up to whoever owns the
-/// session.
+/// when a send changes something, forwards deletes, resends and "Send now" to it, and passes sign-out up to whoever
+/// owns the session.
 /// Everything it shows is drawn by the stateless `CaptureListView`.
 struct CaptureListScreen: View {
     @State private var model: CaptureListModel
@@ -21,18 +21,21 @@ struct CaptureListScreen: View {
         // dated on the minute boundary, up to 59 seconds behind the clock, so "5 minutes ago" would read "4".
         TimelineView(.periodic(from: .now, by: 60)) { context in
             CaptureListView(
-                captures: model.captures,
+                batches: model.batches,
                 now: context.date,
                 onDelete: { capture in
                     Task {
                         await model.delete(capture)
                     }
                 },
-                onResend: { capture in
-                    if let batch = model.batches.first(where: { $0.captures.contains(capture) }) {
-                        Task {
-                            await model.resend(batch)
-                        }
+                onSendNow: {
+                    Task {
+                        await model.sendNow()
+                    }
+                },
+                onResend: { batch in
+                    Task {
+                        await model.resend(batch)
                     }
                 },
                 onSignOut: onSignOut
