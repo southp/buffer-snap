@@ -125,6 +125,10 @@ struct ReadOnlyCaptureStore: CaptureStore {
     func delete(id: Capture.ID) async throws {
         throw TestError()
     }
+
+    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
+        throw TestError()
+    }
 }
 
 extension Capture {
@@ -154,5 +158,9 @@ actor HookedCaptureStore: CaptureStore {
 
     func delete(id: Capture.ID) async throws {
         await base.delete(id: id)
+    }
+
+    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
+        await base.setStatus(status, ids: ids)
     }
 }

@@ -57,6 +57,34 @@ struct JSONFileCaptureStoreTests {
         #expect(try await widget.all().isEmpty)
     }
 
+    @Test func setStatusChangesOnlyTheNamedCapturesAndPersists() async throws {
+        let fileURL = try missingFileURL()
+        let store = JSONFileCaptureStore(fileURL: fileURL)
+        let sent = Capture.at(1)
+        let alsoSent = Capture.at(2)
+        let waiting = Capture.at(3)
+        for capture in [sent, alsoSent, waiting] {
+            try await store.add(capture)
+        }
+
+        try await store.setStatus(.submitted, ids: [sent.id, alsoSent.id])
+
+        let reopened = try await JSONFileCaptureStore(fileURL: fileURL).all()
+        #expect(reopened.map(\.status) == [.pending, .submitted, .submitted])
+    }
+
+    /// A capture deleted while its upload ran stays deleted when the upload finishes.
+    @Test func setStatusOfADeletedCaptureDoesNotBringItBack() async throws {
+        let store = JSONFileCaptureStore(fileURL: try missingFileURL())
+        let capture = Capture.at(1)
+        try await store.add(capture)
+        try await store.delete(id: capture.id)
+
+        try await store.setStatus(.submitted, ids: [capture.id])
+
+        #expect(try await store.all().isEmpty)
+    }
+
     @Test func deleteUnknownIDLeavesMissingFileMissing() async throws {
         let fileURL = try missingFileURL()
         let store = JSONFileCaptureStore(fileURL: fileURL)

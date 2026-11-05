@@ -30,6 +30,18 @@ public actor JSONFileCaptureStore: CaptureStore {
         }
     }
 
+    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) throws {
+        var captures = try read()
+        var didChange = false
+        for index in captures.indices where ids.contains(captures[index].id) {
+            captures[index].status = status
+            didChange = true
+        }
+        if didChange {
+            try write(captures)
+        }
+    }
+
     private func read() throws -> [Capture] {
         let data: Data
         do {
