@@ -15,6 +15,11 @@ struct WidgetViewTests {
         assertScreenSnapshot(of: homeScreenWidget(count: 0), named: "mediumEmpty")
     }
 
+    /// The symbol on the round button. The circle behind it, `AccessoryWidgetBackground`, only draws in a real widget.
+    @Test func lockScreen() {
+        assertScreenSnapshot(of: SnapperLockScreenView().frame(width: 76, height: 76), named: "lockScreen")
+    }
+
     /// `systemMedium` on iPhone 16, 338 × 158 points, inside the 16-point margin the system adds.
     private func homeScreenWidget(count: Int) -> some View {
         SnapperWidgetView(count: count)
