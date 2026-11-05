@@ -326,12 +326,14 @@ struct QueueFixture {
 
     func makeQueue(
         store: any CaptureStore,
-        auth: any AuthService = StubAuthService(hasSavedSession: true)
+        auth: any AuthService = StubAuthService(hasSavedSession: true),
+        window: TimeInterval = 0
     ) -> SubmissionQueue {
         SubmissionQueue(
             store: store,
             auth: auth,
             client: GraphQLBufferClient(transport: server),
+            planner: SubmissionPlanner { window },
             clock: clock,
             jitter: { 0 }
         )
