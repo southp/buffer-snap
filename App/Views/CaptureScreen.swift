@@ -10,8 +10,13 @@ struct CaptureScreen: View {
 
     private let onShowCaptures: () -> Void
 
-    init(store: any CaptureStore, speech: any SpeechTranscriber, onShowCaptures: @escaping () -> Void) {
-        _model = State(initialValue: CaptureModel(store: store, speech: speech))
+    init(
+        store: any CaptureStore,
+        speech: any SpeechTranscriber,
+        onSaved: @escaping @MainActor () -> Void,
+        onShowCaptures: @escaping () -> Void
+    ) {
+        _model = State(initialValue: CaptureModel(store: store, speech: speech, onSaved: onSaved))
         self.onShowCaptures = onShowCaptures
     }
 

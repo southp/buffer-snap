@@ -31,17 +31,22 @@ public final class CaptureModel {
     private let store: any CaptureStore
     private let speech: any SpeechTranscriber
     private let finalWordsTimeout: Duration
+    private let onSaved: @MainActor () -> Void
 
-    /// - Parameter finalWordsTimeout: How long to wait for the recognizer's last words after a release, before going
-    ///   with what it has heard so far.
+    /// - Parameters:
+    ///   - finalWordsTimeout: How long to wait for the recognizer's last words after a release, before going with what
+    ///     it has heard so far.
+    ///   - onSaved: Runs after each capture is stored, which is when it can start on its way to Buffer.
     public init(
         store: any CaptureStore,
         speech: any SpeechTranscriber,
-        finalWordsTimeout: Duration = .seconds(3)
+        finalWordsTimeout: Duration = .seconds(3),
+        onSaved: @escaping @MainActor () -> Void = {}
     ) {
         self.store = store
         self.speech = speech
         self.finalWordsTimeout = finalWordsTimeout
+        self.onSaved = onSaved
     }
 
     /// How many characters would be saved: what a person sees as one character counts as one.
@@ -94,6 +99,7 @@ public final class CaptureModel {
         let draft = text
         do {
             try await store.add(Capture(kind: .text, text: trimmedText))
+            onSaved()
             // Anything typed while the write ran belongs to the next capture, so keep it.
             if text == draft {
                 text = ""
