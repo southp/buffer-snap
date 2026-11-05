@@ -22,7 +22,7 @@ struct CaptureListViewTests {
 
     private func listScreen(_ captures: [Capture]) -> some View {
         NavigationStack {
-            CaptureListView(captures: captures, now: Capture.samplesReferenceDate, onDelete: { _ in })
+            CaptureListView(captures: captures, now: Capture.samplesReferenceDate, onDelete: { _ in }, onSignOut: {})
         }
     }
 }

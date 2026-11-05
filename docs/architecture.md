@@ -8,11 +8,11 @@ SwiftUI shells over it.
   the state and the actions on it.
 - **Services** are `Sendable` protocols with `async throws` methods (`CaptureStore`, `AuthService`). Each one starts
   with a mock or in-memory implementation, and a real one replaces it later without touching the models.
-  `JSONFileCaptureStore` is the first real one.
+  `JSONFileCaptureStore` and `OAuthAuthService` are the real ones so far.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
   only place that picks which implementations run.
 - **Models** are plain `Sendable` values (`Capture`).
-- **Views** (`App/Views/`) only render. `RootView` shows what `AppModel.route` names: sign-in, then the capture screen
+- **Views** (`App/Views/`) only render. `RootView` shows what `AppModel.route` names: sign-in, or the capture screen
   with the capture list pushed on top of it. A screen (`CaptureScreen`, `CaptureListScreen`) owns its feature model
   and feeds a stateless view (`CaptureView`, `CaptureListView`) plain values and closures. Conventions:
   [`App/CLAUDE.md`](../App/CLAUDE.md).
@@ -23,7 +23,7 @@ Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](de
 
 ## Layers
 
-Arrows point from a layer to what it uses. Dashed boxes and arrows don't exist yet.
+Arrows point from a layer to what it uses.
 
 ```mermaid
 flowchart TD
@@ -48,7 +48,7 @@ flowchart TD
             MockAuth["MockAuthService"]
             FileStore["JSONFileCaptureStore"]
             Notifying["NotifyingCaptureStore (wraps a store)"]
-            OAuth["Buffer OAuth (MVP)"]
+            OAuth["OAuthAuthService → KeychainSessionStore"]
         end
         Capture["Models: Capture"]
     end
@@ -64,11 +64,9 @@ flowchart TD
     FileStore -->|implements| CaptureStore
     Notifying -->|implements| CaptureStore
     MockAuth -->|implements| AuthService
-    OAuth -.->|implements| AuthService
+    OAuth -->|implements| AuthService
+    App -->|"SystemWebAuthenticator (needs a window)"| OAuth
     services --> Capture
-
-    classDef planned stroke-dasharray: 5 5
-    class OAuth planned
 ```
 
 ## Data flow
@@ -89,6 +87,36 @@ flowchart LR
 Typing an idea and tapping Save adds a pending text capture through `CaptureModel`. The write goes through
 `NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. When the list
 opens, or the app returns to the foreground, it reads every capture from the store and shows them newest first.
+
+## Signing in
+
+```mermaid
+sequenceDiagram
+    participant Model as AppModel
+    participant Auth as OAuthAuthService
+    participant Web as SystemWebAuthenticator
+    participant Page as site/oauth/
+    participant Buffer as auth.buffer.com
+    participant Keychain
+    Model->>Auth: signIn()
+    Auth->>Web: authenticate(url, "buffersnap")
+    Web->>Buffer: Sign-in and consent, with state and the PKCE challenge
+    Buffer->>Page: Redirect with code and state
+    Page->>Web: Forward to buffersnap://oauth
+    Web->>Auth: The callback URL
+    Auth->>Buffer: POST /token with the code and PKCE verifier
+    Buffer->>Auth: Access and refresh tokens
+    Auth->>Keychain: Save, before anything uses them
+    Auth->>Model: Done, route is now .capture
+```
+
+`AppModel` picks its first route from `hasSavedSession()`, which reads the Keychain, so the first frame is already right.
+When the scene becomes active, `checkSession()` asks for a valid token, which refreshes it if it's due. Only Buffer
+rejecting the refresh token sends the user back to sign-in. Everything that needs a token calls `validAccessToken()`,
+and `OAuthAuthService` makes sure only one refresh ever runs, because reusing a refresh token revokes the session:
+[`43-single-use-refresh-tokens.md`](decisions/43-single-use-refresh-tokens.md).
+
+## The widget's store
 
 The widget's mock buttons write to the same store until #41 replaces them, and WidgetKit then reloads the count. The
 store contract is in [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
