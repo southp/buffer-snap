@@ -12,7 +12,9 @@ struct BufferSnapApp: App {
     init() {
         let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: MockAuthService())
         self.environment = environment
-        _appModel = State(initialValue: AppModel(auth: environment.auth))
+        let appModel = AppModel(auth: environment.auth)
+        _appModel = State(initialValue: appModel)
+        OpenCaptureIntent.onRun = { appModel.showCapture() }
     }
 
     var body: some Scene {
