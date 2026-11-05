@@ -112,7 +112,7 @@ struct DictationMessage: View {
         case .failed(.stoppedEarly):
             "Dictation stopped. Tap Save to keep this, or hold to add more."
         case .failed(.recognitionFailed):
-            "Couldn't make that out. Try again, or type instead."
+            "Dictation didn't work. Try again, or type instead."
         }
     }
 
