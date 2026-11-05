@@ -40,6 +40,16 @@ struct InMemoryCaptureStoreTests {
         #expect(try await store.all() == [kept])
     }
 
+    @Test func assignBatchesOnlyFillsInWhatsMissing() async throws {
+        let open = Capture.at(1)
+        let closed = Capture(kind: .text, batchID: UUID())
+        let store: any CaptureStore = InMemoryCaptureStore(seed: [open, closed])
+
+        try await store.assignBatches([open.id: open.id, closed.id: open.id])
+
+        #expect(try await store.all().map(\.batchID) == [open.id, closed.batchID])
+    }
+
     @Test func deleteUnknownIDDoesNothing() async throws {
         let seed = [Capture(kind: .text)]
         let store: any CaptureStore = InMemoryCaptureStore(seed: seed)

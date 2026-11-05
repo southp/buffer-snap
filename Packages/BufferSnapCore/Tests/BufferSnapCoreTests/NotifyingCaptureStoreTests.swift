@@ -62,6 +62,18 @@ struct NotifyingCaptureStoreTests {
         #expect(counter.value == 1)
     }
 
+    @Test func assignBatchesWritesThenNotifies() async throws {
+        let counter = ChangeCounter()
+        let capture = Capture(kind: .text)
+        let base = InMemoryCaptureStore(seed: [capture])
+        let store = NotifyingCaptureStore(base: base, onChange: counter.increment)
+
+        try await store.assignBatches([capture.id: capture.id])
+
+        #expect(try await base.all().map(\.batchID) == [capture.id])
+        #expect(counter.value == 1)
+    }
+
     @Test func failedWritesDoNotNotify() async throws {
         let counter = ChangeCounter()
         let capture = Capture(kind: .photo)
@@ -75,6 +87,9 @@ struct NotifyingCaptureStoreTests {
         }
         await #expect(throws: TestError.self) {
             try await store.setStatus(.failed, ids: [capture.id])
+        }
+        await #expect(throws: TestError.self) {
+            try await store.assignBatches([capture.id: capture.id])
         }
         #expect(counter.value == 0)
     }

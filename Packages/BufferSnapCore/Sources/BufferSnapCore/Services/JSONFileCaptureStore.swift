@@ -42,6 +42,20 @@ public actor JSONFileCaptureStore: CaptureStore {
         }
     }
 
+    public func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) throws {
+        var captures = try read()
+        var didChange = false
+        for index in captures.indices where captures[index].batchID == nil {
+            if let batchID = batchIDs[captures[index].id] {
+                captures[index].batchID = batchID
+                didChange = true
+            }
+        }
+        if didChange {
+            try write(captures)
+        }
+    }
+
     private func read() throws -> [Capture] {
         let data: Data
         do {
