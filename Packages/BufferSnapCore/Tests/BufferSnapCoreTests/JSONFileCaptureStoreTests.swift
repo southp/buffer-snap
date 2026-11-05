@@ -18,8 +18,8 @@ struct JSONFileCaptureStoreTests {
 
     @Test func addAllDeleteRoundTrip() async throws {
         let store = JSONFileCaptureStore(fileURL: try missingFileURL())
-        let kept = Capture.at(1, kind: .audio)
-        let deleted = Capture.at(2, kind: .video)
+        let kept = Capture.at(1, kind: .photo)
+        let deleted = Capture.at(2, kind: .photo)
 
         try await store.add(kept)
         try await store.add(deleted)

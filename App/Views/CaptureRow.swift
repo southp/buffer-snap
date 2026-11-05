@@ -91,12 +91,8 @@ extension Capture.Kind {
         switch self {
         case .text:
             "textformat"
-        case .audio:
-            "mic"
         case .photo:
             "camera"
-        case .video:
-            "video"
         }
     }
 
@@ -105,12 +101,8 @@ extension Capture.Kind {
         switch self {
         case .text:
             "Text"
-        case .audio:
-            "Audio"
         case .photo:
             "Photo"
-        case .video:
-            "Video"
         }
     }
 }

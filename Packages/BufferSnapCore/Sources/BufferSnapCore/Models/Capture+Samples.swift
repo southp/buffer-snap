@@ -14,7 +14,13 @@ extension Capture {
         return [
             Capture(id: sampleID(1), kind: .text, createdAt: minutesAgo(5), text: "Idea for Friday's post"),
             Capture(id: sampleID(2), kind: .photo, createdAt: minutesAgo(60), status: .submitted),
-            Capture(id: sampleID(3), kind: .audio, createdAt: minutesAgo(180), status: .failed),
+            Capture(
+                id: sampleID(3),
+                kind: .text,
+                createdAt: minutesAgo(180),
+                status: .failed,
+                text: "Newsletter intro"
+            ),
             Capture(
                 id: sampleID(4),
                 kind: .text,
@@ -22,7 +28,7 @@ extension Capture {
                 status: .submitted,
                 text: "Thread hook idea"
             ),
-            Capture(id: sampleID(5), kind: .video, createdAt: minutesAgo(4_320), text: "Launch teaser"),
+            Capture(id: sampleID(5), kind: .photo, createdAt: minutesAgo(4_320), text: "Launch teaser"),
         ]
     }
 
