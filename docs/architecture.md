@@ -16,8 +16,10 @@ SwiftUI shells over it.
   with the capture list pushed on top of it. A screen (`CaptureScreen`, `CaptureListScreen`) owns its feature model
   and feeds a stateless view (`CaptureView`, `CaptureListView`) plain values and closures. Conventions:
   [`App/CLAUDE.md`](../App/CLAUDE.md).
-- **The widget** (`Widget/`) is a WidgetKit extension: an App Intent per button and a timeline that reads the count.
-  Its buttons still make mock captures until #41 replaces them. Conventions: [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
+- **The widget** (`Widget/`) is a WidgetKit extension: a control, a widget for the Home Screen, Today View and Lock
+  Screen, and a timeline that reads the count. All of them run `OpenCaptureIntent` (`Shared/`, compiled into both the
+  app and the widget), which opens the app on the capture screen. Conventions:
+  [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
 Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](decisions/5-core-ui-import-lint.md).
 
@@ -29,7 +31,8 @@ Arrows point from a layer to what it uses. Dashed boxes and arrows don't exist y
 flowchart TD
     subgraph shells["UI shells (SwiftUI)"]
         App["App: BufferSnapApp → RootView<br/>(SignInView, CaptureScreen, CaptureListScreen)"]
-        Widget["Widget: SnapperWidget, MockCaptureIntent"]
+        Widget["Widget: SnapperWidget, OpenCaptureControl"]
+        Intent["Shared: OpenCaptureIntent"]
     end
 
     subgraph core["BufferSnapCore (no UI imports)"]
@@ -55,6 +58,8 @@ flowchart TD
 
     App --> Env
     App --> features
+    App --> Intent
+    Widget --> Intent
     Widget --> FileStore
     Env --> services
     AppModel --> AuthService
@@ -79,7 +84,6 @@ flowchart LR
     Delete["App: CaptureListView"] -->|"delete(id:)"| Notifying
     Notifying -->|"add(_:), delete(id:)"| Store[("captures-v2.json in the App Group<br/>(JSONFileCaptureStore)")]
     Notifying -.->|"reloads timelines"| Timeline["Widget: CaptureCountProvider"]
-    Intent["Widget: MockCaptureIntent (until #41)"] -->|"add(_:)"| Store
     Store -->|"all()"| Timeline
     Timeline -->|"N captured"| Face["Widget: SnapperWidgetView"]
     Store -->|"all()"| List["CaptureListModel.load()"]
@@ -90,8 +94,24 @@ Typing an idea and tapping Save adds a pending text capture through `CaptureMode
 `NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. When the list
 opens, or the app returns to the foreground, it reads every capture from the store and shows them newest first.
 
-The widget's mock buttons write to the same store until #41 replaces them, and WidgetKit then reloads the count. The
-store contract is in [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
+The widget only reads the store. The store contract is in [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
 Installs from before #40 have a `captures.json` holding only mock captures. The app deletes it at launch and nothing
-reads it: [`40-new-capture-file.md`](decisions/40-new-capture-file.md).
+reads it: [`40-new-capture-file.md`](decisions/40-new-capture-file.md). Installs from between #40 and #41 can have mock
+captures among real ones in `captures-v2.json`, and the app deletes just those at launch:
+[`41-remove-mock-captures-by-text.md`](decisions/41-remove-mock-captures-by-text.md).
+
+## Opening the capture screen
+
+```mermaid
+flowchart LR
+    Surface["Control or widget button"] -->|runs| Intent["OpenCaptureIntent (openAppWhenRun)"]
+    Intent -->|"the system opens the app, then runs perform() in it"| Hook["OpenCaptureIntent.onRun"]
+    Hook --> Show["AppModel.showCapture()"]
+    Show -->|"on the capture list"| Capture["Capture screen"]
+    Show -.->|"anywhere else: nothing to do"| Route["Route stays, and every way past sign-in ends on capture"]
+```
+
+From a locked phone, the system asks to unlock first, since the intent isn't always allowed. A cold launch reaches
+capture whichever comes first, the intent or getting past sign-in:
+[`41-no-remembered-capture-request.md`](decisions/41-no-remembered-capture-request.md).
