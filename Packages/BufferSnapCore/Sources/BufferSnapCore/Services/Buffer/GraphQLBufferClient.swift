@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Buffer's GraphQL API. A failure can arrive as an HTTP status, in the response's `errors`, or as a type in its
 /// `data`, and this sorts them all into a `BufferError`.
@@ -60,6 +61,7 @@ public struct GraphQLBufferClient: BufferClient {
         do {
             (data, response) = try await transport.send(request)
         } catch {
+            Logger.submission.notice("Can't reach Buffer: code \((error as NSError).code, privacy: .public)")
             throw BufferError.connection
         }
 
@@ -67,6 +69,9 @@ public struct GraphQLBufferClient: BufferClient {
         let status = http?.statusCode ?? 0
         let retryAfter = http?.value(forHTTPHeaderField: "Retry-After").flatMap(Double.init).flatMap {
             $0 > 0 ? $0 : nil
+        }
+        if !(200..<300).contains(status) {
+            Logger.submission.notice("Buffer answered HTTP \(status, privacy: .public)")
         }
         switch status {
         case 401:
