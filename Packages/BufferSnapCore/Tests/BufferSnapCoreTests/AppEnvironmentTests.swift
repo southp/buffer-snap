@@ -14,4 +14,10 @@ struct AppEnvironmentTests {
 
         try await environment.auth.signIn()
     }
+
+    @Test func mockSpeechIsAllowedToListen() async {
+        let environment = AppEnvironment.mock(seed: [])
+
+        #expect(await environment.speech.permission() == .granted)
+    }
 }
