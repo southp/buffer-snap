@@ -6,30 +6,40 @@ public struct AppEnvironment: Sendable {
     /// The one queue, on the one `AuthService`: everything that sends goes through this.
     public let submissions: SubmissionQueue
     public let connectivity: any ConnectivityMonitor
+    public let batchWindow: any BatchWindowSetting
 
     public init(
         captureStore: any CaptureStore,
         auth: any AuthService,
         speech: any SpeechTranscriber,
         bufferClient: any BufferClient,
-        connectivity: any ConnectivityMonitor
+        connectivity: any ConnectivityMonitor,
+        batchWindow: any BatchWindowSetting
     ) {
         self.captureStore = captureStore
         self.auth = auth
         self.speech = speech
-        submissions = SubmissionQueue(store: captureStore, auth: auth, client: bufferClient)
+        submissions = SubmissionQueue(
+            store: captureStore,
+            auth: auth,
+            client: bufferClient,
+            planner: SubmissionPlanner { batchWindow.window }
+        )
         self.connectivity = connectivity
+        self.batchWindow = batchWindow
     }
 
     /// An environment of mocks: an in-memory store that starts with `seed`, a sign-in that always succeeds, a
-    /// transcriber that hears nothing, a Buffer that accepts everything, and a connection that never changes.
+    /// transcriber that hears nothing, a Buffer that accepts everything, a connection that never changes, and no
+    /// batching.
     public static func mock(seed: [Capture]) -> AppEnvironment {
         AppEnvironment(
             captureStore: InMemoryCaptureStore(seed: seed),
             auth: MockAuthService(),
             speech: MockSpeechTranscriber(),
             bufferClient: MockBufferClient(),
-            connectivity: MockConnectivityMonitor()
+            connectivity: MockConnectivityMonitor(),
+            batchWindow: InMemoryBatchWindowSetting(window: BatchWindow.off)
         )
     }
 }

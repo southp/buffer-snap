@@ -19,6 +19,22 @@ struct AppEnvironmentTests {
         #expect(try await environment.captureStore.all().map(\.status) == [.submitted])
     }
 
+    /// The queue must follow the setting the environment was given, or the list and the sends would disagree.
+    @Test func theQueueUsesTheEnvironmentsWindow() async throws {
+        let environment = AppEnvironment(
+            captureStore: InMemoryCaptureStore(seed: [Capture(kind: .text, text: "An idea")]),
+            auth: MockAuthService(hasSavedSession: true),
+            speech: MockSpeechTranscriber(),
+            bufferClient: MockBufferClient(),
+            connectivity: MockConnectivityMonitor(),
+            batchWindow: InMemoryBatchWindowSetting(window: 300)
+        )
+
+        await environment.submissions.run()
+
+        #expect(try await environment.captureStore.all().map(\.status) == [.pending])
+    }
+
     @Test func mockSignInSucceeds() async throws {
         let environment = AppEnvironment.mock(seed: [])
 
