@@ -59,6 +59,57 @@ actor StubAuthService: AuthService {
     func accessTokenRejected(_ token: String) {}
 }
 
+/// An `AuthService` whose `signIn()` a test can fail once or hold open.
+actor ControllableSignInAuthService: AuthService {
+    private(set) var signInCount = 0
+    private var nextError: (any Error)?
+    private var isHolding = false
+    private var held: CheckedContinuation<Void, Never>?
+
+    nonisolated func hasSavedSession() -> Bool {
+        false
+    }
+
+    func failNextSignIn(with error: any Error) {
+        nextError = error
+    }
+
+    func holdNextSignIn() {
+        isHolding = true
+    }
+
+    func releaseSignIn() {
+        held?.resume()
+        held = nil
+    }
+
+    func waitForHeldSignIn() async {
+        while held == nil {
+            await Task.yield()
+        }
+    }
+
+    func signIn() async throws {
+        signInCount += 1
+        if isHolding {
+            isHolding = false
+            await withCheckedContinuation { held = $0 }
+        }
+        if let error = nextError {
+            nextError = nil
+            throw error
+        }
+    }
+
+    func signOut() {}
+
+    func validAccessToken() -> String {
+        "stub-access-token"
+    }
+
+    func accessTokenRejected(_ token: String) {}
+}
+
 /// A `CaptureStore` that returns `captures` but fails every write.
 struct ReadOnlyCaptureStore: CaptureStore {
     let captures: [Capture]
