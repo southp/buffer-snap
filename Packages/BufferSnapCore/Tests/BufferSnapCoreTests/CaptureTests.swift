@@ -10,13 +10,34 @@ struct CaptureTests {
             kind: kind,
             createdAt: Date(timeIntervalSince1970: 1_000),
             status: .failed,
-            text: "Hello"
+            text: "Hello",
+            batchID: UUID()
         )
 
         let data = try JSONEncoder().encode(capture)
         let decoded = try JSONDecoder().decode(Capture.self, from: data)
 
         #expect(decoded == capture)
+    }
+
+    /// What an install from before batching has on disk must still read, as captures that aren't in a batch yet.
+    @Test func aFileFromBeforeBatchesStillDecodes() throws {
+        let json = #"""
+            [{"id":"00000000-0000-0000-0000-000000000001","kind":"text","createdAt":1000,
+              "status":"pending","text":"Old"}]
+            """#
+
+        let decoded = try JSONDecoder().decode([Capture].self, from: Data(json.utf8))
+
+        #expect(decoded.map(\.text) == ["Old"])
+        #expect(decoded.map(\.batchID) == [nil])
+    }
+
+    /// A capture that isn't in a batch writes no key, so an older build reading the file sees what it always did.
+    @Test func noBatchWritesNoKey() throws {
+        let json = String(bytes: try JSONEncoder().encode(Capture(kind: .text)), encoding: .utf8)
+
+        #expect(json?.contains("batchID") == false)
     }
 
     // The snapshot tests' fixture: the capture list must show every kind and every status.

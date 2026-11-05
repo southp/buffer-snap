@@ -235,10 +235,11 @@ final class ManualSubmissionClock: SubmissionClock {
     }
 }
 
-/// A `CaptureStore` over an in-memory one whose status writes can be made to fail.
+/// A `CaptureStore` over an in-memory one whose status and batch writes can be made to fail.
 actor FlakyStatusCaptureStore: CaptureStore {
     let base: InMemoryCaptureStore
     private var isFailingStatusWrites = false
+    private var isFailingBatchWrites = false
 
     init(seed: [Capture]) {
         base = InMemoryCaptureStore(seed: seed)
@@ -246,6 +247,10 @@ actor FlakyStatusCaptureStore: CaptureStore {
 
     func failStatusWrites(_ isFailing: Bool) {
         isFailingStatusWrites = isFailing
+    }
+
+    func failBatchWrites(_ isFailing: Bool) {
+        isFailingBatchWrites = isFailing
     }
 
     func all() async throws -> [Capture] {
@@ -265,6 +270,13 @@ actor FlakyStatusCaptureStore: CaptureStore {
             throw TestError()
         }
         await base.setStatus(status, ids: ids)
+    }
+
+    func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        if isFailingBatchWrites {
+            throw TestError()
+        }
+        await base.assignBatches(batchIDs)
     }
 }
 
@@ -300,6 +312,10 @@ actor StoreWithHookOnEmptyRead: CaptureStore {
 
     func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
         await base.setStatus(status, ids: ids)
+    }
+
+    func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        await base.assignBatches(batchIDs)
     }
 }
 
