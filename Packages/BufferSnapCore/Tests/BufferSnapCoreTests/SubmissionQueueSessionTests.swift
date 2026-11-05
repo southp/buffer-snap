@@ -84,6 +84,24 @@ struct SubmissionQueueSessionTests {
         #expect(await store.all().map(\.status) == [.pending])
     }
 
+    /// Failures from before the session ended say nothing about the next one.
+    @Test func aSessionEndingStartsTheBackoffOver() async {
+        let store = InMemoryCaptureStore(seed: [.text("An idea")])
+        let auth = StubAuthService(hasSavedSession: true)
+        let queue = fixture.makeQueue(store: store, auth: auth)
+        await server.failIdeas(.offline)
+        await queue.run()
+        #expect(await clock.waitForSleep(number: 1) == 5)
+
+        await auth.setTokenError(AuthError.sessionExpired)
+        await queue.run()
+        await auth.setTokenError(nil)
+        await server.failIdeas(.offline)
+        await queue.run()
+
+        #expect(await clock.waitForSleep(number: 2) == 5)
+    }
+
     /// A brand new token being rejected too won't change in a moment, so don't spin on it.
     @Test func aTokenRejectedTwiceBacksOffWithTheCapturePending() async {
         let store = InMemoryCaptureStore(seed: [.text("An idea")])
