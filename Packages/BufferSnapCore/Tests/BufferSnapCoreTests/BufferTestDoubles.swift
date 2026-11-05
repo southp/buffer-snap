@@ -340,7 +340,7 @@ struct QueueFixture {
 
 extension Capture {
     /// A pending text capture, made `seconds` after a fixed date.
-    static func text(_ text: String, at seconds: TimeInterval = 0) -> Capture {
-        Capture(kind: .text, createdAt: Date(timeIntervalSinceReferenceDate: seconds), text: text)
+    static func text(_ text: String, at seconds: TimeInterval = 0, batch: Capture.BatchID? = nil) -> Capture {
+        Capture(kind: .text, createdAt: Date(timeIntervalSinceReferenceDate: seconds), text: text, batchID: batch)
     }
 }
