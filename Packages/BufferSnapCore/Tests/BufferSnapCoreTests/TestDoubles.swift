@@ -33,3 +33,26 @@ extension Capture {
         Capture(kind: kind, createdAt: Date(timeIntervalSinceReferenceDate: seconds))
     }
 }
+
+/// A `CaptureStore` that runs `onAdd` in the middle of each `add`, so a test can act while a write is in flight.
+actor HookedCaptureStore: CaptureStore {
+    let base = InMemoryCaptureStore()
+    private var onAdd: (@Sendable () async -> Void)?
+
+    func setOnAdd(_ onAdd: @escaping @Sendable () async -> Void) {
+        self.onAdd = onAdd
+    }
+
+    func all() async throws -> [Capture] {
+        await base.all()
+    }
+
+    func add(_ capture: Capture) async throws {
+        await onAdd?()
+        await base.add(capture)
+    }
+
+    func delete(id: Capture.ID) async throws {
+        await base.delete(id: id)
+    }
+}
