@@ -1,7 +1,7 @@
 import SwiftUI
-import WidgetKit
 
-/// The widget's face: how many captures exist, and one button per kind.
+/// The widget's face on the Home Screen and in the Today View: how many captures exist, and a button that opens the
+/// capture screen.
 struct SnapperWidgetView: View {
     let count: Int
 
@@ -12,41 +12,12 @@ struct SnapperWidgetView: View {
                 // Don't animate: with the default transition the simulator kept drawing the previous count until the
                 // next redraw, so each tap appeared to show one too few.
                 .contentTransition(.identity)
-            HStack(spacing: 8) {
-                ForEach(CaptureKindAppEnum.allCases, id: \.self) { kind in
-                    Button(intent: MockCaptureIntent(kind: kind)) {
-                        VStack(spacing: 4) {
-                            Image(systemName: kind.symbolName)
-                                .font(.title3)
-                            Text(kind.label)
-                                .font(.caption)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                }
+            Button(intent: OpenCaptureIntent()) {
+                Label("Capture", systemImage: "bolt.fill")
+                    .font(.title3)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }
-    }
-}
-
-extension CaptureKindAppEnum {
-    /// The same symbols the app's capture list uses (`CaptureRow`), so a capture looks the same in both.
-    fileprivate var symbolName: String {
-        switch self {
-        case .text:
-            "textformat"
-        case .photo:
-            "camera"
-        }
-    }
-
-    fileprivate var label: String {
-        switch self {
-        case .text:
-            "Text"
-        case .photo:
-            "Photo"
+            .buttonStyle(.bordered)
         }
     }
 }
