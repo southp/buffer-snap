@@ -15,7 +15,7 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen(Capture.samples()), named: "fiveSamples")
     }
 
-    /// No captures: the empty state that points to the widget.
+    /// No captures: the empty state.
     @Test func empty() {
         assertScreenSnapshot(of: listScreen([]), named: "noCaptures")
     }

@@ -29,7 +29,7 @@ struct CaptureListView: View {
                 ContentUnavailableView(
                     "No captures yet",
                     systemImage: "tray",
-                    description: Text("Add the BufferSnap widget to start capturing.")
+                    description: Text("The ideas you capture show up here.")
                 )
             }
         }

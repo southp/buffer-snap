@@ -9,12 +9,33 @@ struct AppModelTests {
         #expect(model.route == .signedOut)
     }
 
-    @Test func signInRoutesToCaptures() async {
+    @Test func signInRoutesToTheCaptureScreen() async {
         let model = AppModel(auth: MockAuthService())
 
         await model.signIn()
 
-        #expect(model.route == .captures)
+        #expect(model.route == .capture)
+    }
+
+    @Test func captureListAndCaptureScreenAreOneStepApart() async {
+        let model = AppModel(auth: MockAuthService())
+        await model.signIn()
+
+        model.showCaptureList()
+        #expect(model.route == .captureList)
+
+        model.showCapture()
+        #expect(model.route == .capture)
+    }
+
+    @Test func nothingLeavesSignedOutButSigningIn() {
+        let model = AppModel(auth: MockAuthService())
+
+        model.showCaptureList()
+        #expect(model.route == .signedOut)
+
+        model.showCapture()
+        #expect(model.route == .signedOut)
     }
 
     @Test func failedSignInStaysSignedOut() async {
