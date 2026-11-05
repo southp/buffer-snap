@@ -16,7 +16,8 @@ struct BufferSnapApp: App {
             captureStore: Self.makeCaptureStore(),
             auth: Self.makeAuthService(),
             bufferClient: Self.makeBufferClient(),
-            connectivity: NetworkPathConnectivityMonitor()
+            connectivity: NetworkPathConnectivityMonitor(),
+            batchWindow: UserDefaultsBatchWindowSetting()
         )
         self.environment = environment
         // Whoever signs in next may not be whoever made what's pending.
@@ -47,6 +48,7 @@ struct BufferSnapApp: App {
         .backgroundTask(.appRefresh(BackgroundSubmission.taskIdentifier)) { [environment] in
             BackgroundSubmission.scheduleWakeUp()
             await environment.submissions.run()
+            await BackgroundSubmission.scheduleWakeUpForOpenBatch(on: environment.submissions)
         }
     }
 

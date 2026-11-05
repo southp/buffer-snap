@@ -29,4 +29,9 @@ public struct NotifyingCaptureStore: CaptureStore {
         try await base.setStatus(status, ids: ids)
         onChange()
     }
+
+    public func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        try await base.assignBatches(batchIDs)
+        onChange()
+    }
 }

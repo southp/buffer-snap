@@ -5,7 +5,14 @@ import Observation
 @MainActor
 public final class CaptureListModel {
     /// Stored captures, newest first. Empty until `load()` finishes.
-    public private(set) var captures: [Capture] = []
+    public private(set) var captures: [Capture] = [] {
+        didSet {
+            batches = submissions.batches(of: captures).reversed()
+        }
+    }
+    /// The same captures in the batches they'll go or went in, newest first. Inside a batch, they're in the order they
+    /// were made, which is how they read in the idea.
+    public private(set) var batches: [CaptureBatch] = []
 
     private let store: any CaptureStore
     private let submissions: SubmissionQueue
@@ -34,21 +41,32 @@ public final class CaptureListModel {
         }
     }
 
-    /// Sends a failed capture again.
-    public func resend(_ capture: Capture) async {
+    /// Sends a failed batch again, as one idea.
+    public func resend(_ batch: CaptureBatch) async {
         do {
-            try await submissions.resend(capture.id)
+            try await submissions.resend(batch.id)
             await load()
         } catch {
             // It still shows as failed, so it can be tried again. Showing the error comes with the MVP.
         }
     }
 
-    /// Deletes `capture` from the store, then from the list.
+    /// Sends the open batch without waiting for its window to end.
+    public func sendNow() async {
+        do {
+            try await submissions.sendNow()
+            await load()
+        } catch {
+            // It still shows when it will go, and goes then. Showing the error comes with the MVP.
+        }
+    }
+
+    /// Deletes `capture` from the store, then from the list. If it set when its batch goes, that time moves.
     public func delete(_ capture: Capture) async {
         do {
             try await store.delete(id: capture.id)
             captures.removeAll { $0.id == capture.id }
+            await submissions.replan()
         } catch {
             // Keep it listed, since the store still has it. Showing the error comes with the MVP.
         }

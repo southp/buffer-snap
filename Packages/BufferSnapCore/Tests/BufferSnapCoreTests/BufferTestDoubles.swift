@@ -235,10 +235,11 @@ final class ManualSubmissionClock: SubmissionClock {
     }
 }
 
-/// A `CaptureStore` over an in-memory one whose status writes can be made to fail.
+/// A `CaptureStore` over an in-memory one whose status and batch writes can be made to fail.
 actor FlakyStatusCaptureStore: CaptureStore {
     let base: InMemoryCaptureStore
     private var isFailingStatusWrites = false
+    private var isFailingBatchWrites = false
 
     init(seed: [Capture]) {
         base = InMemoryCaptureStore(seed: seed)
@@ -246,6 +247,10 @@ actor FlakyStatusCaptureStore: CaptureStore {
 
     func failStatusWrites(_ isFailing: Bool) {
         isFailingStatusWrites = isFailing
+    }
+
+    func failBatchWrites(_ isFailing: Bool) {
+        isFailingBatchWrites = isFailing
     }
 
     func all() async throws -> [Capture] {
@@ -265,6 +270,13 @@ actor FlakyStatusCaptureStore: CaptureStore {
             throw TestError()
         }
         await base.setStatus(status, ids: ids)
+    }
+
+    func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        if isFailingBatchWrites {
+            throw TestError()
+        }
+        await base.assignBatches(batchIDs)
     }
 }
 
@@ -301,6 +313,10 @@ actor StoreWithHookOnEmptyRead: CaptureStore {
     func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
         await base.setStatus(status, ids: ids)
     }
+
+    func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        await base.assignBatches(batchIDs)
+    }
 }
 
 /// What a queue test needs. The jitter is zero, so waits can be checked exactly.
@@ -310,12 +326,22 @@ struct QueueFixture {
 
     func makeQueue(
         store: any CaptureStore,
-        auth: any AuthService = StubAuthService(hasSavedSession: true)
+        auth: any AuthService = StubAuthService(hasSavedSession: true),
+        window: TimeInterval = 0
+    ) -> SubmissionQueue {
+        makeQueue(store: store, auth: auth, planner: SubmissionPlanner { window })
+    }
+
+    func makeQueue(
+        store: any CaptureStore,
+        auth: any AuthService = StubAuthService(hasSavedSession: true),
+        planner: SubmissionPlanner
     ) -> SubmissionQueue {
         SubmissionQueue(
             store: store,
             auth: auth,
             client: GraphQLBufferClient(transport: server),
+            planner: planner,
             clock: clock,
             jitter: { 0 }
         )
@@ -324,7 +350,7 @@ struct QueueFixture {
 
 extension Capture {
     /// A pending text capture, made `seconds` after a fixed date.
-    static func text(_ text: String, at seconds: TimeInterval = 0) -> Capture {
-        Capture(kind: .text, createdAt: Date(timeIntervalSinceReferenceDate: seconds), text: text)
+    static func text(_ text: String, at seconds: TimeInterval = 0, batch: Capture.BatchID? = nil) -> Capture {
+        Capture(kind: .text, createdAt: Date(timeIntervalSinceReferenceDate: seconds), text: text, batchID: batch)
     }
 }

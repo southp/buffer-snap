@@ -4,6 +4,8 @@ import OSLog
 /// Sends pending captures to Buffer, one idea at a time, and keeps their status up to date.
 ///
 /// Anything may call `run()` at any time. Only one send is ever in flight, as two would create the same idea twice.
+/// A batch closes just before its first attempt, so every retry sends the same text, and whatever's saved after that
+/// goes in the next one: `docs/decisions/45-batch-membership.md`.
 /// What each failure leads to, and why: `docs/decisions/44-what-gets-retried.md` and
 /// `docs/decisions/44-duplicate-ideas.md`.
 ///
@@ -17,9 +19,10 @@ public actor SubmissionQueue {
     }
 
     /// How a pass through the queue goes on, or why it stops.
-    private enum Step: Equatable {
+    fileprivate enum Step: Equatable {
         case keepGoing
         case nothingLeft
+        case waiting(until: Date)
         case retryLater
         case rateLimited(retryAfter: TimeInterval?)
         case sessionLost
@@ -34,7 +37,7 @@ public actor SubmissionQueue {
     private let store: any CaptureStore
     private let auth: any AuthService
     private let client: any BufferClient
-    private let planner: any SubmissionPlanner
+    private let planner: SubmissionPlanner
     private let clock: any SubmissionClock
     private let backoff: SubmissionBackoff
     private let jitter: @Sendable () -> TimeInterval
@@ -42,6 +45,8 @@ public actor SubmissionQueue {
     private var drainTask: Task<Void, Never>?
     private var isRunRequested = false
     private var wakeTask: Task<Void, Never>?
+    /// When the open batch goes, as of the last pass, if that's what the queue is waiting for.
+    public private(set) var nextWindowEnd: Date?
     private var rateLimitedUntil: Date?
     private var failuresInARow = 0
     private var serverFailures: [Capture.ID: Int] = [:]
@@ -58,7 +63,7 @@ public actor SubmissionQueue {
         store: any CaptureStore,
         auth: any AuthService,
         client: any BufferClient,
-        planner: any SubmissionPlanner = OneIdeaPerCapture(),
+        planner: SubmissionPlanner = .noBatching,
         clock: any SubmissionClock = SystemSubmissionClock(),
         backoff: SubmissionBackoff = SubmissionBackoff(),
         // The guide's "little jitter": clients waiting out the same limit shouldn't all come back at the same instant.
@@ -84,23 +89,54 @@ public actor SubmissionQueue {
         await task.waitUnlessCancelled()
     }
 
-    /// Makes a failed capture pending again and starts sending it, without waiting for that to end.
-    public func resend(_ id: Capture.ID) async throws {
-        serverFailures[id] = nil
-        try await store.setStatus(.pending, ids: [id])
+    /// Closes whatever is open and starts sending it, without waiting for that to end. Once closed, it goes first
+    /// thing whatever happens next, even after a relaunch, and nothing saved from now on joins it.
+    public func sendNow() async throws {
+        try await store.closeOpenBatches(planner.batches(of: store.pendingCaptures()))
+        subscribers.publish(.capturesChanged)
+        _ = startDrain()
+    }
+
+    /// Makes a failed batch pending again and starts sending it, as one idea and without waiting for any window, and
+    /// doesn't wait for that to end. What's already sent stays that way, so a second tap can't send it twice:
+    /// `docs/decisions/45-resend-and-delete.md`.
+    public func resend(_ batchID: Capture.BatchID) async throws {
+        let reopened = try await store.reopen(batchID)
+        guard !reopened.isEmpty else {
+            return
+        }
+        for id in reopened {
+            serverFailures[id] = nil
+        }
         subscribers.publish(.capturesChanged)
         _ = startDrain()
     }
 
     /// Turns every pending capture into a failed one, so it goes nowhere until someone taps Resend. Called before a
     /// sign-in, which might be someone else's: `docs/decisions/44-hold-captures-at-sign-in.md`.
+    ///
+    /// What's open closes first, in its own write, so a held batch stays together and nothing saved later can join it.
+    /// A crash between the two writes leaves it closed and pending, and the next sign-in holds it again.
     public func holdPendingCaptures() async throws {
-        let pending = try await store.all().filter { $0.status == .pending }
+        let pending = try await store.pendingCaptures()
         guard !pending.isEmpty else {
             return
         }
+        try await store.closeOpenBatches(planner.batches(of: pending))
         try await store.setStatus(.failed, ids: Set(pending.map(\.id)))
         subscribers.publish(.capturesChanged)
+    }
+
+    /// Plans again, for when something other than a new capture may have changed when a batch goes, such as the
+    /// setting or a delete. Doesn't wait for what that starts.
+    public func replan() {
+        subscribers.publish(.capturesChanged)
+        _ = startDrain()
+    }
+
+    /// The batches `captures` make with the current window, oldest first.
+    public nonisolated func batches(of captures: [Capture]) -> [CaptureBatch] {
+        planner.batches(of: captures)
     }
 
     /// What's happening, from now until the stream's consumer goes away.
@@ -133,7 +169,7 @@ public actor SubmissionQueue {
         var step = Step.keepGoing
         while step == .keepGoing {
             step = await sendNextHandlingFailures()
-            if step == .nothingLeft, isRunRequested {
+            if step.isDoneForNow, isRunRequested {
                 isRunRequested = false
                 step = .keepGoing
             }
@@ -157,16 +193,18 @@ public actor SubmissionQueue {
     private func sendNext() async throws -> Step {
         try await saveWhatWasSent()
         // Nothing to send means no token and no request.
-        guard let upcoming = try await nextSubmission() else {
-            return .nothingLeft
+        let plan = try await nextPlan()
+        guard case .send(let upcoming) = plan else {
+            return Step(doneFor: plan)
         }
         let token = try await auth.validAccessToken()
         var sending: Submission?
         do {
             let organizationID = try await organizationID(token: token)
             // Read again now that there's a token: a capture held for an earlier sign-in mustn't leave on this one.
-            guard let submission = try await nextSubmission() else {
-                return .nothingLeft
+            let plan = try await nextPlan()
+            guard case .send(let submission) = plan else {
+                return Step(doneFor: plan)
             }
             sending = submission
             try await client.createIdea(text: submission.text, organizationID: organizationID, accessToken: token)
@@ -251,25 +289,35 @@ public actor SubmissionQueue {
         subscribers.publish(.capturesChanged)
     }
 
-    /// Reads the store every time, so a capture deleted or held since the last send doesn't go.
-    private func nextSubmission() async throws -> Submission? {
-        let pending = try await store.all()
-            .filter { $0.status == .pending }
-            .sorted { $0.createdAt < $1.createdAt }
-        return planner.nextSubmission(from: pending)
+    /// Reads the store every time, so a capture deleted or held since the last send doesn't go. What's about to be sent
+    /// is closed first, and if that can't be written, it doesn't go.
+    private func nextPlan() async throws -> SubmissionPlan {
+        let pending = try await store.pendingCaptures()
+        let plan = planner.plan(pending: pending, now: clock.now)
+        if case .send(let submission) = plan {
+            try await store.close(submission, among: pending)
+        }
+        return plan
     }
+}
 
-    // MARK: - Ending a pass
+// MARK: - Ending a pass
 
+extension SubmissionQueue {
     /// Doesn't suspend, so no `run()` can slip in between the last read of the store and `drainTask` being cleared.
     private func finish(with step: Step) {
         drainTask = nil
         isRunRequested = false
+        nextWindowEnd = nil
         switch step {
         case .keepGoing, .nothingLeft:
             failuresInARow = 0
             wakeTask?.cancel()
             wakeTask = nil
+        case .waiting(let date):
+            failuresInARow = 0
+            nextWindowEnd = date
+            scheduleWake(after: max(date.timeIntervalSince(clock.now), 0))
         case .retryLater:
             failuresInARow += 1
             scheduleWake(after: backoff.delay(afterFailures: failuresInARow) + jitter())
@@ -302,5 +350,25 @@ public actor SubmissionQueue {
     private func wake() {
         rateLimitedUntil = nil
         _ = startDrain()
+    }
+}
+
+extension SubmissionQueue.Step {
+    /// Why a pass ends when there's nothing it can send.
+    fileprivate init(doneFor plan: SubmissionPlan) {
+        if case .wait(let date) = plan {
+            self = .waiting(until: date)
+        } else {
+            self = .nothingLeft
+        }
+    }
+
+    fileprivate var isDoneForNow: Bool {
+        switch self {
+        case .nothingLeft, .waiting:
+            true
+        case .keepGoing, .retryLater, .rateLimited, .sessionLost:
+            false
+        }
     }
 }
