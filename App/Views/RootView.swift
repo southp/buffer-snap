@@ -7,6 +7,7 @@ import SwiftUI
 /// decides: the stack only reports back when the user goes back.
 struct RootView: View {
     let appModel: AppModel
+    let captureModel: CaptureModel
     let environment: AppEnvironment
 
     @Environment(\.scenePhase) private var scenePhase
@@ -52,23 +53,15 @@ struct RootView: View {
             }
         case .capture, .captureList:
             NavigationStack {
-                CaptureScreen(
-                    store: environment.captureStore,
-                    speech: environment.speech,
-                    onSaved: {
-                        Task {
-                            await environment.submissions.run()
-                        }
-                    },
-                    onShowCaptures: appModel.showCaptureList
-                )
-                .navigationDestination(isPresented: isShowingCaptureList) {
-                    CaptureListScreen(store: environment.captureStore, submissions: environment.submissions) {
-                        Task {
-                            await appModel.signOut()
+                CaptureScreen(model: captureModel, onShowCaptures: appModel.showCaptureList)
+                    .navigationDestination(isPresented: isShowingCaptureList) {
+                        CaptureListScreen(store: environment.captureStore, submissions: environment.submissions) {
+                            captureModel.discardDraft()
+                            Task {
+                                await appModel.signOut()
+                            }
                         }
                     }
-                }
             }
         }
     }

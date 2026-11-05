@@ -1,24 +1,17 @@
 import BufferSnapCore
 import SwiftUI
 
-/// The capture screen's container: owns `CaptureModel` and forwards typing, Save and the mic to it.
+/// The capture screen's container: forwards typing, Save and the mic to `CaptureModel`.
 /// Everything it shows is drawn by the stateless `CaptureView`.
+///
+/// Unlike other screens it doesn't own its model, as routing to sign-in destroys this screen and the draft has to
+/// outlive that: `docs/decisions/44-draft-survives-session-end.md`.
 struct CaptureScreen: View {
-    @State private var model: CaptureModel
+    let model: CaptureModel
+    let onShowCaptures: () -> Void
+
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
-
-    private let onShowCaptures: () -> Void
-
-    init(
-        store: any CaptureStore,
-        speech: any SpeechTranscriber,
-        onSaved: @escaping @MainActor () -> Void,
-        onShowCaptures: @escaping () -> Void
-    ) {
-        _model = State(initialValue: CaptureModel(store: store, speech: speech, onSaved: onSaved))
-        self.onShowCaptures = onShowCaptures
-    }
 
     var body: some View {
         CaptureView(
