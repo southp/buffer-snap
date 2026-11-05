@@ -3,11 +3,60 @@ import Foundation
 
 struct TestError: Error {}
 
-/// An `AuthService` whose sign-in always fails.
-struct FailingAuthService: AuthService {
-    func signIn() async throws {
-        throw TestError()
+/// An `AuthService` that fails as a test says, for testing how models react.
+actor StubAuthService: AuthService {
+    private let savedSession: Bool
+    private var signInError: (any Error)?
+    private var signOutError: (any Error)?
+    private var tokenError: (any Error)?
+    private var onValidAccessToken: (@Sendable () async -> Void)?
+
+    init(
+        hasSavedSession: Bool = false,
+        signInError: (any Error)? = nil,
+        signOutError: (any Error)? = nil,
+        tokenError: (any Error)? = nil
+    ) {
+        savedSession = hasSavedSession
+        self.signInError = signInError
+        self.signOutError = signOutError
+        self.tokenError = tokenError
     }
+
+    nonisolated func hasSavedSession() -> Bool {
+        savedSession
+    }
+
+    func setTokenError(_ error: (any Error)?) {
+        tokenError = error
+    }
+
+    /// Runs `action` in the middle of each `validAccessToken()`, so a test can act while one is in flight.
+    func setOnValidAccessToken(_ action: @escaping @Sendable () async -> Void) {
+        onValidAccessToken = action
+    }
+
+    func signIn() async throws {
+        if let signInError {
+            throw signInError
+        }
+    }
+
+    func signOut() async throws {
+        if let signOutError {
+            throw signOutError
+        }
+    }
+
+    func validAccessToken() async throws -> String {
+        await onValidAccessToken?()
+        if let tokenError {
+            throw tokenError
+        }
+        return "stub-access-token"
+    }
+
+    func accessTokenRejected(_ token: String) {}
 }
 
 /// A `CaptureStore` that returns `captures` but fails every write.

@@ -39,7 +39,7 @@ struct AppModelTests {
     }
 
     @Test func failedSignInStaysSignedOut() async {
-        let model = AppModel(auth: FailingAuthService())
+        let model = AppModel(auth: StubAuthService(signInError: TestError()))
 
         await model.signIn()
 
