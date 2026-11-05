@@ -87,23 +87,54 @@ public actor SubmissionQueue {
         await task.waitUnlessCancelled()
     }
 
-    /// Makes a failed capture pending again and starts sending it, without waiting for that to end.
-    public func resend(_ id: Capture.ID) async throws {
-        serverFailures[id] = nil
-        try await store.setStatus(.pending, ids: [id])
+    /// Closes whatever is open and starts sending it, without waiting for that to end. Once closed, it goes first
+    /// thing whatever happens next, even after a relaunch, and nothing saved from now on joins it.
+    public func sendNow() async throws {
+        try await store.closeOpenBatches(planner.batches(of: store.pendingCaptures()))
+        subscribers.publish(.capturesChanged)
+        _ = startDrain()
+    }
+
+    /// Makes a failed batch pending again and starts sending it, as one idea and without waiting for any window, and
+    /// doesn't wait for that to end. What's already sent stays that way, so a second tap can't send it twice:
+    /// `docs/decisions/45-resend-and-delete.md`.
+    public func resend(_ batchID: Capture.BatchID) async throws {
+        let reopened = try await store.reopen(batchID)
+        guard !reopened.isEmpty else {
+            return
+        }
+        for id in reopened {
+            serverFailures[id] = nil
+        }
         subscribers.publish(.capturesChanged)
         _ = startDrain()
     }
 
     /// Turns every pending capture into a failed one, so it goes nowhere until someone taps Resend. Called before a
     /// sign-in, which might be someone else's: `docs/decisions/44-hold-captures-at-sign-in.md`.
+    ///
+    /// What's open closes first, in its own write, so a held batch stays together and nothing saved later can join it.
+    /// A crash between the two writes leaves it closed and pending, and the next sign-in holds it again.
     public func holdPendingCaptures() async throws {
         let pending = try await store.pendingCaptures()
         guard !pending.isEmpty else {
             return
         }
+        try await store.closeOpenBatches(planner.batches(of: pending))
         try await store.setStatus(.failed, ids: Set(pending.map(\.id)))
         subscribers.publish(.capturesChanged)
+    }
+
+    /// Plans again, for when something other than a new capture may have changed when a batch goes, such as the
+    /// setting or a delete. Doesn't wait for what that starts.
+    public func replan() {
+        subscribers.publish(.capturesChanged)
+        _ = startDrain()
+    }
+
+    /// The batches `captures` make with the current window, oldest first.
+    public nonisolated func batches(of captures: [Capture]) -> [CaptureBatch] {
+        planner.batches(of: captures)
     }
 
     /// What's happening, from now until the stream's consumer goes away.
