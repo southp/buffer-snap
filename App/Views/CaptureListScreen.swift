@@ -7,12 +7,22 @@ import SwiftUI
 /// Everything it shows is drawn by the stateless `CaptureListView`.
 struct CaptureListScreen: View {
     @State private var model: CaptureListModel
+    @State private var isShowingBatchingSettings = false
     @Environment(\.scenePhase) private var scenePhase
 
+    private let submissions: SubmissionQueue
+    private let batchWindow: any BatchWindowSetting
     private let onSignOut: () -> Void
 
-    init(store: any CaptureStore, submissions: SubmissionQueue, onSignOut: @escaping () -> Void) {
+    init(
+        store: any CaptureStore,
+        submissions: SubmissionQueue,
+        batchWindow: any BatchWindowSetting,
+        onSignOut: @escaping () -> Void
+    ) {
         _model = State(initialValue: CaptureListModel(store: store, submissions: submissions))
+        self.submissions = submissions
+        self.batchWindow = batchWindow
         self.onSignOut = onSignOut
     }
 
@@ -38,8 +48,14 @@ struct CaptureListScreen: View {
                         await model.resend(batch)
                     }
                 },
+                onShowBatchingSettings: {
+                    isShowingBatchingSettings = true
+                },
                 onSignOut: onSignOut
             )
+        }
+        .navigationDestination(isPresented: $isShowingBatchingSettings) {
+            BatchingSettingsScreen(setting: batchWindow, submissions: submissions)
         }
         .task {
             await model.loadAndFollowChanges()

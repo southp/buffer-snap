@@ -17,7 +17,8 @@ struct BufferSnapApp: App {
             auth: Self.makeAuthService(),
             speech: AppleSpeechTranscriber(),
             bufferClient: Self.makeBufferClient(),
-            connectivity: NetworkPathConnectivityMonitor()
+            connectivity: NetworkPathConnectivityMonitor(),
+            batchWindow: UserDefaultsBatchWindowSetting()
         )
         self.environment = environment
         // Whoever signs in next may not be whoever made what's pending.

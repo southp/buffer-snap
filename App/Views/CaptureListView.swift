@@ -17,6 +17,8 @@ struct CaptureListView: View {
     let onSendNow: () -> Void
     /// Called when the user asks to send a failed batch again.
     let onResend: (CaptureBatch) -> Void
+    /// Called when the user asks for the batching setting.
+    let onShowBatchingSettings: () -> Void
     /// Called when the user signs out.
     let onSignOut: () -> Void
 
@@ -53,6 +55,7 @@ struct CaptureListView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
                 Menu("Account", systemImage: "person.crop.circle") {
+                    Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
                     Button(
                         "Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive,
                         action: onSignOut)
