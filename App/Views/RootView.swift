@@ -63,7 +63,7 @@ struct RootView: View {
                     onShowCaptures: appModel.showCaptureList
                 )
                 .navigationDestination(isPresented: isShowingCaptureList) {
-                    CaptureListScreen(store: environment.captureStore) {
+                    CaptureListScreen(store: environment.captureStore, submissions: environment.submissions) {
                         Task {
                             await appModel.signOut()
                         }

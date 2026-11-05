@@ -1,16 +1,31 @@
 import BufferSnapCore
 import SwiftUI
 
-/// One capture in the list: its kind's symbol, its text (or kind name), how long ago it was made, and its status.
+/// One capture in the list: its kind's symbol, its text (or kind name), how long ago it was made, and its status, plus
+/// Resend if it failed.
 struct CaptureRow: View {
     let capture: Capture
     /// The moment "5 minutes ago" counts from. Passed in rather than read from the clock, so snapshots are stable.
     let now: Date
+    /// Called when the user asks to send it again.
+    let onResend: () -> Void
 
     @Environment(\.locale) private var locale
     @Environment(\.calendar) private var calendar
 
     var body: some View {
+        HStack(spacing: 12) {
+            summary
+            if capture.status == .failed {
+                // Borderless, or a tap anywhere in the row would count. Outside `summary`, as VoiceOver merges that.
+                Button("Resend", action: onResend)
+                    .buttonStyle(.borderless)
+                    .font(.subheadline)
+            }
+        }
+    }
+
+    private var summary: some View {
         HStack(spacing: 12) {
             Image(systemName: capture.kind.symbolName)
                 .font(.title3)

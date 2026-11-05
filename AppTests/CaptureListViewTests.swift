@@ -10,7 +10,7 @@ import Testing
 /// `Capture.samplesReferenceDate`, the same "now" the samples are dated against.
 @MainActor
 struct CaptureListViewTests {
-    /// The five sample captures: every kind and every status, newest first.
+    /// The five sample captures: every kind and every status, newest first, with Resend on the failed one.
     @Test func seeded() {
         assertScreenSnapshot(of: listScreen(Capture.samples()), named: "fiveSamples")
     }
@@ -22,7 +22,13 @@ struct CaptureListViewTests {
 
     private func listScreen(_ captures: [Capture]) -> some View {
         NavigationStack {
-            CaptureListView(captures: captures, now: Capture.samplesReferenceDate, onDelete: { _ in }, onSignOut: {})
+            CaptureListView(
+                captures: captures,
+                now: Capture.samplesReferenceDate,
+                onDelete: { _ in },
+                onResend: { _ in },
+                onSignOut: {}
+            )
         }
     }
 }

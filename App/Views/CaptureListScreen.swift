@@ -1,8 +1,9 @@
 import BufferSnapCore
 import SwiftUI
 
-/// The capture list's container: owns `CaptureListModel`, loads it on appearing and on returning to the foreground,
-/// forwards deletes to it, and passes sign-out up to whoever owns the session.
+/// The capture list's container: owns `CaptureListModel`, loads it on appearing, on returning to the foreground and
+/// when a send changes something, forwards deletes and resends to it, and passes sign-out up to whoever owns the
+/// session.
 /// Everything it shows is drawn by the stateless `CaptureListView`.
 struct CaptureListScreen: View {
     @State private var model: CaptureListModel
@@ -10,8 +11,8 @@ struct CaptureListScreen: View {
 
     private let onSignOut: () -> Void
 
-    init(store: any CaptureStore, onSignOut: @escaping () -> Void) {
-        _model = State(initialValue: CaptureListModel(store: store))
+    init(store: any CaptureStore, submissions: SubmissionQueue, onSignOut: @escaping () -> Void) {
+        _model = State(initialValue: CaptureListModel(store: store, submissions: submissions))
         self.onSignOut = onSignOut
     }
 
@@ -27,11 +28,16 @@ struct CaptureListScreen: View {
                         await model.delete(capture)
                     }
                 },
+                onResend: { capture in
+                    Task {
+                        await model.resend(capture)
+                    }
+                },
                 onSignOut: onSignOut
             )
         }
         .task {
-            await model.load()
+            await model.loadAndFollowChanges()
         }
         // The widget writes to the store while the app is in the background.
         .onChange(of: scenePhase) { _, phase in
