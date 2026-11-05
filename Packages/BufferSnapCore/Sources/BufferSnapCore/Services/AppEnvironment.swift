@@ -2,14 +2,21 @@
 public struct AppEnvironment: Sendable {
     public let captureStore: any CaptureStore
     public let auth: any AuthService
+    public let speech: any SpeechTranscriber
 
-    public init(captureStore: any CaptureStore, auth: any AuthService) {
+    public init(captureStore: any CaptureStore, auth: any AuthService, speech: any SpeechTranscriber) {
         self.captureStore = captureStore
         self.auth = auth
+        self.speech = speech
     }
 
-    /// An environment of mocks: an in-memory store that starts with `seed`, and a sign-in that always succeeds.
+    /// An environment of mocks: an in-memory store that starts with `seed`, a sign-in that always succeeds, and a
+    /// transcriber that hears nothing.
     public static func mock(seed: [Capture]) -> AppEnvironment {
-        AppEnvironment(captureStore: InMemoryCaptureStore(seed: seed), auth: MockAuthService())
+        AppEnvironment(
+            captureStore: InMemoryCaptureStore(seed: seed),
+            auth: MockAuthService(),
+            speech: MockSpeechTranscriber()
+        )
     }
 }

@@ -10,7 +10,11 @@ struct BufferSnapApp: App {
     @State private var appModel: AppModel
 
     init() {
-        let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: Self.makeAuthService())
+        let environment = AppEnvironment(
+            captureStore: Self.makeCaptureStore(),
+            auth: Self.makeAuthService(),
+            speech: AppleSpeechTranscriber()
+        )
         self.environment = environment
         let appModel = AppModel(auth: environment.auth)
         _appModel = State(initialValue: appModel)

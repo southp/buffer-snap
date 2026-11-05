@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct CaptureModelTests {
     private func makeModel(store: any CaptureStore = InMemoryCaptureStore(), text: String = "") -> CaptureModel {
-        let model = CaptureModel(store: store)
+        let model = CaptureModel(store: store, speech: MockSpeechTranscriber())
         model.update(text: text)
         return model
     }

@@ -34,14 +34,18 @@ struct RootView: View {
             }
         case .capture, .captureList:
             NavigationStack {
-                CaptureScreen(store: environment.captureStore, onShowCaptures: appModel.showCaptureList)
-                    .navigationDestination(isPresented: isShowingCaptureList) {
-                        CaptureListScreen(store: environment.captureStore) {
-                            Task {
-                                await appModel.signOut()
-                            }
+                CaptureScreen(
+                    store: environment.captureStore,
+                    speech: environment.speech,
+                    onShowCaptures: appModel.showCaptureList
+                )
+                .navigationDestination(isPresented: isShowingCaptureList) {
+                    CaptureListScreen(store: environment.captureStore) {
+                        Task {
+                            await appModel.signOut()
                         }
                     }
+                }
             }
         }
     }
