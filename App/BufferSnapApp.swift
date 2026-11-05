@@ -10,7 +10,7 @@ struct BufferSnapApp: App {
     @State private var appModel: AppModel
 
     init() {
-        let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: MockAuthService())
+        let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: Self.makeAuthService())
         self.environment = environment
         let appModel = AppModel(auth: environment.auth)
         _appModel = State(initialValue: appModel)
@@ -34,6 +34,21 @@ struct BufferSnapApp: App {
             // The list can't read this file either, so this can wait for the next launch.
             Logger().error("Can't remove the mock captures: \(error)")
         }
+    }
+
+    /// Real Buffer OAuth, with the session in the Keychain. There must only ever be one of these: see `AuthService`.
+    private static func makeAuthService() -> any AuthService {
+        #if DEBUG
+            // A way past sign-in on the simulator, not in Release (`docs/decisions/43-mock-auth-launch-argument.md`).
+            if let mockAuth = UserDefaults.standard.string(forKey: "mockAuth") {
+                return MockAuthService(hasSavedSession: mockAuth == "signedIn")
+            }
+        #endif
+        return OAuthAuthService(
+            web: SystemWebAuthenticator(),
+            transport: URLSession.forOAuth(),
+            store: KeychainSessionStore()
+        )
     }
 
     /// The App Group store the widget also writes to. Every write through it reloads the widget, so its count never
