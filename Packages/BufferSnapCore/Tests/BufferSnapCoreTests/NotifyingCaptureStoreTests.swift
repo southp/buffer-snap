@@ -40,7 +40,7 @@ struct NotifyingCaptureStoreTests {
 
     @Test func deleteWritesThenNotifies() async throws {
         let counter = ChangeCounter()
-        let capture = Capture(kind: .video)
+        let capture = Capture(kind: .photo)
         let base = InMemoryCaptureStore(seed: [capture])
         let store = NotifyingCaptureStore(base: base, onChange: counter.increment)
 
@@ -52,7 +52,7 @@ struct NotifyingCaptureStoreTests {
 
     @Test func failedWritesDoNotNotify() async throws {
         let counter = ChangeCounter()
-        let capture = Capture(kind: .audio)
+        let capture = Capture(kind: .photo)
         let store = NotifyingCaptureStore(base: ReadOnlyCaptureStore(captures: [capture]), onChange: counter.increment)
 
         await #expect(throws: TestError.self) {

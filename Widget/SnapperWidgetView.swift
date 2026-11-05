@@ -36,12 +36,8 @@ extension CaptureKindAppEnum {
         switch self {
         case .text:
             "textformat"
-        case .audio:
-            "mic"
         case .photo:
             "camera"
-        case .video:
-            "video"
         }
     }
 
@@ -49,12 +45,8 @@ extension CaptureKindAppEnum {
         switch self {
         case .text:
             "Text"
-        case .audio:
-            "Voice"
         case .photo:
             "Photo"
-        case .video:
-            "Video"
         }
     }
 }

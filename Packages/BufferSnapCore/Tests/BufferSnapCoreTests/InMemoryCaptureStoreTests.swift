@@ -13,7 +13,7 @@ struct InMemoryCaptureStoreTests {
 
     @Test func addThenAllReturnsCapture() async throws {
         let store: any CaptureStore = InMemoryCaptureStore()
-        let capture = Capture(kind: .audio)
+        let capture = Capture(kind: .photo)
 
         try await store.add(capture)
 
@@ -22,7 +22,7 @@ struct InMemoryCaptureStoreTests {
 
     @Test func deleteRemovesOnlyMatchingCapture() async throws {
         let kept = Capture(kind: .text)
-        let deleted = Capture(kind: .video)
+        let deleted = Capture(kind: .photo)
         let store: any CaptureStore = InMemoryCaptureStore(seed: [kept, deleted])
 
         try await store.delete(id: deleted.id)

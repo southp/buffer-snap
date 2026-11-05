@@ -12,7 +12,7 @@ struct CaptureListModelTests {
     @Test func loadSortsNewestFirst() async {
         let oldest = Capture.at(1)
         let middle = Capture.at(2, kind: .photo)
-        let newest = Capture.at(3, kind: .audio)
+        let newest = Capture.at(3, kind: .photo)
         let model = CaptureListModel(store: InMemoryCaptureStore(seed: [middle, newest, oldest]))
 
         await model.load()
