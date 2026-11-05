@@ -10,6 +10,8 @@ targets:
         excludes:
           - "target.yml"
           - "**/*.md"
+      # Intents the widget runs but the app must carry too, or `openAppWhenRun` doesn't open it.
+      - path: Shared
     dependencies:
       - package: BufferSnapCore
     settings:
