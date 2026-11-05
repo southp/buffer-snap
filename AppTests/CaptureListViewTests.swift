@@ -64,6 +64,7 @@ struct CaptureListViewTests {
                 onDelete: { _ in },
                 onSendNow: {},
                 onResend: { _ in },
+                onShowBatchingSettings: {},
                 onSignOut: {}
             )
         }

@@ -55,7 +55,11 @@ struct RootView: View {
             NavigationStack {
                 CaptureScreen(model: captureModel, onShowCaptures: appModel.showCaptureList)
                     .navigationDestination(isPresented: isShowingCaptureList) {
-                        CaptureListScreen(store: environment.captureStore, submissions: environment.submissions) {
+                        CaptureListScreen(
+                            store: environment.captureStore,
+                            submissions: environment.submissions,
+                            batchWindow: environment.batchWindow
+                        ) {
                             captureModel.discardDraft()
                             Task {
                                 await appModel.signOut()

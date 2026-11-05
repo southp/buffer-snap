@@ -14,7 +14,8 @@ struct RootViewTests {
             captureStore: InMemoryCaptureStore(),
             auth: auth,
             bufferClient: MockBufferClient(),
-            connectivity: MockConnectivityMonitor()
+            connectivity: MockConnectivityMonitor(),
+            batchWindow: InMemoryBatchWindowSetting()
         )
         let appModel = AppModel(auth: auth)
         let captureModel = CaptureModel(store: environment.captureStore)
