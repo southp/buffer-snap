@@ -49,21 +49,15 @@ struct CaptureView: View {
                     .disabled(!canSave)
             }
             Spacer(minLength: 0)
-            DictationMessage(dictation: dictation, onOpenSettings: onOpenSettings)
-            MicButton(
-                dictation: dictation,
-                onPress: {
-                    isTyping = false
-                    onMicPress()
-                },
-                onRelease: onMicRelease
-            )
+            // There's no room for the mic above the keyboard. Done below hides the keyboard and brings it back.
+            if !isTyping {
+                DictationMessage(dictation: dictation, onOpenSettings: onOpenSettings)
+                MicButton(dictation: dictation, onPress: onMicPress, onRelease: onMicRelease)
+                    .padding(.bottom, 24)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
-        .padding(.bottom, 24)
-        // The keyboard covers the mic rather than squeezing the text box. Done below is how to get the mic back.
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .navigationTitle("Capture")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
