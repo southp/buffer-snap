@@ -29,8 +29,10 @@ struct CaptureListScreen: View {
                     }
                 },
                 onResend: { capture in
-                    Task {
-                        await model.resend(capture)
+                    if let batch = model.batches.first(where: { $0.captures.contains(capture) }) {
+                        Task {
+                            await model.resend(batch)
+                        }
                     }
                 },
                 onSignOut: onSignOut
