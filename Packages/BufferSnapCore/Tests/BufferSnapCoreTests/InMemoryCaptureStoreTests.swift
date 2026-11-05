@@ -20,6 +20,16 @@ struct InMemoryCaptureStoreTests {
         #expect(try await store.all() == [capture])
     }
 
+    @Test func setStatusChangesOnlyTheNamedCaptures() async throws {
+        let failed = Capture.at(1)
+        let waiting = Capture.at(2)
+        let store: any CaptureStore = InMemoryCaptureStore(seed: [failed, waiting])
+
+        try await store.setStatus(.failed, ids: [failed.id, UUID()])
+
+        #expect(try await store.all().map(\.status) == [.failed, .pending])
+    }
+
     @Test func deleteRemovesOnlyMatchingCapture() async throws {
         let kept = Capture(kind: .text)
         let deleted = Capture(kind: .photo)

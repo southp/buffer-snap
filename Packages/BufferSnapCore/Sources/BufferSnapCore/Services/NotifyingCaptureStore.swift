@@ -24,4 +24,9 @@ public struct NotifyingCaptureStore: CaptureStore {
         try await base.delete(id: id)
         onChange()
     }
+
+    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
+        try await base.setStatus(status, ids: ids)
+        onChange()
+    }
 }
