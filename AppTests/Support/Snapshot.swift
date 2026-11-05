@@ -8,7 +8,8 @@ import UIKit
 ///
 /// Every snapshot test goes through this helper, so they all share one configuration:
 /// - the screen of the pinned `SIM_DEVICE` (iPhone 16, portrait), in light mode;
-/// - an en_US locale and a Gregorian calendar in GMT, so dates render the same on every machine;
+/// - an en_US locale and a Gregorian calendar in GMT, so dates render the same on every machine. The test host's own
+///   language is pinned too, by the scheme's test arguments in `project.yml`, since text layout can follow it;
 /// - a perceptual precision of 0.98, which absorbs antialiasing noise but not visible changes;
 /// - record mode only when `SNAPSHOT_RECORD=1` (`just snapshots-record`). Otherwise a missing
 ///   reference fails the test instead of being recorded silently.

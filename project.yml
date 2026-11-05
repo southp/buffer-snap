@@ -35,5 +35,9 @@ schemes:
       targets:
         - BufferSnapTests
       gatherCoverageData: false
+      # A simulator takes its host's language, and text layout follows it, which can move a snapshot's text by 1px.
+      commandLineArguments:
+        "-AppleLanguages (en-US)": true
+        "-AppleLocale en_US": true
     run:
       config: Debug
