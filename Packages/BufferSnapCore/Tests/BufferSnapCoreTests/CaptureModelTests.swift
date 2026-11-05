@@ -180,7 +180,9 @@ struct CaptureModelTests {
         let model = makeModel(store: JSONFileCaptureStore(fileURL: fileURL), text: "Keep me")
 
         await model.save()
-        let relaunched = CaptureListModel(store: JSONFileCaptureStore(fileURL: fileURL))
+        let store = JSONFileCaptureStore(fileURL: fileURL)
+        let queue = SubmissionQueue(store: store, auth: MockAuthService(), client: MockBufferClient())
+        let relaunched = CaptureListModel(store: store, submissions: queue)
         await relaunched.load()
 
         #expect(relaunched.captures.map(\.text) == ["Keep me"])
