@@ -81,46 +81,4 @@ struct JSONFileCaptureStoreTests {
         }
         #expect(try Data(contentsOf: fileURL) == corrupt)
     }
-
-    @Test func seedIsWrittenWhenFileIsMissing() async throws {
-        let fileURL = try missingFileURL()
-        let seed = Capture.samples()
-
-        let store = try JSONFileCaptureStore(fileURL: fileURL, seedIfMissing: seed)
-
-        #expect(try await store.all() == seed)
-        #expect(try await JSONFileCaptureStore(fileURL: fileURL).all() == seed)
-    }
-
-    // The widget may have written the file before the app's first launch.
-    @Test func seedIsIgnoredWhenFileExists() async throws {
-        let fileURL = try missingFileURL()
-        let capture = Capture(kind: .audio)
-        try await JSONFileCaptureStore(fileURL: fileURL).add(capture)
-
-        let store = try JSONFileCaptureStore(fileURL: fileURL, seedIfMissing: Capture.samples())
-
-        #expect(try await store.all() == [capture])
-    }
-
-    @Test func deletingEveryCaptureDoesNotBringTheSeedBack() async throws {
-        let fileURL = try missingFileURL()
-        let seed = [Capture(kind: .text)]
-        let store = try JSONFileCaptureStore(fileURL: fileURL, seedIfMissing: seed)
-
-        try await store.delete(id: seed[0].id)
-        let relaunched = try JSONFileCaptureStore(fileURL: fileURL, seedIfMissing: seed)
-
-        #expect(try await relaunched.all().isEmpty)
-    }
-
-    @Test func seedingFailsWhenTheFileCannotBeWritten() throws {
-        let fileURL = try missingFileURL()
-            .deletingLastPathComponent()
-            .appendingPathComponent("no-such-directory/captures.json")
-
-        #expect(throws: (any Error).self) {
-            try JSONFileCaptureStore(fileURL: fileURL, seedIfMissing: Capture.samples())
-        }
-    }
 }

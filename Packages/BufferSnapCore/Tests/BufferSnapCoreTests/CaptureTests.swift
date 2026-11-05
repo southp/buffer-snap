@@ -19,7 +19,7 @@ struct CaptureTests {
         #expect(decoded == capture)
     }
 
-    // The mocked app's seed: the capture list must show every kind and every status.
+    // The snapshot tests' fixture: the capture list must show every kind and every status.
     @Test func samplesCoverEveryKindAndStatusWithUniqueIDs() {
         let samples = Capture.samples()
 
@@ -37,7 +37,7 @@ struct CaptureTests {
         #expect(dates.allSatisfy { $0 < now })
     }
 
-    // The app seeds relative to launch time, so only the dates may depend on `now`.
+    // Only the dates may depend on `now`.
     @Test func samplesShiftWithNowButKeepTheirIDs() {
         let later = Capture.samplesReferenceDate.addingTimeInterval(3_600)
         let base = Capture.samples()

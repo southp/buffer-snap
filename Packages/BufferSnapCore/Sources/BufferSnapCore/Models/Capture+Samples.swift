@@ -6,7 +6,7 @@ extension Capture {
     public static let samplesReferenceDate = Date(timeIntervalSince1970: 1_767_225_600)
 
     /// Five captures with fixed ids, newest first, that together cover every kind and every status.
-    /// They're dated minutes to days before `now`, to seed the mocked app and the snapshot tests.
+    /// They're dated minutes to days before `now`, for tests and snapshots. The running app never shows them.
     public static func samples(relativeTo now: Date = samplesReferenceDate) -> [Capture] {
         func minutesAgo(_ minutes: TimeInterval) -> Date {
             now.addingTimeInterval(-minutes * 60)
