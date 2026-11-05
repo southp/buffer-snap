@@ -1,5 +1,6 @@
 import BufferSnapCore
 import Foundation
+import Testing
 
 struct TestError: Error {}
 
@@ -55,4 +56,15 @@ actor HookedCaptureStore: CaptureStore {
     func delete(id: Capture.ID) async throws {
         await base.delete(id: id)
     }
+}
+
+/// Waits for a model to catch up with something a mock just delivered, and records an issue if it never does.
+@MainActor
+func waitFor(_ condition: @MainActor () -> Bool, sourceLocation: SourceLocation = #_sourceLocation) async {
+    let clock = ContinuousClock()
+    let deadline = clock.now + .seconds(5)
+    while !condition() && clock.now < deadline {
+        try? await Task.sleep(for: .milliseconds(1))
+    }
+    #expect(condition(), sourceLocation: sourceLocation)
 }
