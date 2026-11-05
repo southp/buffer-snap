@@ -12,7 +12,7 @@ struct RootView: View {
     var body: some View {
         switch appModel.route {
         case .signedOut:
-            SignInView {
+            SignInView(notice: appModel.signInNotice, isSigningIn: appModel.isSigningIn) {
                 Task {
                     await appModel.signIn()
                 }
