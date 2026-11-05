@@ -48,6 +48,7 @@ struct BufferSnapApp: App {
         .backgroundTask(.appRefresh(BackgroundSubmission.taskIdentifier)) { [environment] in
             BackgroundSubmission.scheduleWakeUp()
             await environment.submissions.run()
+            await BackgroundSubmission.scheduleWakeUpForOpenBatch(on: environment.submissions)
         }
     }
 

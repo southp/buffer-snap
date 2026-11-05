@@ -45,6 +45,8 @@ public actor SubmissionQueue {
     private var drainTask: Task<Void, Never>?
     private var isRunRequested = false
     private var wakeTask: Task<Void, Never>?
+    /// When the open batch goes, as of the last pass, if that's what the queue is waiting for.
+    public private(set) var nextWindowEnd: Date?
     private var rateLimitedUntil: Date?
     private var failuresInARow = 0
     private var serverFailures: [Capture.ID: Int] = [:]
@@ -306,6 +308,7 @@ extension SubmissionQueue {
     private func finish(with step: Step) {
         drainTask = nil
         isRunRequested = false
+        nextWindowEnd = nil
         switch step {
         case .keepGoing, .nothingLeft:
             failuresInARow = 0
@@ -313,6 +316,7 @@ extension SubmissionQueue {
             wakeTask = nil
         case .waiting(let date):
             failuresInARow = 0
+            nextWindowEnd = date
             scheduleWake(after: max(date.timeIntervalSince(clock.now), 0))
         case .retryLater:
             failuresInARow += 1
