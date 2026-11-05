@@ -9,7 +9,22 @@ struct RootView: View {
     let appModel: AppModel
     let environment: AppEnvironment
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
+        screen
+            // Refreshes a token that's due, and finds out if Buffer has ended the session.
+            .onChange(of: scenePhase, initial: true) { _, phase in
+                if phase == .active {
+                    Task {
+                        await appModel.checkSession()
+                    }
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var screen: some View {
         switch appModel.route {
         case .signedOut:
             SignInView(notice: appModel.signInNotice, isSigningIn: appModel.isSigningIn) {
