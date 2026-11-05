@@ -27,6 +27,12 @@ struct BufferSnapApp: App {
         let seed = Capture.samples(relativeTo: .now)
         let store: any CaptureStore
         do {
+            try SharedStorage.removeLegacyCaptures()
+        } catch {
+            // It's only mock captures that nothing reads any more, so this can wait for the next launch.
+            Logger().error("Can't remove the old capture file: \(error)")
+        }
+        do {
             store = try JSONFileCaptureStore(fileURL: SharedStorage.capturesFileURL(), seedIfMissing: seed)
         } catch {
             // Still usable, but nothing persists or reaches the widget. Showing this comes with the MVP.
