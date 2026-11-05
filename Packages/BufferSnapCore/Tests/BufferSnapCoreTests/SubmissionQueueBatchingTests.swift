@@ -116,6 +116,29 @@ struct SubmissionQueueBatchingTests {
         #expect(await server.ideaTexts == ["First\n\nSecond"])
     }
 
+    /// What the app asks iOS to wake it for as it leaves the screen.
+    @Test func theQueueSaysWhenTheOpenBatchIsDue() async {
+        let store = InMemoryCaptureStore(seed: [fixture.capture("An idea", ago: 100)])
+        let queue = makeQueue(store: store)
+        #expect(await queue.nextWindowEnd == nil)
+
+        await queue.run()
+
+        #expect(await queue.nextWindowEnd == clock.now.addingTimeInterval(200))
+    }
+
+    @Test func nothingIsDueOnceTheBatchHasGone() async throws {
+        let store = InMemoryCaptureStore(seed: [fixture.capture("An idea")])
+        let queue = makeQueue(store: store)
+        await queue.run()
+
+        try await queue.sendNow()
+        await fixture.waitForIdeas(1)
+        await queue.run()
+
+        #expect(await queue.nextWindowEnd == nil)
+    }
+
     // MARK: - Exactly one idea per capture
 
     /// It's too late to join what's on its way, so it starts the next one, and isn't sent twice or dropped.
