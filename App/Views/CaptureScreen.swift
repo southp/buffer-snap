@@ -9,8 +9,8 @@ struct CaptureScreen: View {
 
     private let onShowCaptures: () -> Void
 
-    init(store: any CaptureStore, onShowCaptures: @escaping () -> Void) {
-        _model = State(initialValue: CaptureModel(store: store))
+    init(store: any CaptureStore, onSaved: @escaping @MainActor () -> Void, onShowCaptures: @escaping () -> Void) {
+        _model = State(initialValue: CaptureModel(store: store, onSaved: onSaved))
         self.onShowCaptures = onShowCaptures
     }
 

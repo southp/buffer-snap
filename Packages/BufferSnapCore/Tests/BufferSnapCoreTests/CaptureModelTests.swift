@@ -185,4 +185,34 @@ struct CaptureModelTests {
 
         #expect(relaunched.captures.map(\.text) == ["Keep me"])
     }
+
+    /// What gets a capture on its way to Buffer without waiting for the app to leave the screen.
+    @Test func savingTellsWhoeverWantsToKnow() async {
+        let saves = SaveCounter()
+        let model = CaptureModel(store: InMemoryCaptureStore(), onSaved: saves.increment)
+        model.update(text: "An idea")
+
+        await model.save()
+
+        #expect(saves.total == 1)
+    }
+
+    @Test func aFailedSaveTellsNobody() async {
+        let saves = SaveCounter()
+        let model = CaptureModel(store: ReadOnlyCaptureStore(captures: []), onSaved: saves.increment)
+        model.update(text: "An idea")
+
+        await model.save()
+
+        #expect(saves.total == 0)
+    }
+}
+
+@MainActor
+private final class SaveCounter {
+    private(set) var total = 0
+
+    func increment() {
+        total += 1
+    }
 }

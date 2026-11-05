@@ -10,7 +10,12 @@ struct BufferSnapApp: App {
     @State private var appModel: AppModel
 
     init() {
-        let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: Self.makeAuthService())
+        let environment = AppEnvironment(
+            captureStore: Self.makeCaptureStore(),
+            auth: Self.makeAuthService(),
+            bufferClient: Self.makeBufferClient(),
+            connectivity: NetworkPathConnectivityMonitor()
+        )
         self.environment = environment
         _appModel = State(initialValue: AppModel(auth: environment.auth))
     }
@@ -18,6 +23,11 @@ struct BufferSnapApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(appModel: appModel, environment: environment)
+        }
+        // Runs in this process and on this environment's queue, so there's still only one `AuthService`.
+        .backgroundTask(.appRefresh(BackgroundSubmission.taskIdentifier)) { [environment] in
+            BackgroundSubmission.scheduleWakeUp()
+            await environment.submissions.run()
         }
     }
 
@@ -34,6 +44,18 @@ struct BufferSnapApp: App {
             transport: URLSession.forOAuth(),
             store: KeychainSessionStore()
         )
+    }
+
+    /// Buffer's API. A mocked sign-in has no token to send, so it gets a mocked Buffer too, and nothing reaches the
+    /// real one (`docs/decisions/44-mock-buffer-launch-argument.md`).
+    private static func makeBufferClient() -> any BufferClient {
+        #if DEBUG
+            if UserDefaults.standard.string(forKey: "mockAuth") != nil {
+                let rejectsFirst = UserDefaults.standard.string(forKey: "mockBuffer") == "rejectFirst"
+                return MockBufferClient(failures: rejectsFirst ? [.rejected(reason: "Mock")] : [])
+            }
+        #endif
+        return GraphQLBufferClient(transport: URLSession.forBufferAPI())
     }
 
     /// The App Group store the widget also writes to. Every write through it reloads the widget, so its count never

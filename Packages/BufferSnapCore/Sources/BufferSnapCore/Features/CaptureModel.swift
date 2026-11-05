@@ -20,9 +20,12 @@ public final class CaptureModel {
     private var isSaving = false
 
     private let store: any CaptureStore
+    private let onSaved: @MainActor () -> Void
 
-    public init(store: any CaptureStore) {
+    /// `onSaved` runs after each capture is stored, which is when it can start on its way to Buffer.
+    public init(store: any CaptureStore, onSaved: @escaping @MainActor () -> Void = {}) {
         self.store = store
+        self.onSaved = onSaved
     }
 
     /// How many characters would be saved: what a person sees as one character counts as one.
@@ -65,6 +68,7 @@ public final class CaptureModel {
         let draft = text
         do {
             try await store.add(Capture(kind: .text, text: trimmedText))
+            onSaved()
             // Anything typed while the write ran belongs to the next capture, so keep it.
             if text == draft {
                 text = ""

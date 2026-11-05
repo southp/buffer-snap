@@ -13,12 +13,30 @@ struct RootView: View {
 
     var body: some View {
         screen
-            // Refreshes a token that's due, and finds out if Buffer has ended the session.
             .onChange(of: scenePhase, initial: true) { _, phase in
-                if phase == .active {
+                switch phase {
+                case .active:
+                    // Refreshes a token that's due, and finds out if Buffer has ended the session.
                     Task {
                         await appModel.checkSession()
                     }
+                    Task {
+                        await environment.submissions.run()
+                    }
+                case .background:
+                    BackgroundSubmission.scheduleWakeUp()
+                    BackgroundSubmission.finishSending(on: environment.submissions)
+                default:
+                    break
+                }
+            }
+            .task {
+                await environment.submissions.runOnEachReconnection(of: environment.connectivity)
+            }
+            // A send found the session over: the route goes to sign-in the same way as coming to the foreground.
+            .task {
+                for await event in environment.submissions.events() where event == .sessionLost {
+                    await appModel.checkSession()
                 }
             }
     }
@@ -34,14 +52,22 @@ struct RootView: View {
             }
         case .capture, .captureList:
             NavigationStack {
-                CaptureScreen(store: environment.captureStore, onShowCaptures: appModel.showCaptureList)
-                    .navigationDestination(isPresented: isShowingCaptureList) {
-                        CaptureListScreen(store: environment.captureStore) {
-                            Task {
-                                await appModel.signOut()
-                            }
+                CaptureScreen(
+                    store: environment.captureStore,
+                    onSaved: {
+                        Task {
+                            await environment.submissions.run()
+                        }
+                    },
+                    onShowCaptures: appModel.showCaptureList
+                )
+                .navigationDestination(isPresented: isShowingCaptureList) {
+                    CaptureListScreen(store: environment.captureStore) {
+                        Task {
+                            await appModel.signOut()
                         }
                     }
+                }
             }
         }
     }
