@@ -7,12 +7,27 @@ import WidgetKit
 struct SnapperWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: SharedStorage.widgetKind, provider: CaptureCountProvider()) { entry in
-            SnapperWidgetView(count: entry.count)
+            SnapperWidgetFace(count: entry.count)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Snapper")
         .description("Capture an idea in one tap")
-        .supportedFamilies([.systemMedium])
+        .supportedFamilies([.systemMedium, .accessoryCircular])
+    }
+}
+
+/// Picks the face for where the widget is placed.
+private struct SnapperWidgetFace: View {
+    @Environment(\.widgetFamily) private var family
+    let count: Int
+
+    var body: some View {
+        switch family {
+        case .accessoryCircular:
+            SnapperLockScreenView()
+        default:
+            SnapperWidgetView(count: count)
+        }
     }
 }
 
