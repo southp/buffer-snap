@@ -56,6 +56,12 @@ public final class CaptureModel {
         saveResult = nil
     }
 
+    /// Throws the draft away, for when someone signs out on purpose. Whoever signs in next shouldn't find it.
+    public func discardDraft() {
+        text = ""
+        saveResult = nil
+    }
+
     /// Saves the draft as a pending text capture and clears it. A failed save keeps the draft, so it can be retried.
     public func save() async {
         guard canSave else {

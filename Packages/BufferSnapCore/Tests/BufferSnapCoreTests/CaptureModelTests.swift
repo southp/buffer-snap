@@ -188,6 +188,17 @@ struct CaptureModelTests {
         #expect(relaunched.captures.map(\.text) == ["Keep me"])
     }
 
+    @Test func discardingForgetsTheDraftAndTheLastResult() async {
+        let model = makeModel(store: ReadOnlyCaptureStore(captures: []), text: "An idea")
+        await model.save()
+        #expect(model.saveResult == .failed)
+
+        model.discardDraft()
+
+        #expect(model.text.isEmpty)
+        #expect(model.saveResult == nil)
+    }
+
     /// What gets a capture on its way to Buffer without waiting for the app to leave the screen.
     @Test func savingTellsWhoeverWantsToKnow() async {
         let saves = SaveCounter()

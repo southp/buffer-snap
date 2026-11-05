@@ -8,6 +8,8 @@ struct BufferSnapApp: App {
     // Composition root: every service is built here, once, and handed down to the views.
     private let environment: AppEnvironment
     @State private var appModel: AppModel
+    // Here and not on the capture screen, so a draft outlives the screen when a session ends.
+    @State private var captureModel: CaptureModel
 
     init() {
         let environment = AppEnvironment(
@@ -25,11 +27,21 @@ struct BufferSnapApp: App {
             }
         )
         _appModel = State(initialValue: appModel)
+        _captureModel = State(
+            initialValue: CaptureModel(
+                store: environment.captureStore,
+                onSaved: { [submissions = environment.submissions] in
+                    Task {
+                        await submissions.run()
+                    }
+                }
+            )
+        )
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(appModel: appModel, environment: environment)
+            RootView(appModel: appModel, captureModel: captureModel, environment: environment)
         }
         // Runs in this process and on this environment's queue, so there's still only one `AuthService`.
         .backgroundTask(.appRefresh(BackgroundSubmission.taskIdentifier)) { [environment] in
