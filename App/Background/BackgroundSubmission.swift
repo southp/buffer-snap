@@ -9,15 +9,23 @@ enum BackgroundSubmission {
     /// Also in `BGTaskSchedulerPermittedIdentifiers` in `App/Info.plist`.
     static let taskIdentifier = "me.southp.buffersnap.submit"
 
-    /// Asks iOS to wake the app in the background, at a time of its choosing. Asking again replaces the last request.
-    /// A simulator refuses this, and the app works the same without it.
-    static func scheduleWakeUp() {
+    /// Asks iOS to wake the app in the background, at a time of its choosing, but no sooner than `earliest`. Asking
+    /// again replaces the last request. A simulator refuses this, and the app works the same without it.
+    static func scheduleWakeUp(earliest: Date = Date(timeIntervalSinceNow: 15 * 60)) {
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        request.earliestBeginDate = earliest
         do {
             try BGTaskScheduler.shared.submit(request)
         } catch {
             Logger().notice("Can't schedule a background wake-up: \(error, privacy: .public)")
+        }
+    }
+
+    /// Asks for the wake-up to be when the open batch is due, if the queue is waiting for one: it's the common case now
+    /// that a capture doesn't go straight away. `docs/decisions/45-background-wake-at-window-end.md`.
+    static func scheduleWakeUpForOpenBatch(on queue: SubmissionQueue) async {
+        if let windowEnd = await queue.nextWindowEnd {
+            scheduleWakeUp(earliest: windowEnd)
         }
     }
 
@@ -29,6 +37,7 @@ enum BackgroundSubmission {
         time.begin()
         Task {
             await queue.run()
+            await scheduleWakeUpForOpenBatch(on: queue)
             time.end()
         }
     }
