@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Back to BufferSnap</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 17px -apple-system, system-ui, sans-serif; margin: 0; padding: 48px 16px; text-align: center; }
+  a { font-weight: 600; }
+</style>
+</head>
+<body>
+<p>Returning to BufferSnap…</p>
+<p><a id="back" href="buffersnap://oauth">Tap here if nothing happens</a></p>
+<script>
+  // Buffer only redirects to HTTPS, so this page hands its result to the app. See docs/decisions/43-oauth-redirect-page.md.
+  const target = "buffersnap://oauth" + window.location.search;
+  document.getElementById("back").href = target;
+  window.location.replace(target);
+</script>
+</body>
+</html>

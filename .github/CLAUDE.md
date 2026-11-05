@@ -33,6 +33,11 @@
   middle one is skipped: its commit is still tested and deployed as part of the newest (`docs/decisions/9-deploy-on-merge.md`).
 - A failed `deploy` doesn't block merging. The next merge deploys everything, or re-run the job from the Actions tab.
 
+## Site (`workflows/pages.yml`)
+
+- `site/` is public at `https://southp.github.io/buffer-snap/`, published when it changes on `main`. It holds what must live at a public URL, such as the OAuth return page. Never put anything private there.
+- `site/oauth/` is Buffer's registered redirect URI. Buffer compares it character for character, so moving it means updating the app client too (`docs/decisions/43-oauth-redirect-page.md`).
+
 ## Screenshots and screencasts
 
 Any PR that changes what a user can see shows the change in its "Screenshots" section, so a reviewer can judge it
