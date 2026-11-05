@@ -1,4 +1,5 @@
 import BufferSnapCore
+import Foundation
 import Testing
 
 @MainActor
@@ -47,7 +48,7 @@ struct CaptureListModelTests {
         #expect(model.captures == [capture])
     }
 
-    @Test func resendMakesAFailedCapturePendingAndSendsIt() async {
+    @Test func resendMakesAFailedCapturePendingAndSendsIt() async throws {
         let capture = Capture.text("An idea")
         let store = InMemoryCaptureStore(seed: [capture])
         await store.setStatus(.failed, ids: [capture.id])
@@ -56,7 +57,7 @@ struct CaptureListModelTests {
         await model.load()
         #expect(model.captures.map(\.status) == [.failed])
 
-        await model.resend(capture)
+        await model.resend(try #require(model.batches.first))
 
         while await buffer.createdIdeas.isEmpty {
             await Task.yield()
@@ -65,24 +66,24 @@ struct CaptureListModelTests {
     }
 
     /// The row mustn't still say "Failed" with its button after the tap.
-    @Test func resendShowsTheNewStatusAtOnce() async {
+    @Test func resendShowsTheNewStatusAtOnce() async throws {
         let capture = Capture.text("An idea")
         let store = InMemoryCaptureStore(seed: [capture])
         await store.setStatus(.failed, ids: [capture.id])
         let model = makeModel(store: store)
         await model.load()
 
-        await model.resend(capture)
+        await model.resend(try #require(model.batches.first))
 
         #expect(model.captures.map(\.status) != [.failed])
     }
 
-    @Test func aFailedResendLeavesItFailed() async {
+    @Test func aFailedResendLeavesItFailed() async throws {
         let capture = Capture(kind: .text, status: .failed, text: "An idea")
         let model = makeModel(store: ReadOnlyCaptureStore(captures: [capture]))
         await model.load()
 
-        await model.resend(capture)
+        await model.resend(try #require(model.batches.first))
 
         #expect(model.captures == [capture])
     }
@@ -107,14 +108,125 @@ struct CaptureListModelTests {
         following.cancel()
     }
 
+    // MARK: - Batches
+
+    @Test func batchesAreNewestFirstWithCapturesInTheOrderMade() async {
+        let older = [Capture.text("A", at: 0), .text("B", at: 100)]
+        let newer = Capture.text("C", at: 1000)
+        let model = makeModel(store: InMemoryCaptureStore(seed: older + [newer]), window: 300)
+
+        await model.load()
+
+        #expect(model.batches.map { $0.captures.map(\.text) } == [["C"], ["A", "B"]])
+    }
+
+    @Test func deletingACaptureUpdatesItsBatch() async {
+        let doomed = Capture.text("B", at: 100)
+        let store = InMemoryCaptureStore(seed: [.text("A", at: 0), doomed])
+        let model = makeModel(store: store, window: 300, planWithClockAt: Date(timeIntervalSinceReferenceDate: 100))
+        await model.load()
+
+        await model.delete(doomed)
+
+        #expect(model.batches.map { $0.captures.map(\.text) } == [["A"]])
+    }
+
+    /// Deleting the one that set the time can make the batch due, and it mustn't wait for something else to notice.
+    @Test func deletingACaptureMakesTheQueuePlanAgain() async {
+        let doomed = Capture.text("B", at: 100)
+        let store = InMemoryCaptureStore(seed: [.text("A", at: 0), doomed])
+        let buffer = MockBufferClient()
+        let model = makeModel(
+            store: store,
+            buffer: buffer,
+            window: 300,
+            planWithClockAt: Date(timeIntervalSinceReferenceDate: 350)
+        )
+        await model.load()
+
+        await model.delete(doomed)
+
+        while await buffer.createdIdeas.isEmpty {
+            await Task.yield()
+        }
+        #expect(await buffer.createdIdeas == ["A"])
+    }
+
+    @Test func sendNowSendsTheOpenBatch() async throws {
+        let store = InMemoryCaptureStore(seed: [.text("A", at: 0), .text("B", at: 100)])
+        let buffer = MockBufferClient()
+        let model = makeModel(
+            store: store,
+            buffer: buffer,
+            window: 300,
+            planWithClockAt: Date(timeIntervalSinceReferenceDate: 100)
+        )
+        await model.load()
+        #expect(model.batches.count == 1)
+
+        await model.sendNow()
+
+        while await buffer.createdIdeas.isEmpty {
+            await Task.yield()
+        }
+        #expect(await buffer.createdIdeas == ["A\n\nB"])
+        #expect(model.batches.first?.isWaiting(at: Date(timeIntervalSinceReferenceDate: 100)) == false)
+    }
+
+    @Test func aFailedSendNowKeepsTheList() async {
+        let capture = Capture.text("A", at: 0)
+        let model = makeModel(store: ReadOnlyCaptureStore(captures: [capture]), window: 300)
+        await model.load()
+
+        await model.sendNow()
+
+        #expect(model.captures == [capture])
+    }
+
+    /// A batch that failed offers one Resend, which takes all of it.
+    @Test func resendingAFailedBatchSendsAllOfItAsOneIdea() async throws {
+        let batchID = UUID()
+        let captures = ["A", "B"].enumerated().map { index, text in
+            Capture(
+                kind: .text,
+                createdAt: Date(timeIntervalSinceReferenceDate: Double(index)),
+                status: .failed,
+                text: text,
+                batchID: batchID
+            )
+        }
+        let buffer = MockBufferClient()
+        let model = makeModel(store: InMemoryCaptureStore(seed: captures), buffer: buffer, window: 300)
+        await model.load()
+
+        await model.resend(try #require(model.batches.first))
+
+        while await buffer.createdIdeas.isEmpty {
+            await Task.yield()
+        }
+        #expect(await buffer.createdIdeas == ["A\n\nB"])
+    }
+
     private func makeModel(
         store: any CaptureStore,
-        buffer: MockBufferClient = MockBufferClient()
+        buffer: MockBufferClient = MockBufferClient(),
+        window: TimeInterval = 0,
+        planWithClockAt now: Date? = nil
     ) -> CaptureListModel {
         let auth = MockAuthService(hasSavedSession: true)
+        let clock = ManualSubmissionClock()
+        if let now {
+            clock.advance(by: now.timeIntervalSince(clock.now))
+        }
         return CaptureListModel(
             store: store,
-            submissions: SubmissionQueue(store: store, auth: auth, client: buffer)
+            submissions: SubmissionQueue(
+                store: store,
+                auth: auth,
+                client: buffer,
+                planner: SubmissionPlanner { window },
+                clock: now == nil ? SystemSubmissionClock() : clock
+            )
         )
     }
 }
