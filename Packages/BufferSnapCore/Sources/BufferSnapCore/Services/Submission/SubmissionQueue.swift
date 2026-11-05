@@ -280,6 +280,7 @@ public actor SubmissionQueue {
             rateLimitedUntil = clock.now.addingTimeInterval(wait)
             scheduleWake(after: wait)
         case .sessionLost:
+            failuresInARow = 0
             wakeTask?.cancel()
             wakeTask = nil
             subscribers.publish(.sessionLost)
