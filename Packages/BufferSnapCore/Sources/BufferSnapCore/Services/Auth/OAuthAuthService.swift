@@ -9,7 +9,21 @@ public protocol WebAuthenticator: Sendable {
 }
 
 /// Buffer's Authorization Code flow with PKCE, as a public client.
+///
+/// **Refresh tokens are single-use, and using one twice revokes every token for the grant.** This actor is the one
+/// place that refreshes, so:
+/// - All callers during a refresh wait for the same request.
+/// - The refresh runs in its own task, so a cancelled caller can't abandon a request Buffer may already have acted on.
+/// - The new session is saved before any caller gets its access token.
+/// - If saving fails, the new session stays in memory, as the saved refresh token is now dead. No caller gets a token
+///   until a save works.
+/// - Only `invalid_grant` ends a session. Failing to reach Buffer leaves it as it was, to try again later.
+///
+/// What a crash or a lost response costs: `docs/decisions/43-single-use-refresh-tokens.md`.
 public actor OAuthAuthService: AuthService {
+    /// A refresh was overtaken by a sign-out or a new sign-in, so its result belongs to a session that's gone.
+    private struct RefreshSuperseded: Error {}
+
     /// Refresh this long before expiry, so a token doesn't run out while a request is in flight.
     private static let expiryMargin: TimeInterval = 60
     /// Buffer's documented lifetime, for a response that leaves it out.
@@ -20,8 +34,12 @@ public actor OAuthAuthService: AuthService {
     private let store: any SessionStore
     private let now: @Sendable () -> Date
 
-    /// What's known of the session. `nil` means look in `store`.
+    /// What's known of the session, which is ahead of `store` while `isSessionUnsaved`. `nil` means look in `store`.
     private var session: AuthSession?
+    private var isSessionUnsaved = false
+    private var refreshTask: Task<AuthSession, any Error>?
+    /// Changes when a sign-out or sign-in replaces the session, so a refresh still in flight can tell it's stale.
+    private var sessionGeneration = 0
 
     public init(
         web: any WebAuthenticator,
@@ -77,12 +95,12 @@ public actor OAuthAuthService: AuthService {
             Logger.auth.error("Can't save the new session: \(error, privacy: .public)")
             throw AuthError.storage
         }
-        session = newSession
+        replaceSession(with: newSession)
         Logger.auth.info("Signed in. Token valid until \(newSession.expiresAt, privacy: .public)")
     }
 
     public func signOut() throws {
-        session = nil
+        replaceSession(with: nil)
         do {
             try store.clear()
         } catch {
@@ -93,13 +111,23 @@ public actor OAuthAuthService: AuthService {
     }
 
     public func validAccessToken() async throws -> String {
+        if let refreshTask {
+            return try await accessToken(from: refreshTask)
+        }
         guard let current = try loadSession() else {
             throw AuthError.notSignedIn
         }
-        guard now().addingTimeInterval(Self.expiryMargin) < current.expiresAt else {
-            throw AuthError.sessionExpired
+        try saveSessionIfNeeded()
+        if now().addingTimeInterval(Self.expiryMargin) < current.expiresAt {
+            return current.accessToken
         }
-        return current.accessToken
+
+        let generation = sessionGeneration
+        let task = Task {
+            try await self.refresh(current, generation: generation)
+        }
+        refreshTask = task
+        return try await accessToken(from: task)
     }
 
     public func accessTokenRejected(_ token: String) {
@@ -109,6 +137,56 @@ public actor OAuthAuthService: AuthService {
                 refreshToken: session.refreshToken,
                 expiresAt: .distantPast
             )
+        }
+    }
+
+    private func accessToken(from task: Task<AuthSession, any Error>) async throws -> String {
+        do {
+            return try await task.value.accessToken
+        } catch is RefreshSuperseded {
+            return try await validAccessToken()
+        }
+    }
+
+    /// Everything from the response onward happens without suspending, so no caller can see a half-finished result.
+    private func refresh(_ current: AuthSession, generation: Int) async throws -> AuthSession {
+        let result: Result<TokenResponse, any Error>
+        do {
+            result = .success(try await client.refresh(refreshToken: current.refreshToken))
+        } catch {
+            result = .failure(error)
+        }
+
+        guard generation == sessionGeneration else {
+            throw RefreshSuperseded()
+        }
+        refreshTask = nil
+
+        switch result {
+        case .success(let tokens):
+            let newSession = AuthSession(
+                accessToken: tokens.accessToken,
+                // Buffer says it always sends a new one. If it ever doesn't, then the old one is all there is.
+                refreshToken: tokens.refreshToken ?? current.refreshToken,
+                expiresAt: expiry(of: tokens)
+            )
+            session = newSession
+            isSessionUnsaved = true
+            try saveSessionIfNeeded()
+            Logger.auth.info("Refreshed. Token valid until \(newSession.expiresAt, privacy: .public)")
+            return newSession
+        case .failure(is TokenClient.InvalidGrant):
+            Logger.auth.notice("Buffer rejected the refresh token, so the session has ended")
+            replaceSession(with: nil)
+            do {
+                try store.clear()
+            } catch {
+                // The next attempt finds the same dead token, gets the same rejection and tries this again.
+                Logger.auth.error("Can't remove the rejected session: \(error, privacy: .public)")
+            }
+            throw AuthError.sessionExpired
+        case .failure(let error):
+            throw error
         }
     }
 
@@ -123,6 +201,27 @@ public actor OAuthAuthService: AuthService {
             Logger.auth.error("Can't read the saved session: \(error, privacy: .public)")
             throw AuthError.storage
         }
+    }
+
+    private func saveSessionIfNeeded() throws {
+        guard isSessionUnsaved, let session else {
+            return
+        }
+        do {
+            try store.save(session)
+            isSessionUnsaved = false
+        } catch {
+            Logger.auth.error("Can't save the refreshed session: \(error, privacy: .public)")
+            throw AuthError.storage
+        }
+    }
+
+    /// Makes `newSession` current, and leaves behind whatever a refresh in flight is about to report.
+    private func replaceSession(with newSession: AuthSession?) {
+        session = newSession
+        isSessionUnsaved = false
+        refreshTask = nil
+        sessionGeneration += 1
     }
 
     private func expiry(of tokens: TokenResponse) -> Date {
