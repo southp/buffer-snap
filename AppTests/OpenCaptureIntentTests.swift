@@ -6,40 +6,43 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct OpenCaptureIntentTests {
+    /// The app's copy. The widget's snapshot tests compile their own copy of the intent into this test module.
+    private typealias Intent = BufferSnap.OpenCaptureIntent
+
     /// Without this the system runs the intent in the background, and the app never opens.
     @Test func opensTheApp() {
-        #expect(OpenCaptureIntent.openAppWhenRun)
+        #expect(Intent.openAppWhenRun)
     }
 
     /// The test host is the app, so its launch has already connected the intent to `AppModel`.
     @Test func theAppSetsTheHookAtLaunch() {
-        #expect(OpenCaptureIntent.onRun != nil)
+        #expect(Intent.onRun != nil)
     }
 
     /// The navigation itself is `AppModel.showCapture()`, covered in Core.
     @Test func runningItCallsTheHookOnce() async throws {
-        let original = OpenCaptureIntent.onRun
+        let original = Intent.onRun
         defer {
-            OpenCaptureIntent.onRun = original
+            Intent.onRun = original
         }
         var runs = 0
-        OpenCaptureIntent.onRun = {
+        Intent.onRun = {
             runs += 1
         }
 
-        _ = try await OpenCaptureIntent().perform()
+        _ = try await Intent().perform()
 
         #expect(runs == 1)
     }
 
     /// What happens in the widget's process, where nothing sets the hook.
     @Test func runningItWithoutAHookDoesNothing() async throws {
-        let original = OpenCaptureIntent.onRun
+        let original = Intent.onRun
         defer {
-            OpenCaptureIntent.onRun = original
+            Intent.onRun = original
         }
-        OpenCaptureIntent.onRun = nil
+        Intent.onRun = nil
 
-        _ = try await OpenCaptureIntent().perform()
+        _ = try await Intent().perform()
     }
 }
