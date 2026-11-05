@@ -3,7 +3,6 @@ import OSLog
 import SwiftUI
 import WidgetKit
 
-@main
 struct SnapperWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: SharedStorage.widgetKind, provider: CaptureCountProvider()) { entry in
