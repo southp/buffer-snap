@@ -36,6 +36,7 @@
 ## Site (`workflows/pages.yml`)
 
 - `site/` is public at `https://southp.github.io/buffer-snap/`, published when it changes on `main`. It holds what must live at a public URL, such as the OAuth return page. Never put anything private there.
+- `site/privacy/` is the privacy policy that Buffer's app client and the App Store link to. Update it whenever the app starts handling new data, such as pictures.
 - `site/oauth/` is Buffer's registered redirect URI. Buffer compares it character for character, so moving it means updating the app client too (`docs/decisions/43-oauth-redirect-page.md`).
 
 ## Screenshots and screencasts
