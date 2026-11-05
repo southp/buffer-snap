@@ -19,7 +19,7 @@ struct SignInView: View {
                 .accessibilityHidden(true)
             Text("BufferSnap")
                 .font(.largeTitle.bold())
-            Text("Capture inspiration in one touch, without unlocking your phone.")
+            Text("Capture inspiration in one touch.")
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
