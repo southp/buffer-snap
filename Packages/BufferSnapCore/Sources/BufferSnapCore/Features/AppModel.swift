@@ -34,11 +34,15 @@ public final class AppModel {
     public private(set) var isSigningIn = false
 
     private let auth: any AuthService
+    private let prepareForSignIn: @Sendable () async throws -> Void
 
     /// Starts on the right screen for a saved session, without waiting for anything. So the first frame is already
     /// right, and `showCapture()` works from the moment the app exists, as a cold launch from the widget needs.
-    public init(auth: any AuthService) {
+    ///
+    /// `prepareForSignIn` runs before each sign-in starts. If it throws, the sign-in doesn't happen.
+    public init(auth: any AuthService, prepareForSignIn: @escaping @Sendable () async throws -> Void = {}) {
         self.auth = auth
+        self.prepareForSignIn = prepareForSignIn
         route = auth.hasSavedSession() ? .capture : .signedOut
     }
 
@@ -53,6 +57,7 @@ public final class AppModel {
             isSigningIn = false
         }
         do {
+            try await prepareForSignIn()
             try await auth.signIn()
             route = .capture
         } catch {

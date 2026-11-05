@@ -17,7 +17,14 @@ struct BufferSnapApp: App {
             connectivity: NetworkPathConnectivityMonitor()
         )
         self.environment = environment
-        _appModel = State(initialValue: AppModel(auth: environment.auth))
+        // Whoever signs in next may not be whoever made what's pending.
+        let appModel = AppModel(
+            auth: environment.auth,
+            prepareForSignIn: { [submissions = environment.submissions] in
+                try await submissions.holdPendingCaptures()
+            }
+        )
+        _appModel = State(initialValue: appModel)
     }
 
     var body: some Scene {
