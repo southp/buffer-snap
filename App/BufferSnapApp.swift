@@ -8,16 +8,45 @@ struct BufferSnapApp: App {
     // Composition root: every service is built here, once, and handed down to the views.
     private let environment: AppEnvironment
     @State private var appModel: AppModel
+    // Here and not on the capture screen, so a draft outlives the screen when a session ends.
+    @State private var captureModel: CaptureModel
 
     init() {
-        let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: Self.makeAuthService())
+        let environment = AppEnvironment(
+            captureStore: Self.makeCaptureStore(),
+            auth: Self.makeAuthService(),
+            bufferClient: Self.makeBufferClient(),
+            connectivity: NetworkPathConnectivityMonitor()
+        )
         self.environment = environment
-        _appModel = State(initialValue: AppModel(auth: environment.auth))
+        // Whoever signs in next may not be whoever made what's pending.
+        let appModel = AppModel(
+            auth: environment.auth,
+            prepareForSignIn: { [submissions = environment.submissions] in
+                try await submissions.holdPendingCaptures()
+            }
+        )
+        _appModel = State(initialValue: appModel)
+        _captureModel = State(
+            initialValue: CaptureModel(
+                store: environment.captureStore,
+                onSaved: { [submissions = environment.submissions] in
+                    Task {
+                        await submissions.run()
+                    }
+                }
+            )
+        )
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(appModel: appModel, environment: environment)
+            RootView(appModel: appModel, captureModel: captureModel, environment: environment)
+        }
+        // Runs in this process and on this environment's queue, so there's still only one `AuthService`.
+        .backgroundTask(.appRefresh(BackgroundSubmission.taskIdentifier)) { [environment] in
+            BackgroundSubmission.scheduleWakeUp()
+            await environment.submissions.run()
         }
     }
 
@@ -34,6 +63,18 @@ struct BufferSnapApp: App {
             transport: URLSession.forOAuth(),
             store: KeychainSessionStore()
         )
+    }
+
+    /// Buffer's API. A mocked sign-in has no token to send, so it gets a mocked Buffer too, and nothing reaches the
+    /// real one (`docs/decisions/44-mock-buffer-launch-argument.md`).
+    private static func makeBufferClient() -> any BufferClient {
+        #if DEBUG
+            if UserDefaults.standard.string(forKey: "mockAuth") != nil {
+                let rejectsFirst = UserDefaults.standard.string(forKey: "mockBuffer") == "rejectFirst"
+                return MockBufferClient(failures: rejectsFirst ? [.rejected(reason: "Mock")] : [])
+            }
+        #endif
+        return GraphQLBufferClient(transport: URLSession.forBufferAPI())
     }
 
     /// The App Group store the widget also writes to. Every write through it reloads the widget, so its count never

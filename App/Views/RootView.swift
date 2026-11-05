@@ -7,18 +7,37 @@ import SwiftUI
 /// decides: the stack only reports back when the user goes back.
 struct RootView: View {
     let appModel: AppModel
+    let captureModel: CaptureModel
     let environment: AppEnvironment
 
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         screen
-            // Refreshes a token that's due, and finds out if Buffer has ended the session.
             .onChange(of: scenePhase, initial: true) { _, phase in
-                if phase == .active {
+                switch phase {
+                case .active:
+                    // Refreshes a token that's due, and finds out if Buffer has ended the session.
                     Task {
                         await appModel.checkSession()
                     }
+                    Task {
+                        await environment.submissions.run()
+                    }
+                case .background:
+                    BackgroundSubmission.scheduleWakeUp()
+                    BackgroundSubmission.finishSending(on: environment.submissions)
+                default:
+                    break
+                }
+            }
+            .task {
+                await environment.submissions.runOnEachReconnection(of: environment.connectivity)
+            }
+            // A send found the session over: the route goes to sign-in the same way as coming to the foreground.
+            .task {
+                for await event in environment.submissions.events() where event == .sessionLost {
+                    await appModel.checkSession()
                 }
             }
     }
@@ -34,9 +53,10 @@ struct RootView: View {
             }
         case .capture, .captureList:
             NavigationStack {
-                CaptureScreen(store: environment.captureStore, onShowCaptures: appModel.showCaptureList)
+                CaptureScreen(model: captureModel, onShowCaptures: appModel.showCaptureList)
                     .navigationDestination(isPresented: isShowingCaptureList) {
-                        CaptureListScreen(store: environment.captureStore) {
+                        CaptureListScreen(store: environment.captureStore, submissions: environment.submissions) {
+                            captureModel.discardDraft()
                             Task {
                                 await appModel.signOut()
                             }

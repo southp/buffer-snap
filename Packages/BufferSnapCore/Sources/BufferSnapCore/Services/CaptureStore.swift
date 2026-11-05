@@ -9,6 +9,9 @@ public protocol CaptureStore: Sendable {
     func add(_ capture: Capture) async throws
     /// Removes the capture with `id`. Does nothing if there is none.
     func delete(id: Capture.ID) async throws
+    /// Changes the status of the captures with `ids`, all in one write. Skips any that are gone, so an upload finishing
+    /// can't bring back a capture deleted while it ran.
+    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws
 }
 
 /// A `CaptureStore` that keeps captures in memory, for tests, previews and the mocked app.
@@ -30,5 +33,11 @@ public actor InMemoryCaptureStore: CaptureStore {
 
     public func delete(id: Capture.ID) {
         captures.removeAll { $0.id == id }
+    }
+
+    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) {
+        for index in captures.indices where ids.contains(captures[index].id) {
+            captures[index].status = status
+        }
     }
 }

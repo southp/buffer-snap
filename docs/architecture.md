@@ -6,16 +6,17 @@ SwiftUI shells over it.
 
 - **Features** are `@Observable @MainActor` view models (`AppModel`, `CaptureModel`, `CaptureListModel`): they hold
   the state and the actions on it.
-- **Services** are `Sendable` protocols with `async throws` methods (`CaptureStore`, `AuthService`). Each one starts
-  with a mock or in-memory implementation, and a real one replaces it later without touching the models.
-  `JSONFileCaptureStore` and `OAuthAuthService` are the real ones so far.
+- **Services** are `Sendable` protocols with `async throws` methods (`CaptureStore`, `AuthService`, `BufferClient`,
+  `ConnectivityMonitor`). Each one starts with a mock or in-memory implementation, and a real one replaces it later
+  without touching the models. `JSONFileCaptureStore`, `OAuthAuthService`, `GraphQLBufferClient` and
+  `NetworkPathConnectivityMonitor` are the real ones so far. `SubmissionQueue` is an actor on top of them.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
   only place that picks which implementations run.
 - **Models** are plain `Sendable` values (`Capture`).
 - **Views** (`App/Views/`) only render. `RootView` shows what `AppModel.route` names: sign-in, or the capture screen
-  with the capture list pushed on top of it. A screen (`CaptureScreen`, `CaptureListScreen`) owns its feature model
-  and feeds a stateless view (`CaptureView`, `CaptureListView`) plain values and closures. Conventions:
-  [`App/CLAUDE.md`](../App/CLAUDE.md).
+  with the capture list pushed on top of it. A screen feeds a stateless view (`CaptureView`, `CaptureListView`) plain
+  values and closures. `CaptureListScreen` owns its feature model, and `BufferSnapApp` owns `CaptureModel`, so a draft
+  outlives the screen when a session ends. Conventions: [`App/CLAUDE.md`](../App/CLAUDE.md).
 - **The widget** (`Widget/`) is a WidgetKit extension: an App Intent per button and a timeline that reads the count.
   Its buttons still make mock captures until #41 replaces them. Conventions: [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
@@ -42,13 +43,18 @@ flowchart TD
         subgraph services["Services (protocols)"]
             CaptureStore["CaptureStore"]
             AuthService["AuthService"]
+            BufferClient["BufferClient"]
+            Connectivity["ConnectivityMonitor"]
         end
+        Queue["SubmissionQueue (planner, back-off)"]
         subgraph impls["Implementations"]
             InMemory["InMemoryCaptureStore"]
             MockAuth["MockAuthService"]
             FileStore["JSONFileCaptureStore"]
             Notifying["NotifyingCaptureStore (wraps a store)"]
             OAuth["OAuthAuthService → KeychainSessionStore"]
+            GraphQL["GraphQLBufferClient, MockBufferClient"]
+            Path["NetworkPathConnectivityMonitor, MockConnectivityMonitor"]
         end
         Capture["Models: Capture"]
     end
@@ -60,11 +66,19 @@ flowchart TD
     AppModel --> AuthService
     CaptureModel --> CaptureStore
     CaptureListModel --> CaptureStore
+    CaptureListModel --> Queue
+    Env --> Queue
+    Queue --> CaptureStore
+    Queue --> AuthService
+    Queue --> BufferClient
+    Queue --> Connectivity
     InMemory -->|implements| CaptureStore
     FileStore -->|implements| CaptureStore
     Notifying -->|implements| CaptureStore
     MockAuth -->|implements| AuthService
     OAuth -->|implements| AuthService
+    GraphQL -->|implements| BufferClient
+    Path -->|implements| Connectivity
     App -->|"SystemWebAuthenticator (needs a window)"| OAuth
     services --> Capture
 ```
@@ -115,6 +129,36 @@ When the scene becomes active, `checkSession()` asks for a valid token, which re
 rejecting the refresh token sends the user back to sign-in. Everything that needs a token calls `validAccessToken()`,
 and `OAuthAuthService` makes sure only one refresh ever runs, because reusing a refresh token revokes the session:
 [`43-single-use-refresh-tokens.md`](decisions/43-single-use-refresh-tokens.md).
+
+## Sending to Buffer
+
+```mermaid
+flowchart LR
+    subgraph when["When: anything may call run()"]
+        Launch["Launch, foreground"]
+        Saved["CaptureModel saved"]
+        Back["Connection returns"]
+        Bg["Background refresh, leaving the screen"]
+        Timer["Back-off or rate limit ends"]
+    end
+    subgraph queue["SubmissionQueue: one pass at a time"]
+        Read["Read pending captures, oldest first"]
+        Planner["What: SubmissionPlanner.nextSubmission"]
+        Send["createIdea"]
+        Read --> Planner --> Send
+        Send -->|next| Read
+    end
+    when --> Read
+    Send -->|"Submitted or Failed"| Store[("CaptureStore")]
+    Send -.->|"capturesChanged"| List["CaptureListModel"]
+    Send -.->|"sessionLost"| Check["AppModel.checkSession()"]
+```
+
+`SubmissionQueue` asks `validAccessToken()` for a token and reports a 401 with `accessTokenRejected(_:)`. Each pass looks up the organization once. A capture stays `pending` until Buffer has it (`submitted`) or it can't get there without someone stepping in (`failed`). What each failure leads to: [`44-what-gets-retried.md`](decisions/44-what-gets-retried.md). Why a lost response can leave a duplicate: [`44-duplicate-ideas.md`](decisions/44-duplicate-ideas.md).
+
+All of this runs in the app's process, on the one `AuthService`: [`44-background-sending.md`](decisions/44-background-sending.md). Before any sign-in, pending captures turn to `failed`, so they can't reach the next account by themselves: [`44-hold-captures-at-sign-in.md`](decisions/44-hold-captures-at-sign-in.md).
+
+To change what gets sent, as #45 will, implement `SubmissionPlanner`. Its result names the captures, and all of them change status together.
 
 ## The widget's store
 

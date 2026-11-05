@@ -180,9 +180,52 @@ struct CaptureModelTests {
         let model = makeModel(store: JSONFileCaptureStore(fileURL: fileURL), text: "Keep me")
 
         await model.save()
-        let relaunched = CaptureListModel(store: JSONFileCaptureStore(fileURL: fileURL))
+        let store = JSONFileCaptureStore(fileURL: fileURL)
+        let queue = SubmissionQueue(store: store, auth: MockAuthService(), client: MockBufferClient())
+        let relaunched = CaptureListModel(store: store, submissions: queue)
         await relaunched.load()
 
         #expect(relaunched.captures.map(\.text) == ["Keep me"])
+    }
+
+    @Test func discardingForgetsTheDraftAndTheLastResult() async {
+        let model = makeModel(store: ReadOnlyCaptureStore(captures: []), text: "An idea")
+        await model.save()
+        #expect(model.saveResult == .failed)
+
+        model.discardDraft()
+
+        #expect(model.text.isEmpty)
+        #expect(model.saveResult == nil)
+    }
+
+    /// What gets a capture on its way to Buffer without waiting for the app to leave the screen.
+    @Test func savingTellsWhoeverWantsToKnow() async {
+        let saves = SaveCounter()
+        let model = CaptureModel(store: InMemoryCaptureStore(), onSaved: saves.increment)
+        model.update(text: "An idea")
+
+        await model.save()
+
+        #expect(saves.total == 1)
+    }
+
+    @Test func aFailedSaveTellsNobody() async {
+        let saves = SaveCounter()
+        let model = CaptureModel(store: ReadOnlyCaptureStore(captures: []), onSaved: saves.increment)
+        model.update(text: "An idea")
+
+        await model.save()
+
+        #expect(saves.total == 0)
+    }
+}
+
+@MainActor
+private final class SaveCounter {
+    private(set) var total = 0
+
+    func increment() {
+        total += 1
     }
 }

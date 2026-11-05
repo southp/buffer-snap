@@ -20,9 +20,12 @@ public final class CaptureModel {
     private var isSaving = false
 
     private let store: any CaptureStore
+    private let onSaved: @MainActor () -> Void
 
-    public init(store: any CaptureStore) {
+    /// `onSaved` runs after each capture is stored, which is when it can start on its way to Buffer.
+    public init(store: any CaptureStore, onSaved: @escaping @MainActor () -> Void = {}) {
         self.store = store
+        self.onSaved = onSaved
     }
 
     /// How many characters would be saved: what a person sees as one character counts as one.
@@ -53,6 +56,12 @@ public final class CaptureModel {
         saveResult = nil
     }
 
+    /// Throws the draft away, for when someone signs out on purpose. Whoever signs in next shouldn't find it.
+    public func discardDraft() {
+        text = ""
+        saveResult = nil
+    }
+
     /// Saves the draft as a pending text capture and clears it. A failed save keeps the draft, so it can be retried.
     public func save() async {
         guard canSave else {
@@ -65,6 +74,7 @@ public final class CaptureModel {
         let draft = text
         do {
             try await store.add(Capture(kind: .text, text: trimmedText))
+            onSaved()
             // Anything typed while the write ran belongs to the next capture, so keep it.
             if text == draft {
                 text = ""

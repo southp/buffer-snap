@@ -23,6 +23,8 @@ targets:
         # Not XcodeGen's `entitlements:` key: without `properties` it overwrites this file with an empty one.
         CODE_SIGN_ENTITLEMENTS: App/BufferSnap.entitlements
         GENERATE_INFOPLIST_FILE: YES
+        # Holds only the background refresh keys, which have no INFOPLIST_KEY_ setting; the rest is generated.
+        INFOPLIST_FILE: App/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
         # Skips the export-compliance prompt on every TestFlight build.
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
