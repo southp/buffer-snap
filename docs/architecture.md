@@ -4,10 +4,11 @@ BufferSnap keeps its logic in **BufferSnapCore** (`Packages/BufferSnapCore`), a 
 frameworks, so `just test-core` tests it on macOS in seconds without a simulator. The app and the widget are thin
 SwiftUI shells over it.
 
-- **Features** are `@Observable @MainActor` view models (`AppModel`, `CaptureModel`, `CaptureListModel`): they hold
+- **Features** are `@Observable @MainActor` view models (`AppModel`, `CaptureModel`, `CaptureListModel`,
+  `BatchingSettingsModel`): they hold
   the state and the actions on it.
 - **Services** are `Sendable` protocols with `async throws` methods (`CaptureStore`, `AuthService`, `BufferClient`,
-  `ConnectivityMonitor`). Each one starts with a mock or in-memory implementation, and a real one replaces it later
+  `ConnectivityMonitor`, `BatchWindowSetting`). Each one starts with a mock or in-memory implementation, and a real one replaces it later
   without touching the models. `JSONFileCaptureStore`, `OAuthAuthService`, `GraphQLBufferClient` and
   `NetworkPathConnectivityMonitor` are the real ones so far. `SubmissionQueue` is an actor on top of them.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
@@ -29,7 +30,7 @@ Arrows point from a layer to what it uses.
 ```mermaid
 flowchart TD
     subgraph shells["UI shells (SwiftUI)"]
-        App["App: BufferSnapApp → RootView<br/>(SignInView, CaptureScreen, CaptureListScreen)"]
+        App["App: BufferSnapApp → RootView<br/>(SignInView, CaptureScreen, CaptureListScreen, BatchingSettingsScreen)"]
         Widget["Widget: SnapperWidget, MockCaptureIntent"]
     end
 
@@ -39,12 +40,14 @@ flowchart TD
             AppModel["AppModel"]
             CaptureModel["CaptureModel"]
             CaptureListModel["CaptureListModel"]
+            BatchingSettings["BatchingSettingsModel"]
         end
         subgraph services["Services (protocols)"]
             CaptureStore["CaptureStore"]
             AuthService["AuthService"]
             BufferClient["BufferClient"]
             Connectivity["ConnectivityMonitor"]
+            Window["BatchWindowSetting"]
         end
         Queue["SubmissionQueue (planner, back-off)"]
         subgraph impls["Implementations"]
@@ -55,6 +58,7 @@ flowchart TD
             OAuth["OAuthAuthService → KeychainSessionStore"]
             GraphQL["GraphQLBufferClient, MockBufferClient"]
             Path["NetworkPathConnectivityMonitor, MockConnectivityMonitor"]
+            Defaults["UserDefaultsBatchWindowSetting, InMemoryBatchWindowSetting"]
         end
         Capture["Models: Capture"]
     end
@@ -67,11 +71,14 @@ flowchart TD
     CaptureModel --> CaptureStore
     CaptureListModel --> CaptureStore
     CaptureListModel --> Queue
+    BatchingSettings --> Window
+    BatchingSettings --> Queue
     Env --> Queue
     Queue --> CaptureStore
     Queue --> AuthService
     Queue --> BufferClient
     Queue --> Connectivity
+    Queue --> Window
     InMemory -->|implements| CaptureStore
     FileStore -->|implements| CaptureStore
     Notifying -->|implements| CaptureStore
@@ -79,6 +86,7 @@ flowchart TD
     OAuth -->|implements| AuthService
     GraphQL -->|implements| BufferClient
     Path -->|implements| Connectivity
+    Defaults -->|implements| Window
     App -->|"SystemWebAuthenticator (needs a window)"| OAuth
     services --> Capture
 ```
@@ -139,26 +147,49 @@ flowchart LR
         Saved["CaptureModel saved"]
         Back["Connection returns"]
         Bg["Background refresh, leaving the screen"]
-        Timer["Back-off or rate limit ends"]
+        Timer["Back-off or rate limit ends, or a batch's window"]
     end
     subgraph queue["SubmissionQueue: one pass at a time"]
-        Read["Read pending captures, oldest first"]
-        Planner["What: SubmissionPlanner.nextSubmission"]
-        Send["createIdea"]
-        Read --> Planner --> Send
+        Read["Read pending captures"]
+        Planner["What: SubmissionPlanner.plan"]
+        Close["Close the batch: store its batchID"]
+        Send["createIdea, one per batch"]
+        Read --> Planner -->|"send"| Close --> Send
         Send -->|next| Read
     end
     when --> Read
     Send -->|"Submitted or Failed"| Store[("CaptureStore")]
     Send -.->|"capturesChanged"| List["CaptureListModel"]
     Send -.->|"sessionLost"| Check["AppModel.checkSession()"]
+    Planner -.->|"wait until"| Timer
 ```
 
 `SubmissionQueue` asks `validAccessToken()` for a token and reports a 401 with `accessTokenRejected(_:)`. Each pass looks up the organization once. A capture stays `pending` until Buffer has it (`submitted`) or it can't get there without someone stepping in (`failed`). What each failure leads to: [`44-what-gets-retried.md`](decisions/44-what-gets-retried.md). Why a lost response can leave a duplicate: [`44-duplicate-ideas.md`](decisions/44-duplicate-ideas.md).
 
 All of this runs in the app's process, on the one `AuthService`: [`44-background-sending.md`](decisions/44-background-sending.md). Before any sign-in, pending captures turn to `failed`, so they can't reach the next account by themselves: [`44-hold-captures-at-sign-in.md`](decisions/44-hold-captures-at-sign-in.md).
 
-To change what gets sent, as #45 will, implement `SubmissionPlanner`. Its result names the captures, and all of them change status together.
+## Batches
+
+Captures with less than the window between them (5 minutes unless the setting says otherwise) become one idea, in the order they were made, separated by blank lines.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open: Saved
+    Open --> Open: Another capture restarts the window
+    Open --> Closed: The window has ended, or Send now
+    Open --> Failed: Held before a sign-in
+    Closed --> Submitted: createIdea succeeds
+    Closed --> Closed: No answer, so the same text goes again
+    Closed --> Failed: Refused, too many server failures, or held
+    Failed --> Closed: Resend
+```
+
+`CaptureBatch.batches` is the one place that groups, and it's pure. An open batch comes from timestamps and the current window, so a relaunch mid-window needs nothing restored, and a wake-up follows from what the planner says. A closed batch comes from its captures' `batchID`, written just before the first attempt, so a retry sends the same text and a capture saved after that goes in the next batch: [`45-batch-membership.md`](decisions/45-batch-membership.md).
+
+- Changing the setting applies at once to whatever is open: [`45-changing-the-window.md`](decisions/45-changing-the-window.md). On a simulator, the launch argument `-batchWindow 20` makes the window 20 seconds, which saves waiting while trying it out.
+- Resend works on a batch, and delete on a capture: [`45-resend-and-delete.md`](decisions/45-resend-and-delete.md).
+- A joined batch has no length limit of its own: [`45-joined-batch-length.md`](decisions/45-joined-batch-length.md).
+- The wake-up iOS is asked for: [`45-background-wake-at-window-end.md`](decisions/45-background-wake-at-window-end.md).
 
 ## The widget's store
 
