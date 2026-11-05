@@ -90,9 +90,12 @@ public final class AppModel {
         }
     }
 
-    /// Moves to the capture screen, unless signed out.
+    /// Moves back from the capture list to the capture screen, and does nothing anywhere else.
+    ///
+    /// A control or widget can ask for the capture screen at any moment, even while the app is still getting past
+    /// sign-in. That needs no remembering: every way past sign-in ends on the capture screen.
     public func showCapture() {
-        if route != .signedOut {
+        if route == .captureList {
             route = .capture
         }
     }
