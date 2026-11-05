@@ -21,6 +21,7 @@ targets:
           - "__Snapshots__/**"
       # A test can't import an extension, so the widget's stateless views are compiled in here, with the intent they run.
       - path: Widget/SnapperWidgetView.swift
+      - path: Widget/SnapperLockScreenView.swift
       - path: Shared
     dependencies:
       - target: BufferSnap
