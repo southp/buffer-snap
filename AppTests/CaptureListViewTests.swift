@@ -10,7 +10,7 @@ import Testing
 /// `Capture.samplesReferenceDate`, the same "now" the samples are dated against.
 @MainActor
 struct CaptureListViewTests {
-    /// The mocked app's five sample captures: every kind and every status, newest first.
+    /// The five sample captures: every kind and every status, newest first.
     @Test func seeded() {
         assertScreenSnapshot(of: listScreen(Capture.samples()), named: "fiveSamples")
     }

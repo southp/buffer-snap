@@ -21,28 +21,27 @@ struct BufferSnapApp: App {
         }
     }
 
-    /// The App Group store the widget also writes to, seeded with the mock captures on the first launch. Every write
-    /// through it reloads the widget, so its count never goes stale.
+    /// The App Group store the widget also writes to. Every write through it reloads the widget, so its count never
+    /// goes stale.
     private static func makeCaptureStore() -> any CaptureStore {
-        let seed = Capture.samples(relativeTo: .now)
-        let store: any CaptureStore
         do {
             try SharedStorage.removeLegacyCaptures()
         } catch {
             // It's only mock captures that nothing reads any more, so this can wait for the next launch.
             Logger().error("Can't remove the old capture file: \(error)")
         }
+        let store: any CaptureStore
         do {
-            store = try JSONFileCaptureStore(fileURL: SharedStorage.capturesFileURL(), seedIfMissing: seed)
+            store = JSONFileCaptureStore(fileURL: try SharedStorage.capturesFileURL())
         } catch {
             // Still usable, but nothing persists or reaches the widget. Showing this comes with the MVP.
             Logger().error("Can't open the shared capture store: \(error)")
-            store = InMemoryCaptureStore(seed: seed)
+            store = InMemoryCaptureStore()
         }
         let reloadWidget: @Sendable () -> Void = {
             WidgetCenter.shared.reloadTimelines(ofKind: SharedStorage.widgetKind)
         }
-        // The seed above may have just changed the count of a widget added before this first launch.
+        // A widget added before an update may still show the count of the mock captures that update removed.
         reloadWidget()
         return NotifyingCaptureStore(base: store, onChange: reloadWidget)
     }

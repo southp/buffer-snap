@@ -13,16 +13,6 @@ public actor JSONFileCaptureStore: CaptureStore {
         self.fileURL = fileURL
     }
 
-    /// Creates a store on `fileURL`, first writing `seed` to it if the file doesn't exist yet.
-    ///
-    /// A store with no captures left still has its file, so deleting them all doesn't bring the seed back.
-    public init(fileURL: URL, seedIfMissing seed: [Capture]) throws {
-        self.fileURL = fileURL
-        if !FileManager.default.fileExists(atPath: fileURL.path) {
-            try JSONEncoder().encode(seed).write(to: fileURL, options: .atomic)
-        }
-    }
-
     /// Every stored capture, newest first.
     public func all() throws -> [Capture] {
         try read().sorted { $0.createdAt > $1.createdAt }
