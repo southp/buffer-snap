@@ -63,17 +63,25 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
 
     func start() async throws -> AsyncThrowingStream<String, any Error> {
         cancel()
-        let options = Options()
+        let options = await SpeechDiagnosticsLog.options()
         // Not `Locale.current`: this app only has English strings, so that's English on a phone set to Chinese.
         let language = options.language ?? Locale.preferredLanguages.first ?? "en-US"
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)), recognizer.isAvailable else {
+            SpeechDiagnosticsLog.couldNotStart(language: language, error: nil)
             throw SpeechTranscriberError.unavailable
         }
         let requiresOnDevice = options.requiresOnDevice && recognizer.supportsOnDeviceRecognition
+        SpeechDiagnosticsLog.started(
+            language: language,
+            recognizerLocale: recognizer.locale.identifier,
+            supportsOnDevice: recognizer.supportsOnDeviceRecognition,
+            requiresOnDevice: requiresOnDevice
+        )
         do {
             return try listen(with: recognizer, requiresOnDevice: requiresOnDevice)
         } catch {
             logger.error("Can't start listening: \(error)")
+            SpeechDiagnosticsLog.couldNotStart(language: language, error: error)
             Self.deactivateAudioSession(logger: logger)
             throw SpeechTranscriberError.unavailable
         }
@@ -82,6 +90,7 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
     func finish() {
         stopAudio()
         run?.request.endAudio()
+        SpeechDiagnosticsLog.released()
     }
 
     func cancel() {
@@ -92,6 +101,7 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         stopAudio()
         run.task?.cancel()
         end(run)
+        SpeechDiagnosticsLog.ended("cancelled")
     }
 
     private func listen(
@@ -164,6 +174,7 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         stopAudio()
         run.task?.cancel()
         end(run)
+        SpeechDiagnosticsLog.ended("interrupted")
     }
 
     /// The recognizer is done, after a release or by itself. By itself leaves the audio running, so stop that too.
@@ -238,14 +249,17 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
             if let result {
                 let words = result.bestTranscription.formattedString
                 continuation.yield(words)
+                SpeechDiagnosticsLog.heard(characterCount: words.count)
                 if result.isFinal {
                     continuation.finish()
+                    SpeechDiagnosticsLog.ended("final result")
                     onEnd()
                     return
                 }
             }
             if let error {
                 continuation.finish(throwing: transcriberError(for: error, recognizer: recognizer))
+                SpeechDiagnosticsLog.ended(error: error)
                 onEnd()
             }
         }

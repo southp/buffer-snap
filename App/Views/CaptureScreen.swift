@@ -49,6 +49,11 @@ struct CaptureScreen: View {
             },
             onShowCaptures: onShowCaptures
         )
+        #if DEBUG
+            .safeAreaInset(edge: .bottom) {
+                SpeechDiagnosticsView()
+            }
+        #endif
         .task {
             await model.refreshDictationPermission()
         }
