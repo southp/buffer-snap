@@ -21,7 +21,11 @@ struct RootView: View {
             NavigationStack {
                 CaptureScreen(store: environment.captureStore, onShowCaptures: appModel.showCaptureList)
                     .navigationDestination(isPresented: isShowingCaptureList) {
-                        CaptureListScreen(store: environment.captureStore)
+                        CaptureListScreen(store: environment.captureStore) {
+                            Task {
+                                await appModel.signOut()
+                            }
+                        }
                     }
             }
         }

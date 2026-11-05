@@ -12,6 +12,8 @@ struct CaptureListView: View {
     let now: Date
     /// Called when the user deletes a capture.
     let onDelete: (Capture) -> Void
+    /// Called when the user signs out.
+    let onSignOut: () -> Void
 
     var body: some View {
         List {
@@ -34,5 +36,15 @@ struct CaptureListView: View {
             }
         }
         .navigationTitle("Captures")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
+                Menu("Account", systemImage: "person.crop.circle") {
+                    Button(
+                        "Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive,
+                        action: onSignOut)
+                }
+            }
+        }
     }
 }
