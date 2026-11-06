@@ -23,6 +23,12 @@ struct BufferSnapApp: App {
                 .task {
                     await removeMockCaptures()
                 }
+                // The Lock Screen widget opens `buffersnap://capture`. Other URLs, such as sign-in's, aren't ours.
+                .onOpenURL { url in
+                    if AppLink(url: url) == .capture {
+                        appModel.showCapture()
+                    }
+                }
         }
     }
 
