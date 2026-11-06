@@ -12,6 +12,9 @@ targets:
           - "**/*.md"
       # Intents the widget runs but the app must carry too, or `openAppWhenRun` doesn't open it.
       - path: Shared
+      # Throwaway spike: capturing without opening the app.
+      - path: Spike/Shared
+      - path: Spike/Widget
     dependencies:
       - package: BufferSnapCore
     settings:

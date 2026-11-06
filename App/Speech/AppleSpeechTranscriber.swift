@@ -31,6 +31,12 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
 
     private let logger = Logger()
     private var run: Run?
+    /// Spike: an app in the background can't take the audio from others (`!int`), so it must mix with them.
+    private let mixesWithOthers: Bool
+
+    init(mixesWithOthers: Bool = false) {
+        self.mixesWithOthers = mixesWithOthers
+    }
 
     func permission() -> SpeechPermission {
         let speech = SFSpeechRecognizer.authorizationStatus()
@@ -108,11 +114,7 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         with recognizer: SFSpeechRecognizer,
         requiresOnDevice: Bool
     ) throws -> AsyncThrowingStream<String, any Error> {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.record, mode: .measurement, options: .duckOthers)
-        // Recording silences haptics by default, and they're how a thumb on the mic knows it's listening.
-        try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
-        try session.setActive(true, options: .notifyOthersOnDeactivation)
+        let session = try Self.activateAudioSession(mixesWithOthers: mixesWithOthers)
 
         let engine = AVAudioEngine()
         let request = SFSpeechAudioBufferRecognitionRequest()
@@ -285,4 +287,20 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         }
     }
 
+}
+
+extension AppleSpeechTranscriber {
+    fileprivate nonisolated static func activateAudioSession(mixesWithOthers: Bool) throws -> AVAudioSession {
+        let session = AVAudioSession.sharedInstance()
+        if mixesWithOthers {
+            // What recorded from a control on the locked phone (`docs/spikes/locked-capture.md`).
+            try session.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers])
+        } else {
+            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+        }
+        // Recording silences haptics by default, and they're how a thumb on the mic knows it's listening.
+        try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+        return session
+    }
 }

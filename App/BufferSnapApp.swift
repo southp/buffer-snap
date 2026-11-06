@@ -8,6 +8,8 @@ struct BufferSnapApp: App {
     // Composition root: every service is built here, once, and handed down to the views.
     private let environment: AppEnvironment
     @State private var appModel: AppModel
+    // Throwaway spike: T4's notification reply.
+    @UIApplicationDelegateAdaptor(SpikeAppDelegate.self) private var spikeAppDelegate
 
     init() {
         let environment = AppEnvironment(
@@ -19,6 +21,7 @@ struct BufferSnapApp: App {
         let appModel = AppModel(auth: environment.auth)
         _appModel = State(initialValue: appModel)
         OpenCaptureIntent.onRun = { appModel.showCapture() }
+        SpikeDictation.install()
     }
 
     var body: some Scene {
@@ -26,6 +29,11 @@ struct BufferSnapApp: App {
             RootView(appModel: appModel, environment: environment)
                 .task {
                     await removeMockCaptures()
+                }
+                .task {
+                    // Throwaway spike: what T1 and T4 can't ask for from the background.
+                    await SpikeDictation.shared.requestPermission()
+                    await SpikeAppDelegate.requestNotificationPermission()
                 }
         }
     }
