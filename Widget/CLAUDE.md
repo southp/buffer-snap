@@ -9,7 +9,7 @@ in [`docs/architecture.md`](../docs/architecture.md).
 |---|---|---|
 | Action button, Control Center, Lock Screen control | `OpenCaptureControl` | `OpenCaptureIntent` |
 | Home Screen and Today View (`systemMedium`) | `SnapperWidget`, drawn by `SnapperWidgetView` | `OpenCaptureIntent` |
-| Lock Screen widget (`accessoryCircular`) | `SnapperWidget`, drawn by `SnapperLockScreenView` | `OpenCaptureIntent` |
+| Lock Screen widget (`accessoryCircular`) | `SnapperWidget`, drawn by `SnapperLockScreenView` | `widgetURL` to `buffersnap://capture` |
 
 `SnapperWidgetBundle` is the extension's `@main` and lists the widget and the control. Every surface opens the app:
 nothing captures from here (`docs/decisions/10-unlocked-capture.md`).
@@ -19,10 +19,17 @@ nothing captures from here (`docs/decisions/10-unlocked-capture.md`).
 - **`OpenCaptureIntent` lives in `Shared/`, which both `target.yml` files compile.** Apple requires an `openAppWhenRun`
   intent in both targets. If it's only in the widget, it runs without opening the app.
 - **The system runs it in the app's process**, and the log confirms that for the widget's button and the control
-  (`simctl spawn "$UDID" log show` shows `BufferSnap[<pid>]` invoking `OpenCaptureIntent.perform()`).
+  (`simctl spawn "$UDID" log show` shows `BufferSnap[<pid>]` invoking `OpenCaptureIntent.perform()`). The simulator
+  can't show what the device did on the Lock Screen, below.
 - **The app does the navigating.** `BufferSnapApp.init` sets `OpenCaptureIntent.onRun` to `AppModel.showCapture()`, and
   in this extension's process it stays `nil` (`docs/decisions/41-open-capture-hook.md`). Don't read app-only state in
   `perform()`, since the widget compiles it too.
+- **The Lock Screen widget opens a URL instead.** On an iPhone, its `Button(intent:)` opened the app where it was left,
+  without running the intent. The whole circle now carries `widgetURL(AppLink.capture.url)`, which the app handles in
+  `onOpenURL` (`docs/decisions/41-lock-screen-widget-url.md`). Apple's advice is the same for any widget whose tap only
+  opens the app: use `widgetURL` or `Link`, not a button.
+- **`buffersnap://oauth` belongs to sign-in.** `AppLink` handles only the `capture` host. Add a host there, and a test,
+  for any new link.
 - **A cold launch needs nothing extra.** `showCapture()` remembers nothing, because every way past sign-in ends on the
   capture screen (`docs/decisions/41-no-remembered-capture-request.md`).
 
