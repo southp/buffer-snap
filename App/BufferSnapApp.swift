@@ -12,12 +12,33 @@ struct BufferSnapApp: App {
     init() {
         let environment = AppEnvironment(captureStore: Self.makeCaptureStore(), auth: MockAuthService())
         self.environment = environment
-        _appModel = State(initialValue: AppModel(auth: environment.auth))
+        let appModel = AppModel(auth: environment.auth)
+        _appModel = State(initialValue: appModel)
+        OpenCaptureIntent.onRun = { appModel.showCapture() }
     }
 
     var body: some Scene {
         WindowGroup {
             RootView(appModel: appModel, environment: environment)
+                .task {
+                    await removeMockCaptures()
+                }
+                // The Lock Screen widget opens `buffersnap://capture`. Other URLs, such as sign-in's, aren't ours.
+                .onOpenURL { url in
+                    if AppLink(url: url) == .capture {
+                        appModel.showCapture()
+                    }
+                }
+        }
+    }
+
+    /// Mock captures from before the widget's buttons opened the capture screen must not reach Buffer.
+    private func removeMockCaptures() async {
+        do {
+            try await environment.captureStore.removeMockCaptures()
+        } catch {
+            // The list can't read this file either, so this can wait for the next launch.
+            Logger().error("Can't remove the mock captures: \(error)")
         }
     }
 
