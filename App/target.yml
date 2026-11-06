@@ -28,6 +28,8 @@ targets:
         # Not XcodeGen's `entitlements:` key: without `properties` it overwrites this file with an empty one.
         CODE_SIGN_ENTITLEMENTS: App/BufferSnap.entitlements
         GENERATE_INFOPLIST_FILE: YES
+        # Holds only CFBundleURLTypes (the `buffersnap` scheme), which has no INFOPLIST_KEY_ setting; the rest is generated.
+        INFOPLIST_FILE: App/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
         # Skips the export-compliance prompt on every TestFlight build.
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
@@ -37,7 +39,6 @@ targets:
         # Throwaway spike: T1's Live Activity, and listening with the app off screen. `Spike/App/Info.plist` holds only
         # UIBackgroundModes, which has no INFOPLIST_KEY_ setting; the rest is generated.
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
-        INFOPLIST_FILE: Spike/App/Info.plist
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         TARGETED_DEVICE_FAMILY: "1"
