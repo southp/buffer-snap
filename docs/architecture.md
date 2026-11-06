@@ -17,8 +17,9 @@ SwiftUI shells over it.
   and feeds a stateless view (`CaptureView`, `CaptureListView`) plain values and closures. Conventions:
   [`App/CLAUDE.md`](../App/CLAUDE.md).
 - **The widget** (`Widget/`) is a WidgetKit extension: a control, a widget for the Home Screen, Today View and Lock
-  Screen, and a timeline that reads the count. All of them run `OpenCaptureIntent` (`Shared/`, compiled into both the
-  app and the widget), which opens the app on the capture screen. Conventions:
+  Screen, and a timeline that reads the count. The control and the Home Screen widget run `OpenCaptureIntent` (`Shared/`,
+  compiled into both the app and the widget), and the Lock Screen widget opens `buffersnap://capture`. Both open the
+  app on the capture screen. Conventions:
   [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
 Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](decisions/5-core-ui-import-lint.md).
@@ -133,13 +134,17 @@ captures among real ones in `captures-v2.json`, and the app deletes just those a
 
 ```mermaid
 flowchart LR
-    Surface["Control or widget button"] -->|runs| Intent["OpenCaptureIntent (openAppWhenRun)"]
+    Surface["Control or Home Screen widget"] -->|runs| Intent["OpenCaptureIntent (openAppWhenRun)"]
     Intent -->|"the system opens the app, then runs perform() in it"| Hook["OpenCaptureIntent.onRun"]
     Hook --> Show["AppModel.showCapture()"]
+    Lock["Lock Screen widget"] -->|"widgetURL"| URL["buffersnap://capture"]
+    URL -->|"onOpenURL, if AppLink(url:) is .capture"| Show
     Show -->|"on the capture list"| Capture["Capture screen"]
     Show -.->|"anywhere else: nothing to do"| Route["Route stays, and every way past sign-in ends on capture"]
 ```
 
-From a locked phone, the system asks to unlock first, since the intent isn't always allowed. A cold launch reaches
+From a locked phone, the system asks to unlock first, since the intent isn't always allowed, and a widget tap always
+needs an unlock to open the app. The Lock Screen widget uses a URL because its intent button didn't run on a device:
+[`41-lock-screen-widget-url.md`](decisions/41-lock-screen-widget-url.md). A cold launch reaches
 capture whichever comes first, the intent or getting past sign-in:
 [`41-no-remembered-capture-request.md`](decisions/41-no-remembered-capture-request.md).
