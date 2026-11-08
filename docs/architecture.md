@@ -64,7 +64,7 @@ flowchart TD
             MockAuth["MockAuthService"]
             MockSpeech["MockSpeechTranscriber"]
             FileStore["JSONFileCaptureStore"]
-            Notifying["NotifyingCaptureStore (wraps a store)"]
+            Notifying["NotifyingCaptureStore, CappedCaptureStore (wrap a store)"]
             OAuth["OAuthAuthService → KeychainSessionStore"]
             GraphQL["GraphQLBufferClient, MockBufferClient"]
             Path["NetworkPathConnectivityMonitor, MockConnectivityMonitor"]
@@ -116,7 +116,7 @@ flowchart LR
     Notifying -->|"add(_:), delete(id:)"| Store[("captures-v2.json in the App Group<br/>(JSONFileCaptureStore)")]
     Notifying -.->|"reloads timelines"| Timeline["Widget: CaptureCountProvider"]
     Store -->|"all()"| Timeline
-    Timeline -->|"N captured"| Face["Widget: SnapperWidgetView"]
+    Timeline -->|"N waiting to send"| Face["Widget: SnapperWidgetView"]
     Store -->|"all()"| List["CaptureListModel.load()"]
     List -->|captures| Delete
 ```
@@ -126,8 +126,11 @@ Nothing is saved if nothing was heard, and words that can't save on release stay
 ([`42-over-limit-dictation.md`](decisions/42-over-limit-dictation.md)). No audio is kept.
 
 Typing an idea and tapping Save adds a pending text capture through `CaptureModel`. The write goes through
-`NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. When the list
-opens, or the app returns to the foreground, it reads every capture from the store and shows them newest first.
+`NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. Inside it,
+`CappedCaptureStore` keeps at most 500 captures by dropping the oldest sent ones
+([`46-storage-limit.md`](decisions/46-storage-limit.md)). When the list opens, or the app returns to the foreground, it
+reads every capture from the store and shows them newest first, under one sync status with Sync now
+([`46-sync-now.md`](decisions/46-sync-now.md)).
 
 ## Signing in
 
