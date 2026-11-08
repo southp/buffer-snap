@@ -9,6 +9,8 @@ targets:
     type: application
     platform: iOS
     sources:
+      # Copies App/PrivacyInfo.xcprivacy, the privacy manifest, into the bundle as a resource
+      # (docs/decisions/47-privacy-manifest.md).
       - path: App
         # Keep this spec and the area's CLAUDE.md out of the app bundle.
         excludes:
