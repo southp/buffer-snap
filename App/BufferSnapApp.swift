@@ -170,6 +170,7 @@ struct BufferSnapApp: App {
         }
         // A widget added before an update may still show the count of the mock captures that update removed.
         reloadWidget()
-        return NotifyingCaptureStore(base: store, onChange: reloadWidget)
+        // Capped inside the notifier, so a send that trims old captures still reloads the widget once.
+        return NotifyingCaptureStore(base: CappedCaptureStore(base: store), onChange: reloadWidget)
     }
 }
