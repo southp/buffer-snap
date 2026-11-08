@@ -5,12 +5,12 @@ import Testing
 /// plain background. The system draws the real background, so these show the content, not a whole Home Screen.
 @MainActor
 struct WidgetViewTests {
-    /// The count and the one button that opens the capture screen.
+    /// How many captures are waiting to send, and the one button that opens the capture screen.
     @Test func medium() {
         assertScreenSnapshot(of: homeScreenWidget(count: 12), named: "medium")
     }
 
-    /// The widget on a new install, before anything is captured.
+    /// Nothing waiting: on a new install, or once everything has gone.
     @Test func mediumEmpty() {
         assertScreenSnapshot(of: homeScreenWidget(count: 0), named: "mediumEmpty")
     }
@@ -31,7 +31,7 @@ struct WidgetViewTests {
 
     /// `systemMedium` on iPhone 16, 338 × 158 points, inside the 16-point margin the system adds.
     private func homeScreenWidget(count: Int) -> some View {
-        SnapperWidgetView(count: count)
+        SnapperWidgetView(waitingCount: count)
             .padding(16)
             .frame(width: 338, height: 158)
             .background(Color(white: 0.92), in: .rect(cornerRadius: 22))
