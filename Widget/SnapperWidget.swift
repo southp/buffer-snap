@@ -25,7 +25,7 @@ private struct SnapperWidgetFace: View {
         case .accessoryCircular:
             SnapperLockScreenView()
         default:
-            SnapperWidgetView(count: count)
+            SnapperWidgetView(waitingCount: count)
         }
     }
 }
@@ -35,7 +35,7 @@ struct CaptureCountEntry: TimelineEntry {
     let count: Int
 }
 
-/// Reads the capture count from the shared store.
+/// Reads how many captures are waiting to send from the shared store.
 ///
 /// The count only changes on a store write, and each write reloads the timeline, so a timeline is one entry that never
 /// expires by itself.
@@ -62,7 +62,8 @@ struct CaptureCountProvider: TimelineProvider {
 
     private func captureCount() async -> Int {
         do {
-            return try await JSONFileCaptureStore(fileURL: SharedStorage.capturesFileURL()).all().count
+            let captures = try await JSONFileCaptureStore(fileURL: SharedStorage.capturesFileURL()).all()
+            return SyncStatus.waitingCount(of: captures)
         } catch {
             Logger().error("Can't read the shared capture store: \(error)")
             return 0
