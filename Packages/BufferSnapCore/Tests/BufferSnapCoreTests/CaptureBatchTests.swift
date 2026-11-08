@@ -26,6 +26,27 @@ struct CaptureBatchTests {
         #expect(batch.text == "A\n\nB\n\nC")
     }
 
+    /// A failed batch says why, so the list can say what would help.
+    @Test func aFailedBatchKeepsWhyItFailed() throws {
+        let batchID = UUID()
+        let captures = [
+            Capture(kind: .text, status: .failed, text: "A", batchID: batchID, failure: .refused),
+            Capture(kind: .text, status: .failed, text: "B", batchID: batchID, failure: .refused),
+        ]
+
+        let batch = try #require(CaptureBatch.batches(of: captures, window: window).first)
+
+        #expect(batch.failure == .refused)
+    }
+
+    @Test func onlyAFailedBatchHasAFailure() throws {
+        let stale = Capture(kind: .text, status: .pending, text: "A", failure: .refused)
+
+        let batch = try #require(CaptureBatch.batches(of: [stale], window: window).first)
+
+        #expect(batch.failure == nil)
+    }
+
     /// Each stays within the window of the one before, though the last is well past the window after the first.
     @Test func theWindowRestartsAfterEachCapture() {
         let captures = [Capture.text("A", at: 0), .text("B", at: 299), .text("C", at: 598), .text("D", at: 897)]

@@ -22,6 +22,7 @@ struct SubmissionQueueFailureTests {
         await queue.run()
 
         #expect(await store.all().map(\.status) == [.failed, .submitted])
+        #expect(await store.all().map(\.failure) == [.refused, nil])
         #expect(await server.ideaRequests == 2)
         #expect(clock.sleeps.isEmpty)
     }
@@ -196,6 +197,7 @@ struct SubmissionQueueFailureTests {
 
         #expect(await server.ideas.count == SubmissionQueue.maxServerFailures)
         #expect(await store.all().map(\.status) == [.failed])
+        #expect(await store.all().map(\.failure) == [.serverTrouble])
     }
 
     /// Tapping Resend asks for a fresh set of tries.

@@ -28,11 +28,11 @@ struct SubmissionQueueTests {
     }
 
     /// Nothing to send must cost no requests, so opening the app doesn't eat into the rate limit.
-    @Test func nothingPendingMakesNoRequests() async {
+    @Test func nothingPendingMakesNoRequests() async throws {
         let captures = [Capture.text("Sent"), Capture.text("Failed")]
         let store = InMemoryCaptureStore(seed: captures)
-        await store.setStatus(.submitted, ids: [captures[0].id])
-        await store.setStatus(.failed, ids: [captures[1].id])
+        try await store.setStatus(.submitted, ids: [captures[0].id])
+        try await store.setStatus(.failed, ids: [captures[1].id])
         let queue = fixture.makeQueue(store: store)
 
         await queue.run()

@@ -57,6 +57,30 @@ struct JSONFileCaptureStoreTests {
         #expect(try await widget.all().isEmpty)
     }
 
+    @Test func aFailuresReasonPersistsUntilTheStatusChanges() async throws {
+        let fileURL = try missingFileURL()
+        let capture = Capture.at(1)
+        try await JSONFileCaptureStore(fileURL: fileURL).add(capture)
+
+        try await JSONFileCaptureStore(fileURL: fileURL).setStatus(.failed, failure: .refused, ids: [capture.id])
+        #expect(try await JSONFileCaptureStore(fileURL: fileURL).all().map(\.failure) == [.refused])
+
+        try await JSONFileCaptureStore(fileURL: fileURL).setStatus(.submitted, ids: [capture.id])
+        #expect(try await JSONFileCaptureStore(fileURL: fileURL).all().map(\.failure) == [nil])
+    }
+
+    /// A file written before failures had a reason still opens.
+    @Test func aCaptureSavedWithoutAReasonReadsAsNone() async throws {
+        let fileURL = try missingFileURL()
+        let json = #"[{"id":"00000000-0000-0000-0000-000000000001","kind":"text","createdAt":0,"status":"failed"}]"#
+        try Data(json.utf8).write(to: fileURL)
+
+        let captures = try await JSONFileCaptureStore(fileURL: fileURL).all()
+
+        #expect(captures.map(\.status) == [.failed])
+        #expect(captures.map(\.failure) == [nil])
+    }
+
     @Test func setStatusChangesOnlyTheNamedCapturesAndPersists() async throws {
         let fileURL = try missingFileURL()
         let store = JSONFileCaptureStore(fileURL: fileURL)

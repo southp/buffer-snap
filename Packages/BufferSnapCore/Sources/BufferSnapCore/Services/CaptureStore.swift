@@ -10,11 +10,18 @@ public protocol CaptureStore: Sendable {
     /// Removes the capture with `id`. Does nothing if there is none.
     func delete(id: Capture.ID) async throws
     /// Changes the status of the captures with `ids`, all in one write. Skips any that are gone, so an upload finishing
-    /// can't bring back a capture deleted while it ran.
-    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws
+    /// can't bring back a capture deleted while it ran. `failure` is kept only with `.failed`, and cleared otherwise.
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws
     /// Closes captures into the batches `batchIDs` names, all in one write. Skips any that are gone, and any already
     /// in a batch, as a batch must stay the same once it's closed.
     func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws
+}
+
+extension CaptureStore {
+    /// Changes the status of the captures with `ids`, with no reason for a failure.
+    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
+        try await setStatus(status, failure: nil, ids: ids)
+    }
 }
 
 /// A `CaptureStore` that keeps captures in memory, for tests, previews and the mocked app.
@@ -38,9 +45,10 @@ public actor InMemoryCaptureStore: CaptureStore {
         captures.removeAll { $0.id == id }
     }
 
-    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) {
+    public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) {
         for index in captures.indices where ids.contains(captures[index].id) {
             captures[index].status = status
+            captures[index].failure = status == .failed ? failure : nil
         }
     }
 

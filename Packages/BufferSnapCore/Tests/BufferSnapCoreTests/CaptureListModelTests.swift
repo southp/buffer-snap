@@ -51,7 +51,7 @@ struct CaptureListModelTests {
     @Test func resendMakesAFailedCapturePendingAndSendsIt() async throws {
         let capture = Capture.text("An idea")
         let store = InMemoryCaptureStore(seed: [capture])
-        await store.setStatus(.failed, ids: [capture.id])
+        try await store.setStatus(.failed, ids: [capture.id])
         let buffer = MockBufferClient()
         let model = makeModel(store: store, buffer: buffer)
         await model.load()
@@ -69,7 +69,7 @@ struct CaptureListModelTests {
     @Test func resendShowsTheNewStatusAtOnce() async throws {
         let capture = Capture.text("An idea")
         let store = InMemoryCaptureStore(seed: [capture])
-        await store.setStatus(.failed, ids: [capture.id])
+        try await store.setStatus(.failed, ids: [capture.id])
         let model = makeModel(store: store)
         await model.load()
 

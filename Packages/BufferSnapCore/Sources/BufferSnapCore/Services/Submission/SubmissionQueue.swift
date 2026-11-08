@@ -123,7 +123,7 @@ public actor SubmissionQueue {
             return
         }
         try await store.closeOpenBatches(planner.batches(of: pending))
-        try await store.setStatus(.failed, ids: Set(pending.map(\.id)))
+        try await store.setStatus(.failed, failure: .heldAtSignIn, ids: Set(pending.map(\.id)))
         subscribers.publish(.capturesChanged)
     }
 
@@ -250,7 +250,7 @@ public actor SubmissionQueue {
             }
             return try await countServerFailure(of: sending)
         case .rejected(let reason):
-            try await markFailed(sending ?? upcoming, reason: reason)
+            try await markFailed(sending ?? upcoming, because: .refused, reason: reason)
             return .keepGoing
         }
     }
@@ -264,13 +264,13 @@ public actor SubmissionQueue {
         guard failures >= Self.maxServerFailures else {
             return .retryLater
         }
-        try await markFailed(submission, reason: "Too many server failures")
+        try await markFailed(submission, because: .serverTrouble, reason: "Too many server failures")
         return .keepGoing
     }
 
-    private func markFailed(_ submission: Submission, reason: String) async throws {
+    private func markFailed(_ submission: Submission, because failure: Capture.Failure, reason: String) async throws {
         Logger.submission.error("Marking a capture failed: \(reason, privacy: .public)")
-        try await store.setStatus(.failed, ids: Set(submission.captureIDs))
+        try await store.setStatus(.failed, failure: failure, ids: Set(submission.captureIDs))
         for id in submission.captureIDs {
             serverFailures[id] = nil
         }
