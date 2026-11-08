@@ -5,7 +5,8 @@ frameworks, so `just test-core` tests it on macOS in seconds without a simulator
 SwiftUI shells over it.
 
 - **Features** are `@Observable @MainActor` view models (`AppModel`, `CaptureModel`, `CaptureListModel`,
-  `BatchingSettingsModel`): they hold the state and the actions on it.
+  `BatchingSettingsModel`): they hold the state and the actions on it. Dictating outside the app is
+  `HandsFreeDictation`, a pure state machine, run by `HandsFreeDictationSession`.
 - **Services** are `Sendable` protocols with `async throws` methods (`CaptureStore`, `AuthService`,
   `SpeechTranscriber`, `BufferClient`, `ConnectivityMonitor`, `BatchWindowSetting`). Each one starts with a mock or
   in-memory implementation, and a real one replaces it later without touching the models. `JSONFileCaptureStore`,
@@ -22,7 +23,8 @@ SwiftUI shells over it.
 - **The widget** (`Widget/`) is a WidgetKit extension: a control, a widget for the Home Screen, Today View and Lock
   Screen, and a timeline that reads the count. The control and the Home Screen widget run `OpenCaptureIntent` (`Shared/`,
   compiled into both the app and the widget), and the Lock Screen widget opens `buffersnap://capture`. Both open the
-  app on the capture screen. Conventions:
+  app on the capture screen. The dictation control and widget run `DictateIdeaIntent` instead, which dictates without
+  opening the app, and the extension draws its Live Activity. Conventions:
   [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
 Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](decisions/5-core-ui-import-lint.md).
@@ -235,3 +237,35 @@ needs an unlock to open the app. The Lock Screen widget uses a URL because its i
 [`41-lock-screen-widget-url.md`](decisions/41-lock-screen-widget-url.md). A cold launch reaches
 capture whichever comes first, the intent or getting past sign-in:
 [`41-no-remembered-capture-request.md`](decisions/41-no-remembered-capture-request.md).
+
+## Dictating without opening the app
+
+```mermaid
+sequenceDiagram
+    participant Surface as Control or dictation widget
+    participant Intent as DictateIdeaIntent (in the app's process)
+    participant Session as HandsFreeDictationSession
+    participant Rules as HandsFreeDictation
+    participant Mic as AppleSpeechTranscriber (mixes with others)
+    participant Activity as LiveActivityDictationDisplay
+    participant Store as NotifyingCaptureStore
+    Surface->>Intent: Press
+    Intent->>Session: press()
+    Session->>Rules: press(at:) → .start
+    Session->>Activity: show(listening), before the mic
+    Session->>Mic: start()
+    Mic-->>Session: Words so far
+    Session->>Activity: show(listening, words)
+    Note over Session,Rules: A second press, Stop, 3 s of silence or 60 s → .finish
+    Session->>Mic: finish(), cancel() after 3 s
+    Session->>Store: add(text capture)
+    Session->>Activity: show(saved), then dismiss() 3 s later
+```
+
+The system runs `DictateIdeaIntent` in the app's process with the app closed, because it's a `LiveActivityIntent`. Each
+press may be a new intent, so it only calls the one `HandsFreeDictationSession` that `BufferSnapApp.init` sets up through
+`DictateIdeaIntent.onRun`. `HandsFreeDictation` decides everything from the events and the time: a press only starts a
+dictation from idle ([`58-press-while-busy.md`](decisions/58-press-while-busy.md)), and only listening shows a timer.
+The `audio` background mode keeps the app running while it listens, and a background task (`BackgroundTaskKeepAlive`)
+from the stop until the outcome is gone and the capture is on its way. Why:
+[`58-dictate-outside-app.md`](decisions/58-dictate-outside-app.md).

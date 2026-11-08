@@ -7,9 +7,14 @@ Inspiration is naughty. They come when you are lifting weights in a gym, eating 
 At least for me, it never comes when I sit still and have all the creation tools at hands. I wish I'd have a quick way to capture the idea, even in its roughest form. Ironically, my iPhone is the only thing that's always with me even when I was tripped over in a hike. That's why I'm exploring this idea.
 
 ## How it'd work
-The goal is the fewest touches between an idea and Buffer Create. Capture starts once the phone is unlocked, which with Face ID is usually just a glance. [Testing on a real iPhone](docs/spikes/locked-capture.md) showed what iOS allows on a locked phone, and [why we don't build on it](docs/decisions/10-unlocked-capture.md).
+The goal is the fewest touches between an idea and Buffer Create.
 
-1. The main app provides the following.
+**Press, speak, done.** Press "Dictate an Idea" on the Action button, in Control Center or on the Lock Screen, or tap the mic widget on the Home Screen, and say the idea. The app stays closed: the words show live in the Dynamic Island and on the Lock Screen, and it's saved and sent once you press again, tap Stop, or pause for 3 seconds. [Testing on a real iPhone](https://github.com/southp/buffer-snap/issues/57#issuecomment-6715563614) proved it works, and [why it's built this way](docs/decisions/58-dictate-outside-app.md).
+
+Capture starts once the phone is unlocked, which with Face ID is usually just a glance. [Testing on a real iPhone](docs/spikes/locked-capture.md) showed what iOS allows on a locked phone, and [why we don't build on it](docs/decisions/10-unlocked-capture.md).
+
+1. Dictate without opening the app, as above. It's the main way to capture.
+2. The main app provides the following.
    1. Authenticate the API access through a Buffer account.
    2. The capture screen, described below.
    3. View what's being captured
@@ -19,13 +24,13 @@ The goal is the fewest touches between an idea and Buffer Create. Capture starts
       3. No edit
    5. There will be no sync to Buffer Create. That's not the purpose of this app.
    6. The app should keep an upper limit of how many items to be stored offline, and shuffle things off in a FIFO manner.
-2. Getting there: a control on the Action button, in Control Center or on the Lock Screen, or a widget on the Today View, Home Screen or Lock Screen. Each one opens the capture screen.
-3. Snapper: the capture screen, with these captures. Text has a limit of, say, 300 chars.
+3. Snapper: the capture screen, for typing or when you'd rather see the text first. The capture control and the Snapper widget open it. Text has a limit of, say, 300 chars.
 
    | Capture | How | When |
    |---|---|---|
-   | Dictated text | Hold the mic button, speak, release | First release |
-   | Typed text | A small keyboard option, for when you can't speak aloud | First release |
+   | Dictated text, app closed | Press the control or the widget, speak, press again or pause | First release |
+   | Dictated text, in the app | Hold the mic button, speak, release | First release |
+   | Typed text | A small keyboard option, for when you can't speak aloud. No control or widget can show a text box, so this is in the app | First release |
    | Multiple pictures | One camera session: each shot adds a thumbnail to a strip in the corner, and you end it like a regular camera app. Buffer's API needs public URLs for images, so this depends on a hosting decision | Next |
 
 4. Smart batching: captures with less than 5 minutes between them (configurable) become one Buffer Create idea.
