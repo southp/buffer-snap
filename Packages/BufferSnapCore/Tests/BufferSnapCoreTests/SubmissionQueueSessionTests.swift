@@ -120,12 +120,25 @@ struct SubmissionQueueSessionTests {
     @Test func holdingTurnsOnlyPendingCapturesToFailed() async throws {
         let sent = Capture.text("Sent", at: 1)
         let store = InMemoryCaptureStore(seed: [sent, .text("Waiting", at: 2)])
-        await store.setStatus(.submitted, ids: [sent.id])
+        try await store.setStatus(.submitted, ids: [sent.id])
         let queue = fixture.makeQueue(store: store)
 
         try await queue.holdPendingCaptures()
 
         #expect(await store.all().map(\.status) == [.submitted, .failed])
+        #expect(await store.all().map(\.failure) == [nil, .heldAtSignIn])
+    }
+
+    /// Once it's pending again, the reason it failed no longer applies.
+    @Test func resendForgetsWhyItFailed() async throws {
+        let capture = Capture.text("An idea")
+        let store = InMemoryCaptureStore(seed: [capture])
+        let queue = fixture.makeQueue(store: store)
+        try await queue.holdPendingCaptures()
+
+        try await queue.resend(capture.id)
+
+        #expect(await store.all().map(\.failure) == [nil])
     }
 
     /// Whatever the new session is, a held capture only leaves when someone taps Resend.

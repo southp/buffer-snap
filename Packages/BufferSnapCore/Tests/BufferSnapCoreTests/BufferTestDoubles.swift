@@ -265,11 +265,11 @@ actor FlakyStatusCaptureStore: CaptureStore {
         await base.delete(id: id)
     }
 
-    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
         if isFailingStatusWrites {
             throw TestError()
         }
-        await base.setStatus(status, ids: ids)
+        await base.setStatus(status, failure: failure, ids: ids)
     }
 
     func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
@@ -310,8 +310,8 @@ actor StoreWithHookOnEmptyRead: CaptureStore {
         await base.delete(id: id)
     }
 
-    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
-        await base.setStatus(status, ids: ids)
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
+        await base.setStatus(status, failure: failure, ids: ids)
     }
 
     func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {

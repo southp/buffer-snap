@@ -30,11 +30,12 @@ public actor JSONFileCaptureStore: CaptureStore {
         }
     }
 
-    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) throws {
+    public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) throws {
         var captures = try read()
         var didChange = false
         for index in captures.indices where ids.contains(captures[index].id) {
             captures[index].status = status
+            captures[index].failure = status == .failed ? failure : nil
             didChange = true
         }
         if didChange {

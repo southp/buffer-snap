@@ -128,7 +128,7 @@ struct ReadOnlyCaptureStore: CaptureStore {
         throw TestError()
     }
 
-    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
         throw TestError()
     }
 
@@ -166,8 +166,8 @@ actor HookedCaptureStore: CaptureStore {
         await base.delete(id: id)
     }
 
-    func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
-        await base.setStatus(status, ids: ids)
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
+        await base.setStatus(status, failure: failure, ids: ids)
     }
 
     func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {

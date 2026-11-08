@@ -15,6 +15,17 @@ public struct Capture: Identifiable, Codable, Sendable, Equatable {
         case failed
     }
 
+    /// Why a capture shows as failed, so the list can say what would help.
+    public enum Failure: String, Codable, Sendable, CaseIterable {
+        /// Buffer refused the idea, and asking again the same way won't change that.
+        case refused
+        /// Buffer kept failing with errors that may pass, `SubmissionQueue.maxServerFailures` times.
+        case serverTrouble
+        /// Held back when a sign-in started, as it may belong to someone else:
+        /// `docs/decisions/44-hold-captures-at-sign-in.md`.
+        case heldAtSignIn
+    }
+
     /// Which batch of captures became, or will become, one idea.
     public typealias BatchID = UUID
 
@@ -27,6 +38,9 @@ public struct Capture: Identifiable, Codable, Sendable, Equatable {
     /// The batch this capture was closed into. `nil` means it isn't closed yet, as it's still open to others joining,
     /// or it was made before batches existed: `docs/decisions/45-batch-membership.md`.
     public var batchID: BatchID?
+    /// Why it failed, while `status` is `.failed`. `nil` for any other status, and for a capture that failed before
+    /// the reason was kept.
+    public var failure: Failure?
 
     public init(
         id: UUID = UUID(),
@@ -34,7 +48,8 @@ public struct Capture: Identifiable, Codable, Sendable, Equatable {
         createdAt: Date = .now,
         status: Status = .pending,
         text: String? = nil,
-        batchID: BatchID? = nil
+        batchID: BatchID? = nil,
+        failure: Failure? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -42,5 +57,6 @@ public struct Capture: Identifiable, Codable, Sendable, Equatable {
         self.status = status
         self.text = text
         self.batchID = batchID
+        self.failure = failure
     }
 }

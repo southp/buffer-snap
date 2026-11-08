@@ -34,6 +34,14 @@ public struct CaptureBatch: Identifiable, Sendable, Equatable {
         return texts.isEmpty ? nil : texts.joined(separator: "\n\n")
     }
 
+    /// Why it failed, if it did and that was kept. A batch fails as a whole, so its captures share the reason.
+    public var failure: Capture.Failure? {
+        guard state == .failed else {
+            return nil
+        }
+        return captures.lazy.compactMap(\.failure).first
+    }
+
     /// Whether it's still counting down at `now`, so that "Send now" would make a difference.
     public func isWaiting(at now: Date) -> Bool {
         guard case .open(let sendsAt) = state else {

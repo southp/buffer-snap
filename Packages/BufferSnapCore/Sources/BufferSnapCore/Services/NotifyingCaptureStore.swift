@@ -25,8 +25,8 @@ public struct NotifyingCaptureStore: CaptureStore {
         onChange()
     }
 
-    public func setStatus(_ status: Capture.Status, ids: Set<Capture.ID>) async throws {
-        try await base.setStatus(status, ids: ids)
+    public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
+        try await base.setStatus(status, failure: failure, ids: ids)
         onChange()
     }
 
