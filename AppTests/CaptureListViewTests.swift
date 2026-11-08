@@ -92,11 +92,60 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen([long]), named: "longCapture")
     }
 
-    private func listScreen(_ captures: [Capture]) -> some View {
-        NavigationStack {
+    // MARK: - Sync status
+
+    @Test func allSent() {
+        let sent = Capture(
+            kind: .text,
+            createdAt: Capture.samplesReferenceDate.addingTimeInterval(-600),
+            status: .submitted,
+            text: "Thread hook idea",
+            batchID: UUID()
+        )
+        assertScreenSnapshot(of: listScreen([sent]), named: "allSent")
+    }
+
+    /// The last try couldn't reach Buffer: it goes once there's a connection, so Sync now stays.
+    @Test func offline() {
+        assertScreenSnapshot(of: listScreen(waitingCaptures, isOffline: true), named: "offline")
+    }
+
+    @Test func syncing() {
+        assertScreenSnapshot(of: listScreen(waitingCaptures, isSyncing: true), named: "syncing")
+    }
+
+    /// A store that couldn't be written shows under the status, instead of nothing happening.
+    @Test func couldNotDelete() {
+        assertScreenSnapshot(of: listScreen(waitingCaptures, problem: .couldNotDelete), named: "couldNotDelete")
+    }
+
+    private var waitingCaptures: [Capture] {
+        ["Friday's post", "Add a photo of the team"].enumerated().map { index, text in
+            Capture(
+                kind: .text,
+                createdAt: Capture.samplesReferenceDate.addingTimeInterval(Double(index - 20) * 60),
+                text: text,
+                batchID: UUID()
+            )
+        }
+    }
+
+    private func listScreen(
+        _ captures: [Capture],
+        isOffline: Bool = false,
+        isSyncing: Bool = false,
+        problem: CaptureListModel.Problem? = nil
+    ) -> some View {
+        let batches = Array(CaptureBatch.batches(of: captures, window: 5 * 60).reversed())
+        let now = Capture.samplesReferenceDate
+        return NavigationStack {
             CaptureListView(
-                batches: CaptureBatch.batches(of: captures, window: 5 * 60).reversed(),
-                now: Capture.samplesReferenceDate,
+                batches: batches,
+                now: now,
+                syncStatus: SyncStatus(batches: batches, isOffline: isOffline, now: now),
+                isSyncing: isSyncing,
+                problem: problem,
+                onSyncNow: {},
                 onDelete: { _ in },
                 onSendNow: {},
                 onResend: { _ in },
