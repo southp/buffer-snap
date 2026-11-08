@@ -44,7 +44,11 @@ struct BufferSnapApp: App {
                 }
             )
         )
-        handsFreeDictation = Self.makeHandsFreeDictation(store: environment.captureStore, auth: environment.auth)
+        handsFreeDictation = Self.makeHandsFreeDictation(
+            store: environment.captureStore,
+            auth: environment.auth,
+            submissions: environment.submissions
+        )
     }
 
     var body: some Scene {
@@ -80,16 +84,22 @@ struct BufferSnapApp: App {
     /// waits for this `init`, even when the intent is what launched the app.
     private static func makeHandsFreeDictation(
         store: any CaptureStore,
-        auth: any AuthService
+        auth: any AuthService,
+        submissions: SubmissionQueue
     ) -> HandsFreeDictationSession {
-        // Sending (#54) sets `onSaved`. Until then, saving is the end of it.
         let session = HandsFreeDictationSession(
             speech: AppleSpeechTranscriber(mixesWithOthers: true),
             store: store,
             display: LiveActivityDictationDisplay(),
             keepAlive: BackgroundTaskKeepAlive(),
             // Reads the Keychain each time, so a sign-out in the app counts at once.
-            isSignedIn: { auth.hasSavedSession() }
+            isSignedIn: { auth.hasSavedSession() },
+            // Sends it if its batch is due, or asks iOS to wake the app when it will be, since the app may never come
+            // to the foreground. The session keeps the process awake until this returns.
+            onSaved: {
+                await submissions.run()
+                await BackgroundSubmission.scheduleWakeUpForOpenBatch(on: submissions)
+            }
         )
         DictateIdeaIntent.onRun = {
             await session.press()
