@@ -19,7 +19,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.1.0"
+    # The version on the App Store. Raise it before submitting a new version (docs/decisions/47-version-1-0.md).
+    MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     # From .env (see .env.example). Simulator builds work with it unset, so only `just deploy` requires it.
     DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
