@@ -56,6 +56,31 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen([closed]), named: "closedBatch")
     }
 
+    /// Each reason a batch didn't go, and what the header says would help: a refused batch of several captures, a
+    /// refused single one, one Buffer kept failing on, and one held at sign-in. `seeded` shows one with no reason.
+    @Test func failureReasons() {
+        let now = Capture.samplesReferenceDate
+        func failed(_ texts: [String], hoursAgo: TimeInterval, failure: Capture.Failure?) -> [Capture] {
+            let batch = UUID()
+            return texts.enumerated().map { index, text in
+                Capture(
+                    kind: .text,
+                    createdAt: now.addingTimeInterval(-hoursAgo * 3600 + Double(index) * 60),
+                    status: .failed,
+                    text: text,
+                    batchID: batch,
+                    failure: failure
+                )
+            }
+        }
+        let captures =
+            failed(["Launch recap", "Quote from the team", "Next steps"], hoursAgo: 1, failure: .refused)
+            + failed(["Poll idea"], hoursAgo: 2, failure: .refused)
+            + failed(["Behind the scenes"], hoursAgo: 3, failure: .serverTrouble)
+            + failed(["Someone else's idea"], hoursAgo: 4, failure: .heldAtSignIn)
+        assertScreenSnapshot(of: listScreen(captures), named: "failureReasons")
+    }
+
     /// A long dictation shows in full, so it can be checked before it reaches Buffer.
     @Test func longCapture() {
         let long = Capture(
