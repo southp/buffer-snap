@@ -7,5 +7,8 @@ struct SnapperWidgetBundle: WidgetBundle {
     var body: some Widget {
         SnapperWidget()
         OpenCaptureControl()
+        DictateIdeaControl()
+        DictateWidget()
+        DictationLiveActivity()
     }
 }

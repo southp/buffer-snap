@@ -5,7 +5,7 @@ import OSLog
 /// Shows a dictation started outside the app as a Live Activity, on the Lock Screen and in the Dynamic Island.
 ///
 /// Requesting the activity is synchronous, so it exists before the intent that started listening returns. Updating
-/// and ending it aren't, so they go through one queue and land in order: a late update can't bring back a countdown
+/// and ending it aren't, so they go through one queue and land in order: a late update can't bring back a timer
 /// after "Saved". New words go at most twice a second, which the #57 spike showed keeps up with speech.
 @MainActor
 final class LiveActivityDictationDisplay: DictationDisplay {
