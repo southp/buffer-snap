@@ -25,6 +25,8 @@ Both bugs are fixed by the rules: see `58-press-while-busy.md`, and only a liste
 
 Stops: a second press, Stop in the Live Activity, 3 seconds without new words once something's been heard, or 60 seconds. The outcome ("Saved", "Nothing heard", or what to open the app for) shows for 3 seconds, then the activity ends with `.immediate`. Ending at once with a delayed dismissal would be more robust to a suspended process, but the Dynamic Island drops an ended activity, so an unlocked phone would never see the outcome. A background task keeps the process alive for those seconds instead, and the app ends any activity a stopped process left behind at its next launch.
 
+A saved dictation goes into the same queue as any capture. Right after saving, still in the background, the app sends it if its batch is due, or else asks iOS to wake it when the batch ends (`45-background-wake-at-window-end.md`), since the app may never come to the foreground.
+
 Signed out, it says "Open BufferSnap to sign in" and doesn't listen. Without the microphone or speech recognition it says to open the app, which asks on its next foreground if the permission was never asked for: an app in the background can't show the prompt.
 
 Rejected:
