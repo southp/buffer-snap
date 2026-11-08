@@ -5,6 +5,8 @@ targets:
     type: app-extension
     platform: iOS
     sources:
+      # Copies Widget/PrivacyInfo.xcprivacy, the extension's own privacy manifest, into its bundle as a resource
+      # (docs/decisions/47-privacy-manifest.md).
       - path: Widget
         # Keep this spec and the area's CLAUDE.md out of the extension bundle.
         excludes:
