@@ -278,6 +278,207 @@ app-icon:
     ffmpeg -hide_banner -loglevel error -y -i "$tmp/icon.png" -frames:v 1 -update 1 -pix_fmt rgb24 \
         App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 
+# App Store screenshots at both sizes App Store Connect takes, into build/store-screenshots/. Needs Google Chrome,
+# ffmpeg and AXe. What each one shows and how to upload: docs/app-store/screenshots.md.
+store-screenshots: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out="build/store-screenshots"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+    chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    # The AXe that XcodeBuildMCP bundles (App/CLAUDE.md), or one on the PATH.
+    axe="$(find ~/.npm/_npx -path '*xcodebuildmcp/bundled/axe' -type f 2>/dev/null | head -n1 || true)"
+    axe="${axe:-$(command -v axe || true)}"
+    if [[ -z "$axe" ]]; then
+        echo "error: no AXe. Start XcodeBuildMCP once (.mcp.json), or: brew install cameroncooke/axe/axe" >&2
+        exit 1
+    fi
+    for tool in "$chrome" ffmpeg; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            echo "error: $tool is missing." >&2
+            exit 1
+        fi
+    done
+    rm -rf "$out"
+
+    # App Store Connect rejects an alpha channel, which simulator and Chrome PNGs carry.
+    flatten() {
+        ffmpeg -hide_banner -loglevel error -y -i "$1" -frames:v 1 -update 1 -pix_fmt rgb24 "$2"
+    }
+
+    # A caption over the snapshot tests' renders, for what the simulator can't show: the Live Activity and the widget.
+    # Each render is cropped to what differs from its corner, so only the activity or the widget is kept.
+    frame() {
+        local width="$1" height="$2" title="$3" subtitle="$4" target="$5"
+        shift 5
+        local images=""
+        while [[ $# -gt 0 ]]; do
+            images+="[\"data:image/png;base64,$(base64 < "$1" | tr -d '\n')\",$2],"
+            shift 2
+        done
+        cat > "$tmp/frame.html" <<HTML
+    <!doctype html><meta charset="utf-8">
+    <style>
+    html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden}
+    body{box-sizing:border-box;padding:13vh 6vw 0;background:linear-gradient(180deg,#24345f,#0d1222);color:#fff;
+      font-family:-apple-system,system-ui,sans-serif;text-align:center;display:flex;flex-direction:column;align-items:center}
+    h1{margin:0;font-size:9vw;font-weight:800;letter-spacing:-0.02em;text-wrap:balance}
+    p{margin:3vw 0 0;font-size:4.4vw;line-height:1.3;opacity:.8;text-wrap:balance}
+    div{margin-top:9vh;width:100%;display:flex;flex-direction:column;align-items:center;gap:6vw}
+    canvas{filter:drop-shadow(0 2vw 5vw rgba(0,0,0,.45))}
+    </style>
+    <h1>${title}</h1><p>${subtitle}</p><div id="shots"></div>
+    <script>
+    const shots = [${images}];
+    const load = (src) => new Promise((done) => { const img = new Image(); img.onload = () => done(img); img.src = src; });
+    (async () => {
+      for (const [src, percent] of shots) {
+        const img = await load(src);
+        const full = document.createElement("canvas");
+        full.width = img.width; full.height = img.height;
+        const ctx = full.getContext("2d"); ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, img.width, img.height), px = data.data;
+        // Clear the background from the edges inwards, so white inside the render, such as Stop's label, stays.
+        const isBackground = (i) => Math.abs(px[i] - px[0]) + Math.abs(px[i + 1] - px[1]) + Math.abs(px[i + 2] - px[2]) < 45;
+        const seen = new Uint8Array(img.width * img.height), queue = [];
+        for (let x = 0; x < img.width; x++) { queue.push(x, (img.height - 1) * img.width + x); }
+        for (let y = 0; y < img.height; y++) { queue.push(y * img.width, y * img.width + img.width - 1); }
+        while (queue.length) {
+          const p = queue.pop();
+          if (seen[p] || !isBackground(p * 4)) { continue; }
+          seen[p] = 1; px[p * 4 + 3] = 0;
+          const x = p % img.width;
+          if (x > 0) { queue.push(p - 1); }
+          if (x < img.width - 1) { queue.push(p + 1); }
+          if (p >= img.width) { queue.push(p - img.width); }
+          if (p < img.width * (img.height - 1)) { queue.push(p + img.width); }
+        }
+        ctx.putImageData(data, 0, 0);
+        let top = img.height, left = img.width, bottom = 0, right = 0;
+        for (let p = 0; p < seen.length; p++) {
+          if (!seen[p]) {
+            const x = p % img.width, y = (p - x) / img.width;
+            top = Math.min(top, y); bottom = Math.max(bottom, y); left = Math.min(left, x); right = Math.max(right, x);
+          }
+        }
+        const w = right - left + 1, h = bottom - top + 1;
+        const shown = Math.round(${width} * percent / 100);
+        const canvas = document.createElement("canvas");
+        canvas.width = shown; canvas.height = Math.round(h * shown / w);
+        const out = canvas.getContext("2d");
+        out.imageSmoothingQuality = "high";
+        out.drawImage(full, left, top, w, h, 0, 0, canvas.width, canvas.height);
+        document.getElementById("shots").appendChild(canvas);
+      }
+    })();
+    </script>
+    HTML
+        "$chrome" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+            --window-size="${width},${height}" --virtual-time-budget=15000 --user-data-dir="$tmp/profile" \
+            --screenshot="$tmp/frame.png" "file://$tmp/frame.html" > /dev/null 2>&1
+        flatten "$tmp/frame.png" "$target"
+    }
+
+    # Sample captures in the app's store, dated from now: a batch still open, so "Send now" shows, and two sent ones.
+    seed() {
+        local container="$1" now
+        now="$(( $(date +%s) - 978307200 ))"  # JSONEncoder's dates count from 2001.
+        cat > "$container/captures-v2.json" <<JSON
+    [
+      {"id":"6F1C2A10-0000-4000-8000-000000000001","kind":"text","status":"pending","createdAt":$((now - 40)),
+       "text":"Hook for Monday: the best ideas show up when your hands are full"},
+      {"id":"6F1C2A10-0000-4000-8000-000000000002","kind":"text","status":"pending","createdAt":$((now - 150)),
+       "text":"Thread idea: five things I learned shipping an app in two weeks"},
+      {"id":"6F1C2A10-0000-4000-8000-000000000003","kind":"text","status":"submitted","createdAt":$((now - 3700)),
+       "batchID":"6F1C2A10-0000-4000-8000-0000000000B1",
+       "text":"Behind the scenes of today's shoot: the light at 6 a.m. was unreal"},
+      {"id":"6F1C2A10-0000-4000-8000-000000000004","kind":"text","status":"submitted","createdAt":$((now - 3900)),
+       "batchID":"6F1C2A10-0000-4000-8000-0000000000B1",
+       "text":"Poll: do you plan your posts a week ahead, or the morning of?"},
+      {"id":"6F1C2A10-0000-4000-8000-000000000005","kind":"text","status":"submitted","createdAt":$((now - 93600)),
+       "batchID":"6F1C2A10-0000-4000-8000-0000000000B2",
+       "text":"Post idea: the worst tofu I ever had, in the finest restaurant in town"}
+    ]
+    JSON
+    }
+
+    launch() {
+        xcrun simctl terminate "$1" {{bundle_id}} 2>/dev/null || true
+        # -batchWindow 300 is the standard window, whatever an earlier run chose. English, whatever the Mac's language.
+        xcrun simctl launch "$1" {{bundle_id}} -mockAuth signedIn -batchWindow 300 \
+            -AppleLanguages "(en-US)" -AppleLocale en_US > /dev/null
+        sleep 4
+    }
+
+    # A physical tap: SwiftUI's buttons ignore AXe's simulated one (App/CLAUDE.md). Right after a first boot, AXe can time
+    # out reaching the simulator, so it tries a few times.
+    tap() {
+        local attempt
+        for attempt in 1 2 3 4 5; do
+            if "$axe" tap --label "$2" --element-type Button --tap-style physical --wait-timeout 10 --udid "$1" > /dev/null; then
+                return 0
+            fi
+            echo "  (tapping $2 failed, try $attempt of 5)" >&2
+            sleep 5
+        done
+        return 1
+    }
+
+    # The simulator leaves a few black pixels in the top-left corner: cover them with the pixels just to their right.
+    shoot() {
+        xcrun simctl io "$1" screenshot "$tmp/shot.png" > /dev/null 2>&1
+        ffmpeg -hide_banner -loglevel error -y -i "$tmp/shot.png" \
+            -filter_complex "split[shot][source];[source]crop=6:6:6:0[patch];[shot][patch]overlay=0:0" \
+            -frames:v 1 -update 1 -pix_fmt rgb24 "$2"
+    }
+
+    snapshots="AppTests/__Snapshots__"
+    # App Store Connect's iPhone sizes: 6.9" (iPhone with Dynamic Island, large) and 6.3" (medium), the one it requires.
+    for size in "6.9:iPhone 17 Pro Max:1320:2868" "6.3:iPhone 17 Pro:1206:2622"; do
+        IFS=: read -r inches model width height <<<"$size"
+        dir="$out/$inches-inch"
+        mkdir -p "$dir"
+        echo "→ $inches\" on $model (${width}×${height})"
+
+        frame "$width" "$height" "Press. Speak. Done." "Your idea goes to Buffer, without opening the app." \
+            "$dir/1-dictate.png" \
+            "$snapshots/DictationActivityViewTests/listeningWithWords.listeningWithWords.png" 88 \
+            "$snapshots/DictationActivityViewTests/saved.saved.png" 88
+        frame "$width" "$height" "One press away" "Control Center, the Action button, the Lock Screen or the Home Screen." \
+            "$dir/4-widget.png" \
+            "$snapshots/WidgetViewTests/dictate.dictate.png" 44
+
+        # Its own simulator per model and worktree, as for tests, so nothing else's state shows.
+        udid="$(SIM_DEVICE="$model" just _sim-udid)"
+        if [[ "$(xcrun simctl list devices -j | jq -r --arg u "$udid" '.devices[][] | select(.udid == $u) | .state')" != "Booted" ]]; then
+            xcrun simctl boot "$udid"
+        fi
+        xcrun simctl bootstatus "$udid" > /dev/null
+        xcrun simctl ui "$udid" appearance light
+        # The clock's real time, not 9:41, so it agrees with the list's "Sends at".
+        xcrun simctl status_bar "$udid" override --time "$(date +%-I:%M)" --batteryState charged --batteryLevel 100 \
+            --cellularBars 4 --wifiBars 3
+        xcrun simctl terminate "$udid" {{bundle_id}} 2>/dev/null || true
+        xcrun simctl install "$udid" {{app_path}}
+        seed "$(xcrun simctl get_app_container "$udid" {{bundle_id}} group.me.southp.buffersnap)"
+
+        launch "$udid"
+        shoot "$udid" "$dir/3-capture.png"
+        tap "$udid" Captures
+        sleep 2
+        shoot "$udid" "$dir/2-captures.png"
+        tap "$udid" Account
+        tap "$udid" Batching
+        sleep 2
+        shoot "$udid" "$dir/5-batching.png"
+        xcrun simctl terminate "$udid" {{bundle_id}} 2>/dev/null || true
+    done
+    echo "Saved in $out:"
+    find "$out" -name '*.png' | sort | while read -r f; do
+        echo "  $f ($(sips -g pixelWidth -g pixelHeight "$f" | awk '/pixel/ {printf "%s ", $2}'))"
+    done
+
 # Print every decision in docs/decisions/ as a table, oldest first.
 decisions:
     #!/usr/bin/env bash
