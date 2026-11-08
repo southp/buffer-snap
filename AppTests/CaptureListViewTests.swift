@@ -56,6 +56,17 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen([closed]), named: "closedBatch")
     }
 
+    /// A long dictation shows in full, so it can be checked before it reaches Buffer.
+    @Test func longCapture() {
+        let long = Capture(
+            kind: .text,
+            createdAt: Capture.samplesReferenceDate.addingTimeInterval(-60),
+            text: "週五的Post要提到Buffer的新功能: the Ideas board now takes ideas straight from your phone, "
+                + "so mention the Action button, the Lock Screen and how batching joins a few thoughts into one idea."
+        )
+        assertScreenSnapshot(of: listScreen([long]), named: "longCapture")
+    }
+
     private func listScreen(_ captures: [Capture]) -> some View {
         NavigationStack {
             CaptureListView(

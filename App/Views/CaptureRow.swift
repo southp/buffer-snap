@@ -20,8 +20,8 @@ struct CaptureRow: View {
                 // Without text, the title already is the kind's name; don't read it twice.
                 .accessibilityHidden(title == capture.kind.displayName)
             VStack(alignment: .leading, spacing: 4) {
+                // In full: it's the only place to check what was heard before it reaches Buffer.
                 Text(title)
-                    .lineLimit(2)
                 Text(relativeTimestamp)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
