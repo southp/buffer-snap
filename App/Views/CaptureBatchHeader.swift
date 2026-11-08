@@ -18,7 +18,7 @@ struct CaptureBatchHeader: View {
         case .open, .closed:
             row(Text("Waiting to send"))
         case .failed:
-            row(Text("Not sent"), action: "Resend", onResend)
+            row(failureTitle, detail: failureDetail, action: "Resend", onResend)
         case .submitted where batch.captures.count > 1:
             row(Text("Sent as one idea"))
         case .submitted, .unsendable:
@@ -27,13 +27,49 @@ struct CaptureBatchHeader: View {
         }
     }
 
+    /// Why it wasn't sent: `docs/decisions/46-say-why-a-batch-failed.md`.
+    private var failureTitle: Text {
+        switch batch.failure {
+        case .refused:
+            Text("Buffer refused this idea")
+        case .serverTrouble:
+            Text("Not sent: Buffer kept failing")
+        case .heldAtSignIn:
+            Text("Held at sign-in")
+        case nil:
+            Text("Not sent")
+        }
+    }
+
+    /// What would help, when Resend alone might not.
+    private var failureDetail: Text? {
+        switch batch.failure {
+        case .refused where batch.captures.count > 1:
+            Text("Resend will likely fail again. Delete some of its captures, then resend the rest.")
+        case .refused:
+            Text("Resend will likely fail again.")
+        case .heldAtSignIn:
+            Text("Saved before this sign-in. Resend sends it to the account signed in now.")
+        case .serverTrouble, nil:
+            nil
+        }
+    }
+
     private func row(
         _ title: Text,
+        detail: Text? = nil,
         action: LocalizedStringKey? = nil,
         _ perform: @escaping () -> Void = {}
     ) -> some View {
-        HStack {
-            title
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                if let detail {
+                    detail
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer(minLength: 8)
             if let action {
                 // Borderless, or a tap anywhere in the header would count.
