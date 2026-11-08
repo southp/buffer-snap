@@ -207,6 +207,95 @@ struct CaptureListModelTests {
         #expect(await buffer.createdIdeas == ["A\n\nB"])
     }
 
+    // MARK: - Sync status and Sync now
+
+    /// Sync now returns once the pass is over, so the status it leaves is the one to show.
+    @Test func syncNowSendsTheOpenBatchAndWaitsForIt() async {
+        let store = InMemoryCaptureStore(seed: [.text("A", at: 0), .text("B", at: 100)])
+        let buffer = MockBufferClient()
+        let now = Date(timeIntervalSinceReferenceDate: 100)
+        let model = makeModel(store: store, buffer: buffer, window: 300, planWithClockAt: now)
+        await model.load()
+        #expect(model.syncStatus(at: now) == .waiting(count: 2, nextSendAt: Date(timeIntervalSinceReferenceDate: 400)))
+
+        await model.syncNow()
+
+        #expect(await buffer.createdIdeas == ["A\n\nB"])
+        #expect(model.syncStatus(at: now) == .allSent)
+        #expect(model.isSyncing == false)
+    }
+
+    /// Each failed batch needs its own choice: `docs/decisions/46-sync-now.md`.
+    @Test func syncNowLeavesFailedBatchesAlone() async {
+        let failed = Capture(kind: .text, status: .failed, text: "Held", failure: .heldAtSignIn)
+        let buffer = MockBufferClient()
+        let model = makeModel(store: InMemoryCaptureStore(seed: [failed]), buffer: buffer)
+        await model.load()
+
+        await model.syncNow()
+
+        #expect(await buffer.createdIdeas.isEmpty)
+        #expect(model.syncStatus(at: .now) == .failed(count: 1, waiting: 0))
+    }
+
+    @Test func aSyncWithNoConnectionShowsOffline() async {
+        let model = makeModel(
+            store: InMemoryCaptureStore(seed: [.text("An idea")]),
+            buffer: MockBufferClient(failures: [.connection])
+        )
+        await model.load()
+
+        await model.syncNow()
+
+        #expect(model.isOffline)
+        #expect(model.syncStatus(at: .now) == .offline(count: 1))
+    }
+
+    // MARK: - Problems
+
+    @Test func anUnreadableStoreKeepsTheListAndSaysSo() async {
+        let model = makeModel(store: UnreadableCaptureStore())
+
+        await model.load()
+
+        #expect(model.captures.isEmpty)
+        #expect(model.problem == .couldNotLoad)
+    }
+
+    @Test func aFailedDeleteSaysSo() async {
+        let capture = Capture.at(1)
+        let model = makeModel(store: ReadOnlyCaptureStore(captures: [capture]))
+        await model.load()
+
+        await model.delete(capture)
+
+        #expect(model.problem == .couldNotDelete)
+    }
+
+    @Test func aFailedResendSaysSo() async throws {
+        let capture = Capture(kind: .text, status: .failed, text: "An idea")
+        let model = makeModel(store: ReadOnlyCaptureStore(captures: [capture]))
+        await model.load()
+
+        await model.resend(try #require(model.batches.first))
+
+        #expect(model.problem == .couldNotResend)
+    }
+
+    @Test func aFailedSyncSaysSoAndTheNextOneClearsIt() async {
+        let store = FlakyStatusCaptureStore(seed: [.text("A", at: 0)])
+        await store.failBatchWrites(true)
+        let model = makeModel(store: store, window: 300, planWithClockAt: Date(timeIntervalSinceReferenceDate: 10))
+        await model.load()
+
+        await model.syncNow()
+        #expect(model.problem == .couldNotSend)
+
+        await store.failBatchWrites(false)
+        await model.syncNow()
+        #expect(model.problem == nil)
+    }
+
     private func makeModel(
         store: any CaptureStore,
         buffer: MockBufferClient = MockBufferClient(),
