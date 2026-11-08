@@ -12,4 +12,4 @@ status: accepted
 
 Rejected: `SpeechAnalyzer`, which needs iOS 26 while the app targets iOS 18.
 
-**Not yet tested:** All of this rests on the device test in #42, above all how well `zh-TW` hears English words. If it's poor, this changes.
+**Tested on an iPhone set to Traditional Chinese (Taiwan), Nov 2026:** `zh-Hant-TW` became `zh-TW`, iOS chose on-device recognition, and mixed sentences such as "這個Idea可以做成Instagram的Reels" came out right. Brand names vary ("Buffer" sometimes became "Buffet" or "8分"), and server recognition was no better. With airplane mode on, dictation still worked on-device.
