@@ -1,7 +1,8 @@
 ---
 date: 2026-11-03
 issue: 4
-status: accepted
+status: superseded
+superseded_by: 46-in-memory-fallback-stays-silent.md
 ---
 
 # The app falls back to the in-memory store if the shared store won't open

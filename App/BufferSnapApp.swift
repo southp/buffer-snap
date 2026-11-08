@@ -160,7 +160,8 @@ struct BufferSnapApp: App {
         do {
             store = JSONFileCaptureStore(fileURL: try SharedStorage.capturesFileURL())
         } catch {
-            // Still usable, but nothing persists or reaches the widget. Showing this comes with the MVP.
+            // Still usable, but nothing persists or reaches the widget. Only a build without the App Group entitlement
+            // gets here, so it's logged, not shown: `docs/decisions/46-in-memory-fallback-stays-silent.md`.
             Logger().error("Can't open the shared capture store: \(error)")
             store = InMemoryCaptureStore()
         }
