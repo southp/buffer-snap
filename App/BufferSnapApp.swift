@@ -10,6 +10,9 @@ struct BufferSnapApp: App {
     @State private var appModel: AppModel
     // Here and not on the capture screen, so a draft outlives the screen when a session ends.
     @State private var captureModel: CaptureModel
+    /// Dictation from the control and the widget, with the app closed. The intents run in this process and call it.
+    private let handsFreeDictation: HandsFreeDictationSession
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let environment = AppEnvironment(
@@ -41,6 +44,7 @@ struct BufferSnapApp: App {
                 }
             )
         )
+        handsFreeDictation = Self.makeHandsFreeDictation(store: environment.captureStore, auth: environment.auth)
     }
 
     var body: some Scene {
@@ -62,6 +66,38 @@ struct BufferSnapApp: App {
             await environment.submissions.run()
             await BackgroundSubmission.scheduleWakeUpForOpenBatch(on: environment.submissions)
         }
+        .onChange(of: scenePhase) { _, phase in
+            // A press from the control can't ask for the mic with the app closed, so it asks now.
+            if phase == .active {
+                Task {
+                    await handsFreeDictation.askForPermissionIfNeeded()
+                }
+            }
+        }
+    }
+
+    /// The one session the intents reach, set before any of them can run: an intent's `perform()` is main-actor, so it
+    /// waits for this `init`, even when the intent is what launched the app.
+    private static func makeHandsFreeDictation(
+        store: any CaptureStore,
+        auth: any AuthService
+    ) -> HandsFreeDictationSession {
+        // Sending (#54) sets `onSaved`. Until then, saving is the end of it.
+        let session = HandsFreeDictationSession(
+            speech: AppleSpeechTranscriber(mixesWithOthers: true),
+            store: store,
+            display: LiveActivityDictationDisplay(),
+            keepAlive: BackgroundTaskKeepAlive(),
+            // Reads the Keychain each time, so a sign-out in the app counts at once.
+            isSignedIn: { auth.hasSavedSession() }
+        )
+        DictateIdeaIntent.onRun = {
+            await session.press()
+        }
+        StopDictationIntent.onRun = {
+            await session.stop()
+        }
+        return session
     }
 
     /// Mock captures from before the widget's buttons opened the capture screen must not reach Buffer.
