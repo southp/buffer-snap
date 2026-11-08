@@ -44,6 +44,7 @@ The goal is to publicly launch the v1 in the app store in time for [Buffer Commi
 2. MVP: Authentication works, capturing by dictated and typed text works, batching works, offline storage & submission job works. (~ Nov. 9)
 3. v1: Submit to the app store early enough that a rejection still leaves time. (~ Nov. 10)
    * Then submit to Buffer Commit no matter what by Nov. 13
+   * Everything to paste into App Store Connect, and the steps in order: [`docs/app-store/`](docs/app-store/checklist.md)
 4. After that: Capturing multiple pictures.
 
 ## Development
