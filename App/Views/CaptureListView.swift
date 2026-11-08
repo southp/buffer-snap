@@ -61,10 +61,17 @@ struct CaptureListView: View {
         }
         .overlay {
             if batches.isEmpty && problem == nil {
+                // The names are the control's and the widget's own, as the system lists them (`Widget/`).
                 ContentUnavailableView(
                     "No captures yet",
-                    systemImage: "tray",
-                    description: Text("The ideas you capture show up here.")
+                    systemImage: "mic.fill",
+                    // One literal, so it's a localized key and the Markdown renders.
+                    description: Text(
+                        """
+                        Add **Dictate an Idea** to Control Center or the Action button, or put the **Dictate an Idea** \
+                        widget on your Home Screen. Press it and speak: your idea shows up here and goes to Buffer.
+                        """
+                    )
                 )
             }
         }
