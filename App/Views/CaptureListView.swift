@@ -1,8 +1,8 @@
 import BufferSnapCore
 import SwiftUI
 
-/// The list of captures, grouped by batch, with swipe-to-delete, "Send now" on the open batch, Resend on failed ones,
-/// and an empty state.
+/// The list of captures, grouped by batch, under whether everything reached Buffer and Sync now. With swipe-to-delete,
+/// "Send now" on the open batch, Resend on failed ones, what went wrong last, and an empty state.
 ///
 /// Stateless: it renders the batches it's given and forwards what's tapped, so snapshot tests can show any state
 /// without loading anything. `CaptureListScreen` feeds it from `CaptureListModel`.
@@ -11,6 +11,14 @@ struct CaptureListView: View {
     let batches: [CaptureBatch]
     /// The moment relative timestamps count from.
     let now: Date
+    /// Whether everything reached Buffer.
+    let syncStatus: SyncStatus
+    /// Whether a Sync now is running.
+    let isSyncing: Bool
+    /// What the list couldn't do last, if anything.
+    let problem: CaptureListModel.Problem?
+    /// Called when the user asks to send everything that can go.
+    let onSyncNow: () -> Void
     /// Called when the user deletes a capture.
     let onDelete: (Capture) -> Void
     /// Called when the user asks to send the open batch without waiting.
@@ -24,6 +32,16 @@ struct CaptureListView: View {
 
     var body: some View {
         List {
+            if syncStatus != .nothingYet || problem != nil {
+                Section {
+                    if syncStatus != .nothingYet {
+                        SyncStatusRow(status: syncStatus, isSyncing: isSyncing, onSyncNow: onSyncNow)
+                    }
+                    if let problem {
+                        CaptureListProblemRow(problem: problem)
+                    }
+                }
+            }
             ForEach(batches) { batch in
                 Section {
                     ForEach(batch.newestFirst) { capture in
@@ -42,7 +60,7 @@ struct CaptureListView: View {
             }
         }
         .overlay {
-            if batches.isEmpty {
+            if batches.isEmpty && problem == nil {
                 ContentUnavailableView(
                     "No captures yet",
                     systemImage: "tray",
