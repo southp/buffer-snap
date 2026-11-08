@@ -16,6 +16,16 @@ struct CaptureBatchTests {
         #expect(batches(captures) == [["A", "B", "C"]])
     }
 
+    /// The list shows the newest at the top, while the idea keeps the order they were made in.
+    @Test func theListShowsTheNewestFirstButTheIdeaKeepsTheirOrder() throws {
+        let captures = [Capture.text("A", at: 0), .text("B", at: 100), .text("C", at: 200)]
+
+        let batch = try #require(CaptureBatch.batches(of: captures, window: window).first)
+
+        #expect(batch.newestFirst.map(\.text) == ["C", "B", "A"])
+        #expect(batch.text == "A\n\nB\n\nC")
+    }
+
     /// Each stays within the window of the one before, though the last is well past the window after the first.
     @Test func theWindowRestartsAfterEachCapture() {
         let captures = [Capture.text("A", at: 0), .text("B", at: 299), .text("C", at: 598), .text("D", at: 897)]
