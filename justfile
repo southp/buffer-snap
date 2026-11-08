@@ -434,6 +434,14 @@ store-screenshots: build
     }
 
     snapshots="AppTests/__Snapshots__"
+    # The renders the captions frame. A renamed snapshot test must be renamed here too.
+    for render in DictationActivityViewTests/listeningWithWords.listeningWithWords.png \
+        DictationActivityViewTests/saved.saved.png WidgetViewTests/dictate.dictate.png; do
+        if [[ ! -f "$snapshots/$render" ]]; then
+            echo "error: no $snapshots/$render. Point the recipe at the snapshot that replaced it." >&2
+            exit 1
+        fi
+    done
     # App Store Connect's iPhone sizes: 6.9" (iPhone with Dynamic Island, large) and 6.3" (medium), the one it requires.
     for size in "6.9:iPhone 17 Pro Max:1320:2868" "6.3:iPhone 17 Pro:1206:2622"; do
         IFS=: read -r inches model width height <<<"$size"
