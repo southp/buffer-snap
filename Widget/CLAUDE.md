@@ -10,9 +10,24 @@ in [`docs/architecture.md`](../docs/architecture.md).
 | Action button, Control Center, Lock Screen control | `OpenCaptureControl` | `OpenCaptureIntent` |
 | Home Screen and Today View (`systemMedium`) | `SnapperWidget`, drawn by `SnapperWidgetView` | `OpenCaptureIntent` |
 | Lock Screen widget (`accessoryCircular`) | `SnapperWidget`, drawn by `SnapperLockScreenView` | `widgetURL` to `buffersnap://capture` |
+| Action button, Control Center, Lock Screen control | `DictateIdeaControl` | `DictateIdeaIntent` |
+| Home Screen (`systemSmall`) | `DictateWidget`, drawn by `DictateWidgetView` | `DictateIdeaIntent` |
+| Lock Screen and Dynamic Island, while dictating | `DictationLiveActivity`, drawn by `DictationActivityView` | Stop: `StopDictationIntent` |
 
-`SnapperWidgetBundle` is the extension's `@main` and lists the widget and the control. Every surface opens the app:
-nothing captures from here (`docs/decisions/10-unlocked-capture.md`).
+`SnapperWidgetBundle` is the extension's `@main` and lists them all. Nothing captures in this extension's process: the
+capture surfaces open the app, and the dictation ones run in the app's process with the app closed.
+
+## Dictating without opening the app
+
+- **`DictateIdeaIntent` and `StopDictationIntent` live in `Shared/`.** They're `LiveActivityIntent`s, so the system runs
+  them in the app's process, where they call `HandsFreeDictationSession` through `onRun`. Like `OpenCaptureIntent`'s,
+  the hook stays `nil` here (`docs/decisions/58-dictate-outside-app.md`).
+- **The app owns the Live Activity**: `LiveActivityDictationDisplay` starts, updates and ends it. This extension only
+  draws `DictationActivityAttributes`, whose content state is Core's `DictationStatus`.
+- **Only a listening status shows the timer and Stop.** A timer left in any other state kept running after "Saved" on
+  the #57 spike. `DictationActivityView` takes `timerPausedAt` so a snapshot can freeze the timer.
+- **Check it on an iPhone** (`just device`): listening with the app closed, the background audio and the Lock Screen
+  are what the #57 spike proved there, and none of it is something the simulator can show.
 
 ## Opening the capture screen
 
@@ -73,7 +88,8 @@ The timeline is one entry with policy `.never`, so a stale count stays stale unt
 
 ## Seeing it run
 
-`AppTests/WidgetViewTests.swift` snapshots each face. To see it for real, run the app (`just run`) and add the widget
+`AppTests/WidgetViewTests.swift` snapshots each widget's face, and `AppTests/DictationActivityViewTests.swift` each
+state of the Live Activity on the Lock Screen. To see it for real, run the app (`just run`) and add the widget
 from the gallery. The control also works on the simulator: open Control Center, tap the + at the top left, then
 "Add a Control". Inspect the store with:
 
