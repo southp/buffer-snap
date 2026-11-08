@@ -1,9 +1,20 @@
+import Foundation
 import Observation
 
-/// The list of captures, newest first, and the actions on it.
+/// The list of captures, newest first, how far they are on their way to Buffer, and the actions on them.
 @Observable
 @MainActor
 public final class CaptureListModel {
+    /// Something the list couldn't do, to show until the next try. Each is a store that can't be read or written.
+    public enum Problem: Sendable, Equatable {
+        /// The list shows what was last read, which may be out of date.
+        case couldNotLoad
+        case couldNotDelete
+        case couldNotResend
+        /// Send now or Sync now couldn't close what's open, so nothing changed.
+        case couldNotSend
+    }
+
     /// Stored captures, newest first. Empty until `load()` finishes.
     public private(set) var captures: [Capture] = [] {
         didSet {
@@ -13,6 +24,12 @@ public final class CaptureListModel {
     /// The same captures in the batches they'll go or went in, newest first. Inside a batch, they're in the order they
     /// were made, which is how they read in the idea.
     public private(set) var batches: [CaptureBatch] = []
+    /// Whether the queue's last pass couldn't reach Buffer, as of the last load.
+    public private(set) var isOffline = false
+    /// Whether a Sync now is running.
+    public private(set) var isSyncing = false
+    /// What went wrong last, until the next try of the same kind works.
+    public private(set) var problem: Problem?
 
     private let store: any CaptureStore
     private let submissions: SubmissionQueue
@@ -22,42 +39,62 @@ public final class CaptureListModel {
         self.submissions = submissions
     }
 
-    /// Reads every capture from the store.
+    /// Whether everything reached Buffer, at `now`.
+    public func syncStatus(at now: Date) -> SyncStatus {
+        SyncStatus(batches: batches, isOffline: isOffline, now: now)
+    }
+
+    /// Reads every capture from the store, and whether the queue is offline.
     public func load() async {
+        isOffline = await submissions.isOffline
         do {
             captures = try await store.all().sorted { $0.createdAt > $1.createdAt }
+            if problem == .couldNotLoad {
+                problem = nil
+            }
         } catch {
-            // Keep the last loaded list. Showing the error comes with the MVP.
+            // Keep the last loaded list, and say it may be out of date.
+            problem = .couldNotLoad
         }
     }
 
-    /// Loads, then again each time a send changes a capture's status, until the calling task is cancelled.
+    /// Loads, then again each time a send changes a capture's status or whether Buffer can be reached, until the
+    /// calling task is cancelled.
     public func loadAndFollowChanges() async {
         // Listen first, so a change while loading isn't missed.
         let events = submissions.events()
         await load()
-        for await event in events where event == .capturesChanged {
+        for await event in events where event != .sessionLost {
             await load()
         }
     }
 
     /// Sends a failed batch again, as one idea.
     public func resend(_ batch: CaptureBatch) async {
-        do {
+        await attempt(failingWith: .couldNotResend) {
             try await submissions.resend(batch.id)
-            await load()
-        } catch {
-            // It still shows as failed, so it can be tried again. Showing the error comes with the MVP.
         }
     }
 
     /// Sends the open batch without waiting for its window to end.
     public func sendNow() async {
-        do {
+        await attempt(failingWith: .couldNotSend) {
             try await submissions.sendNow()
-            await load()
-        } catch {
-            // It still shows when it will go, and goes then. Showing the error comes with the MVP.
+        }
+    }
+
+    /// Sends everything that can go, without waiting for any window, and returns once that pass is over. Failed batches
+    /// stay as they are, each with its own Resend.
+    public func syncNow() async {
+        guard !isSyncing else {
+            return
+        }
+        isSyncing = true
+        defer {
+            isSyncing = false
+        }
+        await attempt(failingWith: .couldNotSend) {
+            try await submissions.syncNow()
         }
     }
 
@@ -66,9 +103,22 @@ public final class CaptureListModel {
         do {
             try await store.delete(id: capture.id)
             captures.removeAll { $0.id == capture.id }
+            problem = nil
             await submissions.replan()
         } catch {
-            // Keep it listed, since the store still has it. Showing the error comes with the MVP.
+            // Keep it listed, since the store still has it.
+            problem = .couldNotDelete
+        }
+    }
+
+    /// Runs `action`, then reloads. If it throws, nothing changed, and `failure` says so.
+    private func attempt(failingWith failure: Problem, _ action: () async throws -> Void) async {
+        do {
+            try await action()
+            problem = nil
+            await load()
+        } catch {
+            problem = failure
         }
     }
 }

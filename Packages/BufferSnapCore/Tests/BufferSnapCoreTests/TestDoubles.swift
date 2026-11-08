@@ -137,6 +137,29 @@ struct ReadOnlyCaptureStore: CaptureStore {
     }
 }
 
+/// A `CaptureStore` that can't be read or written.
+struct UnreadableCaptureStore: CaptureStore {
+    func all() async throws -> [Capture] {
+        throw TestError()
+    }
+
+    func add(_ capture: Capture) async throws {
+        throw TestError()
+    }
+
+    func delete(id: Capture.ID) async throws {
+        throw TestError()
+    }
+
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
+        throw TestError()
+    }
+
+    func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        throw TestError()
+    }
+}
+
 extension Capture {
     /// A capture made `seconds` after a fixed reference date, so tests can order captures by age.
     static func at(_ seconds: TimeInterval, kind: Kind = .text) -> Capture {

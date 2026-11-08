@@ -16,6 +16,8 @@ public actor SubmissionQueue {
         case capturesChanged
         /// A send needs the user to sign in again.
         case sessionLost
+        /// `isOffline` changed.
+        case reachabilityChanged
     }
 
     /// How a pass through the queue goes on, or why it stops.
@@ -24,6 +26,8 @@ public actor SubmissionQueue {
         case nothingLeft
         case waiting(until: Date)
         case retryLater
+        /// Like `retryLater`, because there was no connection.
+        case offline
         case rateLimited(retryAfter: TimeInterval?)
         case sessionLost
     }
@@ -47,6 +51,8 @@ public actor SubmissionQueue {
     private var wakeTask: Task<Void, Never>?
     /// When the open batch goes, as of the last pass, if that's what the queue is waiting for.
     public private(set) var nextWindowEnd: Date?
+    /// Whether the last pass stopped because Buffer couldn't be reached, until a pass gets an answer.
+    public private(set) var isOffline = false
     private var rateLimitedUntil: Date?
     private var failuresInARow = 0
     private var serverFailures: [Capture.ID: Int] = [:]
@@ -92,9 +98,19 @@ public actor SubmissionQueue {
     /// Closes whatever is open and starts sending it, without waiting for that to end. Once closed, it goes first
     /// thing whatever happens next, even after a relaunch, and nothing saved from now on joins it.
     public func sendNow() async throws {
+        _ = try await closeOpenBatchesAndDrain()
+    }
+
+    /// Like `sendNow()`, but returns once the pass it starts is over, so the caller can show how it went. Failed
+    /// batches stay as they are: `docs/decisions/46-sync-now.md`.
+    public func syncNow() async throws {
+        try await closeOpenBatchesAndDrain()?.waitUnlessCancelled()
+    }
+
+    private func closeOpenBatchesAndDrain() async throws -> Task<Void, Never>? {
         try await store.closeOpenBatches(planner.batches(of: store.pendingCaptures()))
         subscribers.publish(.capturesChanged)
-        _ = startDrain()
+        return startDrain()
     }
 
     /// Makes a failed batch pending again and starts sending it, as one idea and without waiting for any window, and
@@ -182,6 +198,8 @@ public actor SubmissionQueue {
             return try await sendNext()
         } catch let error as AuthError where error.requiresSignIn {
             return .sessionLost
+        } catch AuthError.network {
+            return .offline
         } catch {
             // Offline during a refresh, Buffer's token endpoint having a bad moment, or a store that can't be read or
             // written. Nothing there says anything about the captures.
@@ -242,7 +260,7 @@ public actor SubmissionQueue {
         case .rateLimited(let retryAfter):
             return .rateLimited(retryAfter: retryAfter)
         case .connection:
-            return .retryLater
+            return .offline
         case .serverTrouble:
             // Asking for the organization creates nothing, so only a failed send counts against a capture.
             guard let sending else {
@@ -309,6 +327,10 @@ extension SubmissionQueue {
         drainTask = nil
         isRunRequested = false
         nextWindowEnd = nil
+        if isOffline != (step == .offline) {
+            isOffline = step == .offline
+            subscribers.publish(.reachabilityChanged)
+        }
         switch step {
         case .keepGoing, .nothingLeft:
             failuresInARow = 0
@@ -318,7 +340,7 @@ extension SubmissionQueue {
             failuresInARow = 0
             nextWindowEnd = date
             scheduleWake(after: max(date.timeIntervalSince(clock.now), 0))
-        case .retryLater:
+        case .retryLater, .offline:
             failuresInARow += 1
             scheduleWake(after: backoff.delay(afterFailures: failuresInARow) + jitter())
         case .rateLimited(let retryAfter):
@@ -367,7 +389,7 @@ extension SubmissionQueue.Step {
         switch self {
         case .nothingLeft, .waiting:
             true
-        case .keepGoing, .retryLater, .rateLimited, .sessionLost:
+        case .keepGoing, .retryLater, .offline, .rateLimited, .sessionLost:
             false
         }
     }
