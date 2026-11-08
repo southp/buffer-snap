@@ -13,8 +13,10 @@ final class BackgroundTaskKeepAlive: DictationKeepAlive {
         guard task == .invalid else {
             return
         }
+        // iOS calls this on the main thread and expects the task ended before it returns, or it may kill the app, so
+        // this ends it there and then rather than in a `Task` that runs later.
         task = UIApplication.shared.beginBackgroundTask(withName: "Dictation") { [weak self] in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 self?.end()
             }
         }
