@@ -1,0 +1,137 @@
+import AppIntents
+import BufferSnapCore
+import SwiftUI
+
+/// The dictation's Live Activity on the Lock Screen: what's happening, the words so far and, only while listening, how
+/// long it's been listening and Stop.
+struct DictationActivityView: View {
+    let status: DictationStatus
+    /// Freezes the timer at this time, for snapshots. Live, the system keeps it going.
+    var timerPausedAt: Date?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                DictationTitle(status: status)
+                    .font(.headline)
+                Spacer(minLength: 0)
+                if status.isListening {
+                    DictationTimer(status: status, pausedAt: timerPausedAt)
+                        .font(.headline)
+                    DictationStopButton()
+                }
+            }
+            Text(status.detail)
+                .font(.body)
+                .foregroundStyle(status.words.isEmpty ? .secondary : .primary)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+    }
+}
+
+/// What's happening, with its symbol.
+struct DictationTitle: View {
+    let status: DictationStatus
+
+    var body: some View {
+        Label(status.title, systemImage: status.symbolName)
+            .foregroundStyle(status.tint)
+    }
+}
+
+/// How long it's been listening. It stops by itself at the time limit, when listening does. Only listening shows it: a
+/// timer that kept going after "Saved" was a bug the #57 spike found.
+struct DictationTimer: View {
+    let status: DictationStatus
+    var pausedAt: Date?
+
+    var body: some View {
+        Text(
+            timerInterval: status.startedAt...status.endsAt,
+            pauseTime: pausedAt,
+            countsDown: false,
+            showsHours: false
+        )
+        .monospacedDigit()
+        .multilineTextAlignment(.trailing)
+        .frame(width: 44)
+    }
+}
+
+/// Stops listening. It needs no passcode.
+struct DictationStopButton: View {
+    var body: some View {
+        Button("Stop", intent: StopDictationIntent())
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+    }
+}
+
+extension DictationStatus {
+    var title: String {
+        switch phase {
+        case .listening:
+            "Listening"
+        case .finishing:
+            "Finishing…"
+        case .saved:
+            "Saved"
+        case .nothingHeard:
+            "Nothing heard"
+        case .needsPermission:
+            "Can't listen yet"
+        case .signedOut:
+            "Signed out"
+        case .couldNotListen:
+            "Couldn't listen"
+        case .couldNotSave:
+            "Couldn't save"
+        }
+    }
+
+    /// The words, or what to do about it when there are none to show.
+    var detail: String {
+        switch phase {
+        case .listening, .finishing, .saved:
+            words.isEmpty ? "Say your idea" : words
+        case .nothingHeard:
+            "Nothing was saved."
+        case .needsPermission:
+            "Open BufferSnap to allow the microphone and speech recognition."
+        case .signedOut:
+            "Open BufferSnap to sign in."
+        case .couldNotListen:
+            "Try again in a moment."
+        case .couldNotSave:
+            "Open BufferSnap and try again."
+        }
+    }
+
+    var symbolName: String {
+        switch phase {
+        case .listening, .finishing:
+            "mic.fill"
+        case .saved:
+            "checkmark.circle.fill"
+        case .nothingHeard:
+            "mic.slash"
+        case .needsPermission, .signedOut, .couldNotListen, .couldNotSave:
+            "exclamationmark.circle"
+        }
+    }
+
+    var tint: Color {
+        switch phase {
+        case .listening:
+            .red
+        case .finishing, .nothingHeard:
+            .secondary
+        case .saved:
+            .green
+        case .needsPermission, .signedOut, .couldNotListen, .couldNotSave:
+            .orange
+        }
+    }
+}

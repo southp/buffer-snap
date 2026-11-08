@@ -23,7 +23,7 @@ public struct DictationStatus: Codable, Hashable, Sendable {
     public var words: String
     /// When listening started.
     public var startedAt: Date
-    /// When listening stops by itself at the latest. Only a listening status shows a countdown to it.
+    /// When listening stops by itself at the latest. Only a listening status shows a timer.
     public var endsAt: Date
 
     public init(phase: Phase, words: String = "", startedAt: Date, endsAt: Date) {
@@ -33,18 +33,8 @@ public struct DictationStatus: Codable, Hashable, Sendable {
         self.endsAt = endsAt
     }
 
-    /// Whether the mic is on. A countdown only means something then, so nothing else shows one.
+    /// Whether the mic is on. A timer only means something then, so nothing else shows one.
     public var isListening: Bool {
         phase == .listening
-    }
-
-    /// Whether this is how the dictation ended, so it's about to go away.
-    public var isOutcome: Bool {
-        switch phase {
-        case .listening, .finishing:
-            false
-        case .saved, .nothingHeard, .needsPermission, .signedOut, .couldNotListen, .couldNotSave:
-            true
-        }
     }
 }
