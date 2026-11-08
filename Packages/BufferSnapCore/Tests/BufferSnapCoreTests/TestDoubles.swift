@@ -1,5 +1,6 @@
 import BufferSnapCore
 import Foundation
+import Synchronization
 import Testing
 
 struct TestError: Error {}
@@ -183,4 +184,24 @@ func waitFor(_ condition: @MainActor () -> Bool, sourceLocation: SourceLocation 
         try? await Task.sleep(for: .milliseconds(1))
     }
     #expect(condition(), sourceLocation: sourceLocation)
+}
+
+/// A `DictationClock` that only moves when a test says so. A sleep ends once the clock reaches its deadline.
+final class ManualDictationClock: DictationClock {
+    private let time = Mutex(Date(timeIntervalSinceReferenceDate: 1_000_000))
+
+    var now: Date {
+        time.withLock { $0 }
+    }
+
+    func advance(by seconds: TimeInterval) {
+        time.withLock { $0 = $0.addingTimeInterval(seconds) }
+    }
+
+    func sleep(for seconds: TimeInterval) async throws {
+        let deadline = now.addingTimeInterval(seconds)
+        while now < deadline {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+    }
 }
