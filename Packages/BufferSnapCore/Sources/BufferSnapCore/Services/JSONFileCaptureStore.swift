@@ -3,8 +3,8 @@ import Foundation
 /// A `CaptureStore` that keeps captures in a JSON file, so the app and the widget can share them through the App Group.
 ///
 /// It caches nothing and reads the file on every call, because another process may have written it since. Writes are
-/// atomic, so a reader never sees half a file. Two processes writing at the same moment can still lose one of the
-/// writes: cross-process file coordination comes with the MVP.
+/// atomic, so a reader never sees half a file. Two processes writing at the same moment could still lose one of the
+/// writes, so only the app's process writes, through one instance: `docs/decisions/46-no-file-coordination.md`.
 public actor JSONFileCaptureStore: CaptureStore {
     private let fileURL: URL
 
