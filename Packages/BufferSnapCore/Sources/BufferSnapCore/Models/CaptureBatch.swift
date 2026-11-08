@@ -21,6 +21,12 @@ public struct CaptureBatch: Identifiable, Sendable, Equatable {
     public let captures: [Capture]
     public let state: State
 
+    /// The captures as the list shows them: newest first, like the batches themselves, so a new capture is always at
+    /// the top. `captures` stays oldest first, the order they go to Buffer in.
+    public var newestFirst: [Capture] {
+        captures.reversed()
+    }
+
     /// The idea's text, or `nil` if it has none to send. The blank lines keep the captures apart once they're in
     /// Buffer.
     public var text: String? {

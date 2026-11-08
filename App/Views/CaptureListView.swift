@@ -26,7 +26,7 @@ struct CaptureListView: View {
         List {
             ForEach(batches) { batch in
                 Section {
-                    ForEach(batch.captures) { capture in
+                    ForEach(batch.newestFirst) { capture in
                         CaptureRow(capture: capture, now: now)
                             .swipeActions {
                                 Button("Delete", systemImage: "trash", role: .destructive) {
