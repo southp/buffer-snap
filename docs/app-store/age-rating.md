@@ -2,7 +2,7 @@
 
 App Store Connect → the app → **App Information** → **Age Rating** → Edit. Expected result: **4+**.
 
-BufferSnap shows only what the user said or typed, their own Buffer sign-in page, and its own screens. Nothing comes
+BufSnap shows only what the user said or typed, their own Buffer sign-in page, and its own screens. Nothing comes
 from other people, so every answer is the lowest one. Apple words and groups the questions differently from time to
 time: answer anything not listed here by the same rule.
 
