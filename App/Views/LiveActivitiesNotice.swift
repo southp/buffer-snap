@@ -22,7 +22,7 @@ private struct LiveActivitiesNotice: ViewModifier {
         } message: {
             Text(
                 """
-                BufferSnap shows what it hears and a Stop button in a Live Activity, so it can't listen while \
+                BufSnap shows what it hears and a Stop button in a Live Activity, so it can't listen while \
                 they're off.
                 """
             )

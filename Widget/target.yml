@@ -25,5 +25,5 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         # Holds only NSExtension, which has no INFOPLIST_KEY_ setting; the rest is generated.
         INFOPLIST_FILE: Widget/Info.plist
-        INFOPLIST_KEY_CFBundleDisplayName: Snapper
+        INFOPLIST_KEY_CFBundleDisplayName: BufSnap
         TARGETED_DEVICE_FAMILY: "1"

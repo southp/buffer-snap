@@ -7,7 +7,7 @@ import AppIntents
 /// in the widget's process (`docs/decisions/41-open-capture-hook.md`).
 struct OpenCaptureIntent: AppIntent {
     static let title: LocalizedStringResource = "Capture an Idea"
-    static let description = IntentDescription("Opens BufferSnap on the capture screen.")
+    static let description = IntentDescription("Opens BufSnap on the capture screen.")
     static let openAppWhenRun = true
     // Only the control and the widget's buttons run this; it has no place in Shortcuts or Spotlight.
     static let isDiscoverable = false

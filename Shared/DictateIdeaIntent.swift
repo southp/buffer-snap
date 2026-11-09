@@ -10,7 +10,7 @@ import OSLog
 /// do the work, so the app sets `onRun` at launch. It stays `nil` in the widget's process.
 struct DictateIdeaIntent: AudioRecordingIntent, LiveActivityIntent {
     static let title: LocalizedStringResource = "Dictate an Idea"
-    static let description = IntentDescription("Listens and saves what you say as an idea, without opening BufferSnap.")
+    static let description = IntentDescription("Listens and saves what you say as an idea, without opening BufSnap.")
     // Only the control and the widget run this; it has no place in Shortcuts or Spotlight.
     static let isDiscoverable = false
     // As in the #57 spike, which ran it from a control on the Lock Screen too.

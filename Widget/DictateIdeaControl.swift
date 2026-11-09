@@ -11,6 +11,6 @@ struct DictateIdeaControl: ControlWidget {
             }
         }
         .displayName("Dictate an Idea")
-        .description("Saves what you say as an idea, without opening BufferSnap. Press again to stop.")
+        .description("Saves what you say as an idea, without opening BufSnap. Press again to stop.")
     }
 }

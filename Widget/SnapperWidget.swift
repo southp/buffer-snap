@@ -9,8 +9,8 @@ struct SnapperWidget: Widget {
             SnapperWidgetFace(count: entry.count)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Snapper")
-        .description("Capture an idea in one tap")
+        .configurationDisplayName("BufSnap")
+        .description("Capture an idea in one tap.")
         .supportedFamilies([.systemMedium, .accessoryCircular])
     }
 }
