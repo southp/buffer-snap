@@ -42,6 +42,15 @@ struct CappedCaptureStoreTests {
         #expect(await base.all().map(\.text) == ["Failed", "Pending", "Also pending"])
     }
 
+    @Test func deleteSubmittedReachesTheStoreItWraps() async throws {
+        let base = InMemoryCaptureStore(seed: [capture("Sent", at: 0, .submitted), capture("Failed", at: 1, .failed)])
+        let store = CappedCaptureStore(base: base, limit: 2)
+
+        try await store.deleteSubmitted()
+
+        #expect(await base.all().map(\.text) == ["Failed"])
+    }
+
     @Test func underTheLimitNothingIsDropped() async throws {
         let base = InMemoryCaptureStore(seed: [capture("Sent", at: 0, .submitted), capture("New", at: 1, .pending)])
         let store = CappedCaptureStore(base: base, limit: 2)

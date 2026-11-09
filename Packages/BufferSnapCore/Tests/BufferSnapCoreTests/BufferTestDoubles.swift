@@ -265,6 +265,10 @@ actor FlakyStatusCaptureStore: CaptureStore {
         await base.delete(id: id)
     }
 
+    func deleteSubmitted() async throws {
+        await base.deleteSubmitted()
+    }
+
     func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
         if isFailingStatusWrites {
             throw TestError()
@@ -308,6 +312,10 @@ actor StoreWithHookOnEmptyRead: CaptureStore {
 
     func delete(id: Capture.ID) async throws {
         await base.delete(id: id)
+    }
+
+    func deleteSubmitted() async throws {
+        await base.deleteSubmitted()
     }
 
     func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {

@@ -30,6 +30,14 @@ public actor JSONFileCaptureStore: CaptureStore {
         }
     }
 
+    public func deleteSubmitted() throws {
+        let captures = try read()
+        let remaining = captures.filter { $0.status != .submitted }
+        if remaining.count != captures.count {
+            try write(remaining)
+        }
+    }
+
     public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) throws {
         var captures = try read()
         var didChange = false

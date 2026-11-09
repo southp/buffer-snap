@@ -25,6 +25,11 @@ public struct NotifyingCaptureStore: CaptureStore {
         onChange()
     }
 
+    public func deleteSubmitted() async throws {
+        try await base.deleteSubmitted()
+        onChange()
+    }
+
     public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
         try await base.setStatus(status, failure: failure, ids: ids)
         onChange()

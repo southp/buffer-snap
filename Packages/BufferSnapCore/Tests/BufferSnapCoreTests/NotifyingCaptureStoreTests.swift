@@ -50,6 +50,22 @@ struct NotifyingCaptureStoreTests {
         #expect(counter.value == 1)
     }
 
+    /// One write, so one reload of the widget, however many captures go.
+    @Test func deleteSubmittedWritesThenNotifiesOnce() async throws {
+        let counter = ChangeCounter()
+        let base = InMemoryCaptureStore(seed: [
+            Capture(kind: .text, status: .submitted),
+            Capture(kind: .text, status: .submitted),
+            Capture(kind: .text),
+        ])
+        let store = NotifyingCaptureStore(base: base, onChange: counter.increment)
+
+        try await store.deleteSubmitted()
+
+        #expect(try await base.all().map(\.status) == [.pending])
+        #expect(counter.value == 1)
+    }
+
     @Test func setStatusWritesThenNotifies() async throws {
         let counter = ChangeCounter()
         let capture = Capture(kind: .text)
@@ -84,6 +100,9 @@ struct NotifyingCaptureStoreTests {
         }
         await #expect(throws: TestError.self) {
             try await store.delete(id: capture.id)
+        }
+        await #expect(throws: TestError.self) {
+            try await store.deleteSubmitted()
         }
         await #expect(throws: TestError.self) {
             try await store.setStatus(.failed, ids: [capture.id])

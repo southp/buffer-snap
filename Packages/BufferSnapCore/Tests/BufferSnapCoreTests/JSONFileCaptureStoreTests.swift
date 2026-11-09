@@ -29,6 +29,32 @@ struct JSONFileCaptureStoreTests {
         #expect(try await store.all() == [kept])
     }
 
+    @Test func deleteSubmittedRemovesOnlyWhatWasSubmittedAndPersists() async throws {
+        let fileURL = try missingFileURL()
+        let store = JSONFileCaptureStore(fileURL: fileURL)
+        var sent = Capture.at(1)
+        sent.status = .submitted
+        let waiting = Capture.at(2)
+        var failed = Capture.at(3)
+        failed.status = .failed
+        try await store.add(sent)
+        try await store.add(waiting)
+        try await store.add(failed)
+
+        try await store.deleteSubmitted()
+
+        #expect(try await JSONFileCaptureStore(fileURL: fileURL).all() == [failed, waiting])
+    }
+
+    /// With nothing to remove there's no write, so a missing file stays missing.
+    @Test func deleteSubmittedWithNothingSubmittedWritesNothing() async throws {
+        let fileURL = try missingFileURL()
+
+        try await JSONFileCaptureStore(fileURL: fileURL).deleteSubmitted()
+
+        #expect(!FileManager.default.fileExists(atPath: fileURL.path))
+    }
+
     @Test func allReturnsNewestFirst() async throws {
         let store = JSONFileCaptureStore(fileURL: try missingFileURL())
         let oldest = Capture.at(1)

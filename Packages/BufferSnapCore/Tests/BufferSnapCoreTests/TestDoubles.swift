@@ -172,6 +172,10 @@ struct ReadOnlyCaptureStore: CaptureStore {
         throw TestError()
     }
 
+    func deleteSubmitted() async throws {
+        throw TestError()
+    }
+
     func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
         throw TestError()
     }
@@ -192,6 +196,10 @@ struct UnreadableCaptureStore: CaptureStore {
     }
 
     func delete(id: Capture.ID) async throws {
+        throw TestError()
+    }
+
+    func deleteSubmitted() async throws {
         throw TestError()
     }
 
@@ -231,6 +239,10 @@ actor HookedCaptureStore: CaptureStore {
 
     func delete(id: Capture.ID) async throws {
         await base.delete(id: id)
+    }
+
+    func deleteSubmitted() async throws {
+        await base.deleteSubmitted()
     }
 
     func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {

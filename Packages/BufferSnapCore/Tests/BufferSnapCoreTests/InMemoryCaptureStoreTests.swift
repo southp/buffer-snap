@@ -30,6 +30,32 @@ struct InMemoryCaptureStoreTests {
         #expect(try await store.all().map(\.status) == [.failed, .pending])
     }
 
+    /// Failed includes what's held at sign-in, and pending includes what's open: only what reached Buffer goes.
+    @Test func deleteSubmittedRemovesOnlyWhatWasSubmitted() async throws {
+        let store: any CaptureStore = InMemoryCaptureStore(seed: [
+            Capture(kind: .text, status: .submitted, text: "Sent"),
+            Capture(kind: .photo, status: .submitted),
+            Capture(kind: .text, status: .pending, text: "Waiting"),
+            Capture(kind: .text, status: .failed, text: "Refused", failure: .refused),
+            Capture(kind: .text, status: .failed, text: "Held", failure: .heldAtSignIn),
+        ])
+
+        try await store.deleteSubmitted()
+
+        #expect(try await store.all().compactMap(\.text) == ["Waiting", "Refused", "Held"])
+    }
+
+    /// `setStatus` skips what's gone, so a send saved after the clear can't add a cleared capture back.
+    @Test func aStatusWrittenAfterDeleteSubmittedCannotBringACaptureBack() async throws {
+        let sent = Capture(kind: .text, status: .submitted)
+        let store: any CaptureStore = InMemoryCaptureStore(seed: [sent])
+
+        try await store.deleteSubmitted()
+        try await store.setStatus(.submitted, ids: [sent.id])
+
+        #expect(try await store.all().isEmpty)
+    }
+
     @Test func aFailureKeepsItsReasonUntilTheStatusChanges() async throws {
         let capture = Capture.at(1)
         let store: any CaptureStore = InMemoryCaptureStore(seed: [capture])
