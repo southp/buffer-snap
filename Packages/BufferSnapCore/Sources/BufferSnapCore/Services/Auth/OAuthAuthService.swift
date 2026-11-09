@@ -37,6 +37,9 @@ public actor OAuthAuthService: AuthService {
     /// What's known of the session, which is ahead of `store` while `isSessionUnsaved`. `nil` means look in `store`.
     private var session: AuthSession?
     private var isSessionUnsaved = false
+    /// A sign-out couldn't remove the saved session. The person asked to be signed out and the list says nothing leaves
+    /// now, so it isn't used again until the next launch, which the list warns about.
+    private var ignoresSavedSession = false
     private var refreshTask: Task<AuthSession, any Error>?
     /// Changes when a sign-out or sign-in replaces the session, so a refresh still in flight can tell it's stale.
     private var sessionGeneration = 0
@@ -103,7 +106,9 @@ public actor OAuthAuthService: AuthService {
         replaceSession(with: nil)
         do {
             try store.clear()
+            ignoresSavedSession = false
         } catch {
+            ignoresSavedSession = true
             Logger.auth.error("Can't remove the saved session: \(error, privacy: .public)")
             throw AuthError.storage
         }
@@ -193,6 +198,9 @@ public actor OAuthAuthService: AuthService {
     private func loadSession() throws -> AuthSession? {
         if let session {
             return session
+        }
+        guard !ignoresSavedSession else {
+            return nil
         }
         do {
             session = try store.load()
