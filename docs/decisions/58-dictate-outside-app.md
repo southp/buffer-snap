@@ -27,7 +27,7 @@ Stops: a second press, Stop in the Live Activity, 3 seconds without new words on
 
 A saved dictation goes into the same queue as any capture. Right after saving, still in the background, the app sends it if its batch is due, or else asks iOS to wake it when the batch ends (`45-background-wake-at-window-end.md`), since the app may never come to the foreground.
 
-Signed out, it says "Open BufferSnap to sign in" and doesn't listen. Without the microphone or speech recognition it says to open the app, which asks on its next foreground if the permission was never asked for: an app in the background can't show the prompt.
+Signed out, it says "Open BufferSnap to sign in" and doesn't listen. Without the microphone or speech recognition it says to open the app, which asks on its next foreground if the permission was never asked for: an app in the background can't show the prompt. Without a Live Activity it doesn't listen at all (`69-no-live-activity-no-mic.md`).
 
 Rejected:
 
