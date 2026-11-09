@@ -26,12 +26,12 @@ Your name, phone and email, which only Apple sees.
 Paste this into **Notes**, and replace the two placeholders. It's under the 4,000-character limit.
 
 ```
-BufferSnap sends ideas to the reviewer's Buffer account. It needs a Buffer account, so please use the demo account above.
+BufSnap sends ideas to the reviewer's Buffer account. It needs a Buffer account, so please use the demo account above.
 
 SIGNING IN
-1. Open BufferSnap and tap "Authenticate using your Buffer account". iOS asks to use "buffer.com" to sign in: tap Continue.
+1. Open BufSnap and tap "Authenticate using your Buffer account". iOS asks to use "buffer.com" to sign in: tap Continue.
 2. On Buffer's page, sign in with the demo account's email and password. Buffer may offer to email a sign-in link (a "magic link") instead; please choose the password option, as the demo account's inbox isn't available to you.
-3. Approve BufferSnap's access. The app returns to its capture screen.
+3. Approve BufSnap's access. The app returns to its capture screen.
 
 TRYING IT IN THE APP
 4. Hold the large mic button and speak, then release. Allow the microphone and speech recognition when asked. The words appear in the text box and are saved. You can also type an idea and tap Save.
@@ -44,15 +44,15 @@ Step 4 must come first, because iOS only lets an app ask for the microphone whil
    - Control Center: swipe down from the top-right corner, tap + at the top left, tap "Add a Control", and search for "Dictate an Idea".
    - Action button (iPhone 15 Pro and later): Settings → Action Button → Controls → Choose a Control → "Dictate an Idea".
    - Lock Screen: touch and hold the Lock Screen → Customize → Lock Screen, remove a bottom button, tap +, and choose "Dictate an Idea".
-   Or add the widget: touch and hold the Home Screen → Edit → Add Widget → BufferSnap → "Dictate an Idea".
+   Or add the widget: touch and hold the Home Screen → Edit → Add Widget → BufSnap → "Dictate an Idea".
 8. Press the control or the widget and speak. The app stays closed: a Live Activity shows the words on the Lock Screen and in the Dynamic Island. It stops when you press again, tap Stop, pause for 3 seconds, or after 60 seconds, then shows "Saved". The idea appears in the app's list and goes to Buffer as in step 5.
 
 BACKGROUND MODES
-- audio: BufferSnap uses the audio background mode only while dictating an idea. Dictation starts only when the user presses the "Dictate an Idea" control or widget, shows a Live Activity with the words being heard and a Stop button for as long as it listens, and stops after 3 seconds of silence or 60 seconds at most. No audio is recorded or kept: speech goes straight to Apple's speech recognition, and only the text is saved.
+- audio: BufSnap uses the audio background mode only while dictating an idea. Dictation starts only when the user presses the "Dictate an Idea" control or widget, shows a Live Activity with the words being heard and a Stop button for as long as it listens, and stops after 3 seconds of silence or 60 seconds at most. No audio is recorded or kept: speech goes straight to Apple's speech recognition, and only the text is saved.
 - fetch (background app refresh): used only to send ideas to Buffer when a batch's 5-minute window ends while the app is closed.
 
 PRIVACY
-BufferSnap has no server, analytics or third-party SDKs. It talks only to Buffer's API (OAuth with PKCE; tokens in the Keychain) and uses Apple's speech recognition.
+BufSnap has no server, analytics or third-party SDKs. It talks only to Buffer's API (OAuth with PKCE; tokens in the Keychain) and uses Apple's speech recognition.
 ```
 
 ## Attachment
