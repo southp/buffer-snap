@@ -6,8 +6,10 @@ import Foundation
 /// returns, and requesting one is synchronous. Updates that take time are the implementation's to queue, in order.
 @MainActor
 public protocol DictationDisplay: AnyObject {
-    /// Shows `status`, starting the Live Activity if there's none. Does nothing if Live Activities are off.
-    func show(_ status: DictationStatus)
+    /// Shows `status`, starting the Live Activity if there's none. Returns false if there's no Live Activity to show
+    /// it on, because they're off or iOS refused one.
+    @discardableResult
+    func show(_ status: DictationStatus) -> Bool
     /// Takes the Live Activity away.
     func dismiss()
 }
@@ -46,11 +48,15 @@ public final class MockDictationDisplay: DictationDisplay {
     /// Every status shown, in order.
     public private(set) var shown: [DictationStatus] = []
     public private(set) var dismissCount = 0
+    /// False acts as if Live Activities are off.
+    public var canShow = true
 
     public init() {}
 
-    public func show(_ status: DictationStatus) {
+    @discardableResult
+    public func show(_ status: DictationStatus) -> Bool {
         shown.append(status)
+        return canShow
     }
 
     public func dismiss() {

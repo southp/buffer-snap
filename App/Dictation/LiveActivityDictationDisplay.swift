@@ -39,11 +39,11 @@ final class LiveActivityDictationDisplay: DictationDisplay {
         }
     }
 
-    func show(_ status: DictationStatus) {
+    @discardableResult
+    func show(_ status: DictationStatus) -> Bool {
         lastStatus = status
         guard let activityID else {
-            request(status)
-            return
+            return request(status)
         }
         heldBackWords?.cancel()
         heldBackWords = nil
@@ -56,9 +56,10 @@ final class LiveActivityDictationDisplay: DictationDisplay {
                 }
                 self.send(status, to: activityID)
             }
-            return
+            return true
         }
         send(status, to: activityID)
+        return true
     }
 
     func dismiss() {
@@ -72,10 +73,10 @@ final class LiveActivityDictationDisplay: DictationDisplay {
         changes.yield(.end(activityIDs: [activityID], status: lastStatus))
     }
 
-    private func request(_ status: DictationStatus) {
-        // Dictation works without it, just with nothing on screen.
+    /// Returns whether there's an activity now. Dictation can't go on without one.
+    private func request(_ status: DictationStatus) -> Bool {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            return
+            return false
         }
         do {
             activityID = try Activity.request(
@@ -86,6 +87,7 @@ final class LiveActivityDictationDisplay: DictationDisplay {
         } catch {
             logger.error("Can't start the dictation's Live Activity: \(error)")
         }
+        return activityID != nil
     }
 
     private func send(_ status: DictationStatus, to activityID: String) {

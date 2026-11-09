@@ -8,6 +8,13 @@ import Foundation
 /// owner. The rules are `HandsFreeDictation`'s; this does what it says.
 @MainActor
 public final class HandsFreeDictationSession {
+    /// What a press needs from whoever made it.
+    public enum PressResult: Sendable, Equatable {
+        case done
+        /// There's no Live Activity to say what happened on, so only the app on screen can.
+        case needsTheApp
+    }
+
     public private(set) var dictation = HandsFreeDictation()
 
     private let speech: any SpeechTranscriber
@@ -25,6 +32,7 @@ public final class HandsFreeDictationSession {
     /// Reasons the process must stay awake: the end of a dictation, and each send.
     private var keepAliveHolds = 0
     private var isHoldingForDictation = false
+    private var hadNowhereToShow = false
     /// A press found the permission not asked for yet, which only the app on screen can ask for.
     public private(set) var needsPermissionPrompt = false
 
@@ -57,8 +65,11 @@ public final class HandsFreeDictationSession {
     /// The control, the Action button or the widget: starts listening, or stops.
     ///
     /// Returns once listening has started or the dictation has stopped, not when it ends.
-    public func press() async {
+    @discardableResult
+    public func press() async -> PressResult {
+        hadNowhereToShow = false
         await perform(dictation.press(at: clock.now))
+        return hadNowhereToShow ? .needsTheApp : .done
     }
 
     /// The Live Activity's Stop button.
@@ -102,8 +113,12 @@ public final class HandsFreeDictationSession {
             couldNotStart(.needsPermission)
             return
         }
-        // Before the mic: an `AudioRecordingIntent` must have a Live Activity going for the system to let it record.
-        showStatus()
+        // Before the mic: an `AudioRecordingIntent` that ends with the audio session active and no Live Activity is a
+        // fatal error in AppIntents, so without one the mic stays off (`docs/decisions/69-no-live-activity-no-mic.md`).
+        guard showStatus() else {
+            couldNotStart(.couldNotListen)
+            return
+        }
         let stream: AsyncThrowingStream<String, any Error>
         do {
             stream = try await speech.start()
@@ -198,10 +213,17 @@ public final class HandsFreeDictationSession {
         }
     }
 
-    private func showStatus() {
-        if let status = dictation.status {
-            display.show(status)
+    /// Returns false if there's a status to show but nowhere to show it.
+    @discardableResult
+    private func showStatus() -> Bool {
+        guard let status = dictation.status else {
+            return true
         }
+        let isShowing = display.show(status)
+        if !isShowing {
+            hadNowhereToShow = true
+        }
+        return isShowing
     }
 
     /// Wakes up at the next silence, time limit or end of the outcome, whichever `dictation` says comes first.
