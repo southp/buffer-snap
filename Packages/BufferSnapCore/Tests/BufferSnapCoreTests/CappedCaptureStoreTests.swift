@@ -80,4 +80,45 @@ struct CappedCaptureStoreTests {
 
         #expect(await base.all().map(\.text) == ["New"])
     }
+
+    // MARK: - Signed out, nothing ever drains the store
+
+    /// Past the limit while signed out, every idea stays: the limit gives way, and nothing drops silently.
+    @Test func signedOutPastTheLimitKeepsEveryIdea() async throws {
+        let base = InMemoryCaptureStore()
+        let store = CappedCaptureStore(base: base, limit: 2)
+        let queue = SubmissionQueue(store: store, auth: MockAuthService(), client: MockBufferClient())
+
+        for seconds in 0..<5 {
+            try await store.add(capture("Idea \(seconds)", at: Double(seconds), .pending))
+            await queue.run()
+        }
+
+        #expect(await base.all().count == 5)
+        #expect(await base.all().allSatisfy { $0.status == .pending })
+    }
+
+    /// Past the limit at sign-in, every idea reaches Buffer before anything is trimmed, and only sent ones go.
+    @Test func signingInPastTheLimitSendsEveryIdeaBeforeTrimming() async throws {
+        let base = InMemoryCaptureStore(seed: [
+            capture("Old sent", at: 0, .submitted),
+            capture("First", at: 1, .pending),
+            capture("Second", at: 2, .pending),
+            capture("Third", at: 3, .pending),
+        ])
+        let store = CappedCaptureStore(base: base, limit: 2)
+        let buffer = MockBufferClient()
+        let auth = MockAuthService()
+        let queue = SubmissionQueue(store: store, auth: auth, client: buffer)
+        let model = await AppModel(auth: auth, ideas: queue)
+
+        await model.signIn()
+        #expect(await model.ideasToConfirm == 3)
+        await model.sendHeldIdeas()
+        await queue.run()
+
+        #expect(await buffer.createdIdeas == ["First", "Second", "Third"])
+        #expect(await base.all().allSatisfy { $0.status == .submitted })
+        #expect(await base.all().count == 2)
+    }
 }
