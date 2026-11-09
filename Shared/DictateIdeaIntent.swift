@@ -2,8 +2,8 @@ import AppIntents
 import BufferSnapCore
 import OSLog
 
-/// What the "Dictate an Idea" control and every widget's button run: listens and saves what's said, without opening the
-/// app. A second press stops it.
+/// What the "Dictate an Idea" control and widget run: listens and saves what's said, without opening the app. A second
+/// press stops it.
 ///
 /// `LiveActivityIntent` makes the system run it in the app's process, where the microphone and the capture store are,
 /// even with the app closed (#57). It's compiled into both targets, as the widget's buttons need, but only the app can

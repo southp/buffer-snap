@@ -5,7 +5,6 @@ import WidgetKit
 @main
 struct SnapperWidgetBundle: WidgetBundle {
     var body: some Widget {
-        SnapperWidget()
         DictateIdeaControl()
         DictateWidget()
         DictationLiveActivity()

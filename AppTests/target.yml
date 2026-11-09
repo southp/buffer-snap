@@ -21,8 +21,6 @@ targets:
           - "__Snapshots__/**"
       # A test can't import an extension, so the widget's stateless views are compiled in here, with the intents
       # they run.
-      - path: Widget/SnapperWidgetView.swift
-      - path: Widget/SnapperLockScreenView.swift
       - path: Widget/DictateWidgetView.swift
       - path: Widget/DictationActivityView.swift
       - path: Shared
