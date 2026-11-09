@@ -9,15 +9,7 @@ import OSLog
 /// It lives in the app rather than Core because `AVAudioSession` doesn't exist on macOS, where Core's tests run. It
 /// holds on to no audio or text: each buffer goes straight to the recognizer, and each result straight to the stream.
 actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
-    /// What to listen with. The defaults are what the app ships with (`docs/decisions/42-dictation-language.md`).
-    struct Options: Sendable {
-        /// A language to use instead of the iPhone's own.
-        var language: String?
-        /// Keeps the audio on the iPhone, where its language allows that. Otherwise iOS chooses.
-        var requiresOnDevice = false
-    }
-
-    /// One hold of the mic.
+    /// One dictation.
     private struct Run {
         let id: UUID
         let recognizer: SFSpeechRecognizer
@@ -31,13 +23,6 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
 
     private let logger = Logger()
     private var run: Run?
-    private let mixesWithOthers: Bool
-
-    /// - Parameter mixesWithOthers: For listening while the app isn't on screen, as a dictation started from a control
-    ///   does. An app in the background can't take the audio from others: `.record` fails there with `!int`.
-    init(mixesWithOthers: Bool = false) {
-        self.mixesWithOthers = mixesWithOthers
-    }
 
     func permission() -> SpeechPermission {
         let speech = SFSpeechRecognizer.authorizationStatus()
@@ -70,15 +55,13 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
 
     func start() async throws -> AsyncThrowingStream<String, any Error> {
         cancel()
-        let options = Options()
         // Not `Locale.current`: this app only has English strings, so that's English on a phone set to Chinese.
-        let language = options.language ?? Locale.preferredLanguages.first ?? "en-US"
+        let language = Locale.preferredLanguages.first ?? "en-US"
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)), recognizer.isAvailable else {
             throw SpeechTranscriberError.unavailable
         }
-        let requiresOnDevice = options.requiresOnDevice && recognizer.supportsOnDeviceRecognition
         do {
-            return try listen(with: recognizer, requiresOnDevice: requiresOnDevice)
+            return try listen(with: recognizer)
         } catch {
             logger.error("Can't start listening: \(error)")
             Self.deactivateAudioSession(logger: logger)
@@ -101,16 +84,12 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         end(run)
     }
 
-    private func listen(
-        with recognizer: SFSpeechRecognizer,
-        requiresOnDevice: Bool
-    ) throws -> AsyncThrowingStream<String, any Error> {
-        let session = try Self.activateAudioSession(mixesWithOthers: mixesWithOthers)
+    private func listen(with recognizer: SFSpeechRecognizer) throws -> AsyncThrowingStream<String, any Error> {
+        let session = try Self.activateAudioSession()
 
         let engine = AVAudioEngine()
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
-        request.requiresOnDeviceRecognition = requiresOnDevice
         request.addsPunctuation = true
         request.taskHint = .dictation
 
@@ -169,7 +148,7 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         end(run)
     }
 
-    /// The recognizer is done, after a release or by itself. By itself leaves the audio running, so stop that too.
+    /// The recognizer is done, after a stop or by itself. By itself leaves the audio running, so stop that too.
     private func recognitionEnded(id: UUID) {
         guard let run, run.id == id else {
             return
@@ -266,15 +245,12 @@ actor AppleSpeechTranscriber: BufferSnapCore.SpeechTranscriber {
         return recognizer.isAvailable ? .failed : .unavailable
     }
 
-    private nonisolated static func activateAudioSession(mixesWithOthers: Bool) throws -> AVAudioSession {
+    private nonisolated static func activateAudioSession() throws -> AVAudioSession {
         let session = AVAudioSession.sharedInstance()
-        if mixesWithOthers {
-            // What recorded from a control with the app closed, on an iPhone (#57).
-            try session.setCategory(.playAndRecord, mode: .default, options: .mixWithOthers)
-        } else {
-            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
-        }
-        // Recording silences haptics by default, and they're how a thumb on the mic knows it's listening.
+        // What recorded from a control with the app closed, on an iPhone (#57). An app in the background can't take the
+        // audio from others: `.record` fails there with `!int`.
+        try session.setCategory(.playAndRecord, mode: .default, options: .mixWithOthers)
+        // Recording silences haptics and system sounds by default, and a dictation shouldn't take those from the phone.
         try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true, options: .notifyOthersOnDeactivation)
         return session

@@ -1,11 +1,9 @@
 import BufferSnapCore
 import SwiftUI
 
-/// The top-level screen: the capture list, with the capture screen pushed on it when `AppModel.route` says so. The
-/// route still decides: the stack only reports back when the user goes back.
+/// The top-level screen, and the only one: the capture list.
 struct RootView: View {
     let appModel: AppModel
-    let captureModel: CaptureModel
     let environment: AppEnvironment
 
     @Environment(\.scenePhase) private var scenePhase
@@ -22,17 +20,12 @@ struct RootView: View {
                         await appModel.signIn()
                     }
                 },
-                onTypeIdea: appModel.showCapture,
                 onSignOut: {
-                    captureModel.discardDraft()
                     Task {
                         await appModel.signOut()
                     }
                 }
             )
-            .navigationDestination(isPresented: isShowingCapture) {
-                CaptureScreen(model: captureModel, onShowCaptures: appModel.showCaptureList)
-            }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
@@ -74,17 +67,6 @@ struct RootView: View {
                 """
             )
         }
-    }
-
-    private var isShowingCapture: Binding<Bool> {
-        Binding(
-            get: { appModel.route == .capture },
-            set: { isShowing in
-                if !isShowing {
-                    appModel.showCaptureList()
-                }
-            }
-        )
     }
 
     /// Answered only through the alert's buttons, which clear it.

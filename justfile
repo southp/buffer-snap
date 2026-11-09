@@ -455,7 +455,7 @@ store-screenshots: build
             "$snapshots/DictationActivityViewTests/listeningWithWords.listeningWithWords.png" 88 \
             "$snapshots/DictationActivityViewTests/saved.saved.png" 88
         frame "$width" "$height" "One press away" "Control Center, the Action button, the Lock Screen or the Home Screen." \
-            "$dir/4-widget.png" \
+            "$dir/3-widget.png" \
             "$snapshots/WidgetViewTests/dictate.dictate.png" 44
 
         # Its own simulator per model and worktree, as for tests, so nothing else's state shows.
@@ -473,14 +473,11 @@ store-screenshots: build
         seed "$(xcrun simctl get_app_container "$udid" {{bundle_id}} group.me.southp.buffersnap)"
 
         launch "$udid"
-        shoot "$udid" "$dir/3-capture.png"
-        tap "$udid" Captures
-        sleep 2
         shoot "$udid" "$dir/2-captures.png"
         tap "$udid" Account
         tap "$udid" Batching
         sleep 2
-        shoot "$udid" "$dir/5-batching.png"
+        shoot "$udid" "$dir/4-batching.png"
         xcrun simctl terminate "$udid" {{bundle_id}} 2>/dev/null || true
     done
     echo "Saved in $out:"

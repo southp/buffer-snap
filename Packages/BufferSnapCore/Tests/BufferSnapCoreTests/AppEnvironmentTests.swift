@@ -24,7 +24,6 @@ struct AppEnvironmentTests {
         let environment = AppEnvironment(
             captureStore: InMemoryCaptureStore(seed: [Capture(kind: .text, text: "An idea")]),
             auth: MockAuthService(hasSavedSession: true),
-            speech: MockSpeechTranscriber(),
             bufferClient: MockBufferClient(),
             connectivity: MockConnectivityMonitor(),
             batchWindow: InMemoryBatchWindowSetting(window: 300)
@@ -39,11 +38,5 @@ struct AppEnvironmentTests {
         let environment = AppEnvironment.mock(seed: [])
 
         try await environment.auth.signIn()
-    }
-
-    @Test func mockSpeechIsAllowedToListen() async {
-        let environment = AppEnvironment.mock(seed: [])
-
-        #expect(await environment.speech.permission() == .granted)
     }
 }

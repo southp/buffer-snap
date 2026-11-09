@@ -28,11 +28,10 @@ required for builds on the iOS 27.1 SDK or later from April 2027, not yet.
 |---|---|---|
 | `1-dictate.png` | "Press. Speak. Done.": the Live Activity listening, then saved | Snapshot-test renders on a plain background |
 | `2-captures.png` | The capture list, with a batch waiting to send and two sent | The app on the simulator, with sample captures |
-| `3-capture.png` | The capture screen: hold to talk, or type | The app on the simulator |
-| `4-widget.png` | "One press away": the Dictate widget | Snapshot-test render on a plain background |
-| `5-batching.png` | The batching setting | The app on the simulator |
+| `3-widget.png` | "One press away": the Dictate widget | Snapshot-test render on a plain background |
+| `4-batching.png` | The batching setting | The app on the simulator |
 
-- **The simulator can't show a Live Activity or a widget with real content,** so 1 and 4 put the snapshot tests'
+- **The simulator can't show a Live Activity or a widget with real content,** so 1 and 3 put the snapshot tests'
   renders (`AppTests/__Snapshots__/DictationActivityViewTests/`, `WidgetViewTests/`) under a caption. They're
   the same SwiftUI views the iPhone draws. A real Lock Screen photo from an iPhone would be better if there's time.
 - **The app runs its Debug build** with `-mockAuth signedIn`, so it's past sign-in without a Buffer account, and with

@@ -15,7 +15,6 @@ struct CaptureListScreen: View {
     /// What the sign-in row shows, or `nil` while someone is signed in.
     private let signInPrompt: AppModel.SignInPrompt?
     private let onSignIn: () -> Void
-    private let onTypeIdea: () -> Void
     private let onSignOut: () -> Void
 
     init(
@@ -24,7 +23,6 @@ struct CaptureListScreen: View {
         batchWindow: any BatchWindowSetting,
         signInPrompt: AppModel.SignInPrompt?,
         onSignIn: @escaping () -> Void,
-        onTypeIdea: @escaping () -> Void,
         onSignOut: @escaping () -> Void
     ) {
         _model = State(initialValue: CaptureListModel(store: store, submissions: submissions))
@@ -32,7 +30,6 @@ struct CaptureListScreen: View {
         self.batchWindow = batchWindow
         self.signInPrompt = signInPrompt
         self.onSignIn = onSignIn
-        self.onTypeIdea = onTypeIdea
         self.onSignOut = onSignOut
     }
 
@@ -77,7 +74,6 @@ struct CaptureListScreen: View {
                 },
                 signInPrompt: signInPrompt,
                 onSignIn: onSignIn,
-                onTypeIdea: onTypeIdea,
                 onSignOut: onSignOut
             )
         }

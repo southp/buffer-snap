@@ -8,8 +8,6 @@ struct BufferSnapApp: App {
     // Composition root: every service is built here, once, and handed down to the views.
     private let environment: AppEnvironment
     @State private var appModel: AppModel
-    // Here and not on the capture screen, so a draft outlives the screen when a session ends.
-    @State private var captureModel: CaptureModel
     /// Dictation from the control and the widget, with the app closed. The intents run in this process and call it.
     private let handsFreeDictation: HandsFreeDictationSession
     @Environment(\.scenePhase) private var scenePhase
@@ -18,7 +16,6 @@ struct BufferSnapApp: App {
         let environment = AppEnvironment(
             captureStore: Self.makeCaptureStore(),
             auth: Self.makeAuthService(),
-            speech: AppleSpeechTranscriber(),
             bufferClient: Self.makeBufferClient(),
             connectivity: NetworkPathConnectivityMonitor(),
             batchWindow: UserDefaultsBatchWindowSetting()
@@ -30,17 +27,6 @@ struct BufferSnapApp: App {
             ideas: environment.submissions
         )
         _appModel = State(initialValue: appModel)
-        _captureModel = State(
-            initialValue: CaptureModel(
-                store: environment.captureStore,
-                speech: environment.speech,
-                onSaved: { [submissions = environment.submissions] in
-                    Task {
-                        await submissions.run()
-                    }
-                }
-            )
-        )
         handsFreeDictation = Self.makeHandsFreeDictation(
             store: environment.captureStore,
             submissions: environment.submissions,
@@ -50,7 +36,7 @@ struct BufferSnapApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(appModel: appModel, captureModel: captureModel, environment: environment)
+            RootView(appModel: appModel, environment: environment)
                 .liveActivitiesNotice(
                     isPresented: Binding(
                         get: { appModel.isShowingLiveActivitiesNotice },
@@ -90,7 +76,7 @@ struct BufferSnapApp: App {
         appModel: AppModel
     ) -> HandsFreeDictationSession {
         let session = HandsFreeDictationSession(
-            speech: AppleSpeechTranscriber(mixesWithOthers: true),
+            speech: AppleSpeechTranscriber(),
             store: store,
             display: LiveActivityDictationDisplay(),
             keepAlive: BackgroundTaskKeepAlive(),

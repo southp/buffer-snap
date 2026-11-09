@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 10
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # Capture text by holding to dictate, with a keyboard as backup

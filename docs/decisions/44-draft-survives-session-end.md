@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 44
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # Keep the draft in memory above the route

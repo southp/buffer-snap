@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 40
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # Don't raise the keyboard when the capture screen opens
