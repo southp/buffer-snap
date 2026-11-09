@@ -44,13 +44,13 @@ Every idea goes to the Ideas in your Buffer account, ready to turn into a post. 
 WORKS OFFLINE
 No signal? Captures are kept on your iPhone and sent when you're back online. Anything that couldn't be sent waits in the app, where you can send it again or delete it.
 
-IN THE APP TOO
-Hold the mic to dictate, or type when you can't speak aloud. The list shows everything you've captured and whether it has reached Buffer yet.
+ONE LIST
+Open the app to see everything you've captured and whether it has reached Buffer yet.
 
 PRIVATE BY DESIGN
 No account of ours, no servers, no analytics, no ads, no tracking. BufSnap talks only to Buffer, and speech is recognized by Apple. Audio is never recorded or kept.
 
-BufSnap needs a Buffer account. It isn't made by Buffer.
+Capturing works without an account, and sending ideas to Buffer needs a Buffer account. BufSnap isn't made by Buffer.
 ```
 
 ## Keywords (version page, ≤100, comma-separated, no spaces after commas)
