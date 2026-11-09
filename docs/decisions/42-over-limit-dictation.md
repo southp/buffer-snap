@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 42
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # Leave dictation that can't save in the text box

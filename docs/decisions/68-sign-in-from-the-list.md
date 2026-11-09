@@ -1,7 +1,8 @@
 ---
 date: 2026-11-09
 issue: 68
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # The list is the first screen, and signing in is a row on it

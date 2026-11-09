@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 40
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # Block saving over 300 characters instead of cutting off the text

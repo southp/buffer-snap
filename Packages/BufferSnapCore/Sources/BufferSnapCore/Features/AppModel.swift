@@ -1,18 +1,10 @@
 import OSLog
 import Observation
 
-/// App-wide state: which screen to show, and whether anyone is signed in to Buffer.
+/// App-wide state: whether anyone is signed in to Buffer, and what the app has to ask or say about it.
 @Observable
 @MainActor
 public final class AppModel {
-    /// The top-level screen. Signing in doesn't change it: `docs/decisions/68-sign-in-from-the-list.md`.
-    public enum Route: Sendable, Equatable {
-        /// The capture list, the first screen whether or not anyone is signed in.
-        case captureList
-        /// The capture screen, pushed on the list.
-        case capture
-    }
-
     /// What the list's sign-in row shows while nobody is signed in.
     public struct SignInPrompt: Sendable, Equatable {
         public let notice: SignInNotice?
@@ -40,7 +32,6 @@ public final class AppModel {
         case signOutFailed
     }
 
-    public private(set) var route: Route = .captureList
     /// Whether there's a Buffer session to send with. Nothing else depends on this: capturing and the list work either
     /// way, and the queue waits quietly without a session.
     public private(set) var isSignedIn: Bool
@@ -55,8 +46,7 @@ public final class AppModel {
     private let auth: any AuthService
     private let ideas: any IdeasAtSignIn
 
-    /// Reads the saved session without waiting for anything, so the first frame already shows the right state, and
-    /// `showCapture()` works from the moment the app exists, as a cold launch from the widget needs.
+    /// Reads the saved session without waiting for anything, so the first frame already shows the right state.
     ///
     /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen.
     public init(auth: any AuthService, ideas: any IdeasAtSignIn = NoIdeasAtSignIn()) {
@@ -147,12 +137,6 @@ public final class AppModel {
         }
     }
 
-    /// Opens the capture screen, on top of the list. A control or widget can ask for it at any moment, even at a cold
-    /// launch, and needs nothing remembered: the route is good from the moment the app exists.
-    public func showCapture() {
-        route = .capture
-    }
-
     /// Says that dictating needs Live Activities.
     public func showLiveActivitiesNotice() {
         isShowingLiveActivitiesNotice = true
@@ -160,11 +144,6 @@ public final class AppModel {
 
     public func dismissLiveActivitiesNotice() {
         isShowingLiveActivitiesNotice = false
-    }
-
-    /// Back to the capture list.
-    public func showCaptureList() {
-        route = .captureList
     }
 
     /// Asks about what's held, once, after a sign-in. Whatever is held at this moment goes into the count, including

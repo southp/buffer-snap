@@ -251,7 +251,6 @@ struct CaptureListViewTests {
                 onShowBatchingSettings: {},
                 signInPrompt: signInPrompt,
                 onSignIn: {},
-                onTypeIdea: {},
                 onSignOut: {}
             )
         }

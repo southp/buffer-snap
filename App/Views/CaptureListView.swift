@@ -35,8 +35,6 @@ struct CaptureListView: View {
     let signInPrompt: AppModel.SignInPrompt?
     /// Called when the user asks to sign in.
     let onSignIn: () -> Void
-    /// Called when the user asks to type an idea.
-    let onTypeIdea: () -> Void
     /// Called when the user signs out.
     let onSignOut: () -> Void
 
@@ -100,7 +98,6 @@ struct CaptureListView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
                 Menu("Account", systemImage: "person.crop.circle") {
-                    Button("Type an Idea", systemImage: "square.and.pencil", action: onTypeIdea)
                     Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
                     if isSignedIn {
                         Button(

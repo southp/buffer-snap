@@ -3,11 +3,9 @@ import Testing
 
 @MainActor
 struct AppModelTests {
-    /// The list is the first screen, whether or not anyone is signed in.
-    @Test func startsOnTheListSignedOut() {
+    @Test func startsSignedOutWithoutASavedSession() {
         let model = AppModel(auth: MockAuthService())
 
-        #expect(model.route == .captureList)
         #expect(!model.isSignedIn)
     }
 
@@ -15,30 +13,14 @@ struct AppModelTests {
     @Test func aSavedSessionStartsSignedIn() {
         let model = AppModel(auth: MockAuthService(hasSavedSession: true))
 
-        #expect(model.route == .captureList)
         #expect(model.isSignedIn)
     }
 
-    /// What #41's cold launch relies on: asking for either screen right after launch isn't refused.
-    @Test func navigatingWorksImmediatelyWhetherOrNotSignedIn() {
-        let signedIn = AppModel(auth: MockAuthService(hasSavedSession: true))
-        let signedOut = AppModel(auth: MockAuthService())
-
-        signedIn.showCapture()
-        signedOut.showCapture()
-        #expect(signedIn.route == .capture)
-        #expect(signedOut.route == .capture)
-
-        signedOut.showCaptureList()
-        #expect(signedOut.route == .captureList)
-    }
-
-    @Test func signingInStaysWhereItIsAndSaysNothing() async {
+    @Test func signingInSaysNothing() async {
         let model = AppModel(auth: MockAuthService())
 
         await model.signIn()
 
-        #expect(model.route == .captureList)
         #expect(model.isSignedIn)
         #expect(model.signInNotice == nil)
         #expect(model.signInPrompt == nil)
@@ -110,25 +92,13 @@ struct AppModelTests {
         #expect(model.isSignedIn)
     }
 
-    /// Signing out stays on the list, wherever the person was.
-    @Test func signingOutStaysOnTheList() async {
+    @Test func signingOutSaysNothing() async {
         let model = AppModel(auth: MockAuthService(hasSavedSession: true))
 
         await model.signOut()
 
-        #expect(model.route == .captureList)
         #expect(!model.isSignedIn)
         #expect(model.signInNotice == nil)
-    }
-
-    @Test func signingOutOnTheCaptureScreenLeavesItWhereItIs() async {
-        let model = AppModel(auth: MockAuthService(hasSavedSession: true))
-        model.showCapture()
-
-        await model.signOut()
-
-        #expect(model.route == .capture)
-        #expect(!model.isSignedIn)
     }
 
     /// The tokens are still there, so a relaunch would sign back in. The user has to hear about that.
@@ -143,7 +113,6 @@ struct AppModelTests {
 
     @Test func aSessionThatStillWorksChangesNothing() async {
         let model = AppModel(auth: StubAuthService(hasSavedSession: true))
-        model.showCaptureList()
 
         await model.checkSession()
 
@@ -173,15 +142,13 @@ struct AppModelTests {
         #expect(!model.isShowingLiveActivitiesNotice)
     }
 
-    /// A session Buffer ended leaves the person where they were and asks in the list, with no full-screen takeover.
+    /// A session Buffer ended asks in the list, with no full-screen takeover.
     @Test(arguments: [AuthError.sessionExpired, .notSignedIn])
-    func losingTheSessionStaysPutAndAsksInTheList(error: AuthError) async {
+    func losingTheSessionAsksInTheList(error: AuthError) async {
         let model = AppModel(auth: StubAuthService(hasSavedSession: true, tokenError: error))
-        model.showCapture()
 
         await model.checkSession()
 
-        #expect(model.route == .capture)
         #expect(!model.isSignedIn)
         #expect(model.signInNotice == .sessionEnded)
         #expect(model.signInPrompt == AppModel.SignInPrompt(notice: .sessionEnded, isSigningIn: false))
@@ -209,57 +176,5 @@ struct AppModelTests {
 
         #expect(!model.isSignedIn)
         #expect(model.signInNotice == nil)
-    }
-
-    /// A cold launch from a control, whichever comes first: the intent, or a sign-in finishing.
-    @Test func askingForCaptureDuringASignInSticks() async {
-        let auth = HeldAuthService()
-        let model = AppModel(auth: auth)
-        let signIn = Task {
-            await model.signIn()
-        }
-        await auth.waitForSignIn()
-
-        model.showCapture()
-
-        await auth.finishSignIn()
-        await signIn.value
-        #expect(model.route == .capture)
-        #expect(model.isSignedIn)
-    }
-}
-
-/// An `AuthService` whose sign-in waits until the test lets it finish.
-private actor HeldAuthService: AuthService {
-    private var started: CheckedContinuation<Void, Never>?
-    private var finish: CheckedContinuation<Void, Never>?
-    private var hasStarted = false
-
-    nonisolated func hasSavedSession() -> Bool {
-        false
-    }
-
-    func signIn() async throws {
-        hasStarted = true
-        started?.resume()
-        await withCheckedContinuation { finish = $0 }
-    }
-
-    func signOut() async throws {}
-
-    func validAccessToken() async throws -> String {
-        "token"
-    }
-
-    func accessTokenRejected(_ token: String) async {}
-
-    func waitForSignIn() async {
-        if !hasStarted {
-            await withCheckedContinuation { started = $0 }
-        }
-    }
-
-    func finishSignIn() {
-        finish?.resume()
     }
 }
