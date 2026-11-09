@@ -4,8 +4,8 @@ BufferSnap keeps its logic in **BufferSnapCore** (`Packages/BufferSnapCore`), a 
 frameworks, so `just test-core` tests it on macOS in seconds without a simulator. The app and the widget are thin
 SwiftUI shells over it.
 
-- **Features** are `@Observable @MainActor` view models (`AppModel`, `CaptureModel`, `CaptureListModel`,
-  `BatchingSettingsModel`): they hold the state and the actions on it. Dictating outside the app is
+- **Features** are `@Observable @MainActor` view models (`AppModel`, `CaptureListModel`, `BatchingSettingsModel`):
+  they hold the state and the actions on it. Dictating outside the app, the only way to capture, is
   `HandsFreeDictation`, a pure state machine, run by `HandsFreeDictationSession`.
 - **Services** are `Sendable` protocols with `async throws` methods (`CaptureStore`, `AuthService`,
   `SpeechTranscriber`, `BufferClient`, `ConnectivityMonitor`, `BatchWindowSetting`). Each one starts with a mock or
@@ -16,15 +16,13 @@ SwiftUI shells over it.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
   only place that picks which implementations run.
 - **Models** are plain `Sendable` values (`Capture`).
-- **Views** (`App/Views/`) only render. `RootView` shows the capture list, signed in or not, with the capture screen pushed
-  on it when `AppModel.route` says so. Signing in is a row on the list. A screen feeds a stateless view (`CaptureView`, `CaptureListView`) plain
-  values and closures. `CaptureListScreen` owns its feature model, and `BufferSnapApp` owns `CaptureModel`, so a draft
-  outlives the screen when a session ends. Conventions: [`App/CLAUDE.md`](../App/CLAUDE.md).
+- **Views** (`App/Views/`) only render. `RootView` shows the capture list, signed in or not, and it's the only screen.
+  Signing in is a row on the list. A screen feeds a stateless view (`CaptureListView`) plain values and closures, and
+  `CaptureListScreen` owns its feature model. Conventions: [`App/CLAUDE.md`](../App/CLAUDE.md).
 - **The widget** (`Widget/`) is a WidgetKit extension: a control, a widget for the Home Screen, Today View and Lock
-  Screen, and a timeline that reads the count. The control and the Home Screen widget run `OpenCaptureIntent` (`Shared/`,
-  compiled into both the app and the widget), and the Lock Screen widget opens `buffersnap://capture`. Both open the
-  app on the capture screen. The dictation control and widget run `DictateIdeaIntent` instead, which dictates without
-  opening the app, and the extension draws its Live Activity. Conventions:
+  Screen, a small dictation widget, and a timeline that reads the count. All of them run `DictateIdeaIntent` (`Shared/`,
+  compiled into both the app and the widget), which dictates without opening the app, and the extension draws its Live
+  Activity. Conventions:
   [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
 Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](decisions/5-core-ui-import-lint.md).
@@ -36,9 +34,9 @@ Arrows point from a layer to what it uses.
 ```mermaid
 flowchart TD
     subgraph shells["UI shells (SwiftUI)"]
-        App["App: BufferSnapApp → RootView<br/>(CaptureListScreen, CaptureScreen, BatchingSettingsScreen)"]
-        Widget["Widget: SnapperWidget, OpenCaptureControl"]
-        Intent["Shared: OpenCaptureIntent"]
+        App["App: BufferSnapApp → RootView<br/>(CaptureListScreen, BatchingSettingsScreen)"]
+        Widget["Widget: SnapperWidget, DictateWidget, DictateIdeaControl"]
+        Intent["Shared: DictateIdeaIntent"]
         AppleSpeech["App: AppleSpeechTranscriber"]
     end
 
@@ -46,7 +44,7 @@ flowchart TD
         Env["AppEnvironment"]
         subgraph features["Features"]
             AppModel["AppModel"]
-            CaptureModel["CaptureModel"]
+            Session["HandsFreeDictationSession"]
             CaptureListModel["CaptureListModel"]
             BatchingSettings["BatchingSettingsModel"]
         end
@@ -80,8 +78,8 @@ flowchart TD
     Widget --> FileStore
     Env --> services
     AppModel --> AuthService
-    CaptureModel --> CaptureStore
-    CaptureModel --> SpeechTranscriber
+    Session --> CaptureStore
+    Session --> SpeechTranscriber
     CaptureListModel --> CaptureStore
     CaptureListModel --> Queue
     BatchingSettings --> Window
@@ -111,7 +109,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     Mic["App: AppleSpeechTranscriber"] -->|"words heard so far"| Capture
-    Capture["App: CaptureScreen → CaptureModel"] -->|"add(_:)"| Notifying["App: NotifyingCaptureStore"]
+    Capture["HandsFreeDictationSession"] -->|"add(_:)"| Notifying["App: NotifyingCaptureStore"]
     Delete["App: CaptureListView"] -->|"delete(id:)"| Notifying
     Notifying -->|"add(_:), delete(id:)"| Store[("captures-v2.json in the App Group<br/>(JSONFileCaptureStore)")]
     Notifying -.->|"reloads timelines"| Timeline["Widget: CaptureCountProvider"]
@@ -121,12 +119,8 @@ flowchart LR
     List -->|captures| Delete
 ```
 
-Holding the mic shows the words in the text box as they're heard, and releasing saves them through `CaptureModel`.
-Nothing is saved if nothing was heard, and words that can't save on release stay in the box to edit
-([`42-over-limit-dictation.md`](decisions/42-over-limit-dictation.md)). No audio is kept.
-
-Typing an idea and tapping Save adds a pending text capture through `CaptureModel`. The write goes through
-`NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. Inside it,
+A dictation saves what it heard as a pending text capture, and nothing if nothing was heard. No audio is kept. The write
+goes through `NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. Inside it,
 `CappedCaptureStore` keeps at most 500 captures by dropping the oldest sent ones
 ([`46-storage-limit.md`](decisions/46-storage-limit.md)). When the list opens, or the app returns to the foreground, it
 reads every capture from the store and shows them newest first, under one sync status with Sync now
@@ -167,7 +161,7 @@ and `OAuthAuthService` makes sure only one refresh ever runs, because reusing a 
 flowchart LR
     subgraph when["When: anything may call run()"]
         Launch["Launch, foreground"]
-        Saved["CaptureModel saved"]
+        Saved["A dictation saved"]
         Back["Connection returns"]
         Bg["Background refresh, leaving the screen"]
         Timer["Back-off or rate limit ends, or a batch's window"]
@@ -224,29 +218,11 @@ reads it: [`40-new-capture-file.md`](decisions/40-new-capture-file.md). Installs
 captures among real ones in `captures-v2.json`, and the app deletes just those at launch:
 [`41-remove-mock-captures-by-text.md`](decisions/41-remove-mock-captures-by-text.md).
 
-## Opening the capture screen
-
-```mermaid
-flowchart LR
-    Surface["Control or Home Screen widget"] -->|runs| Intent["OpenCaptureIntent (openAppWhenRun)"]
-    Intent -->|"the system opens the app, then runs perform() in it"| Hook["OpenCaptureIntent.onRun"]
-    Hook --> Show["AppModel.showCapture()"]
-    Lock["Lock Screen widget"] -->|"widgetURL"| URL["buffersnap://capture"]
-    URL -->|"onOpenURL, if AppLink(url:) is .capture"| Show
-    Show -->|"from anywhere, signed in or not"| Capture["Capture screen, pushed on the list"]
-```
-
-From a locked phone, the system asks to unlock first, since the intent isn't always allowed, and a widget tap always
-needs an unlock to open the app. The Lock Screen widget uses a URL because its intent button didn't run on a device:
-[`41-lock-screen-widget-url.md`](decisions/41-lock-screen-widget-url.md). The route is good from the
-moment the app exists, so a cold launch reaches capture with nothing to remember:
-[`68-sign-in-from-the-list.md`](decisions/68-sign-in-from-the-list.md).
-
 ## Dictating without opening the app
 
 ```mermaid
 sequenceDiagram
-    participant Surface as Control or dictation widget
+    participant Surface as Control or widget
     participant Intent as DictateIdeaIntent (in the app's process)
     participant Session as HandsFreeDictationSession
     participant Rules as HandsFreeDictation
@@ -273,3 +249,5 @@ dictation from idle ([`58-press-while-busy.md`](decisions/58-press-while-busy.md
 The `audio` background mode keeps the app running while it listens, and a background task (`BackgroundTaskKeepAlive`)
 from the stop until the outcome is gone and the capture is on its way. Why:
 [`58-dictate-outside-app.md`](decisions/58-dictate-outside-app.md).
+
+The microphone and speech recognition can only be asked for with the app on screen, so `askForPermissionIfNeeded()` asks when the app opens, until both are decided. A press made before that shows "Can't listen yet": [`77-ask-for-permissions-at-launch.md`](decisions/77-ask-for-permissions-at-launch.md).

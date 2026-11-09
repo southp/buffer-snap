@@ -13,24 +13,21 @@ The goal is the fewest touches between an idea and Buffer Create.
 
 Capture starts once the phone is unlocked, which with Face ID is usually just a glance. [Testing on a real iPhone](docs/spikes/locked-capture.md) showed what iOS allows on a locked phone, and [why we don't build on it](docs/decisions/10-unlocked-capture.md).
 
-1. Dictate without opening the app, as above. It's the main way to capture.
+1. Dictate without opening the app, as above. It's the only way to capture.
 2. The main app provides the following.
    1. Authenticate the API access through a Buffer account, when you want ideas sent. Until then the app is in offline mode: everything stays on this iPhone and capturing works the same.
-   2. The capture screen, described below.
-   3. View what's being captured
-   4. Manage what's being captured
+   2. View what's being captured
+   3. Manage what's being captured
       1. Resend
       2. Delete
       3. No edit
-   5. There will be no sync to Buffer Create. That's not the purpose of this app.
-   6. The app should keep an upper limit of how many items to be stored offline, and shuffle things off in a FIFO manner.
-3. The capture screen, for typing or when you'd rather see the text first. The capture control and the BufSnap widget open it. Text has a limit of, say, 300 chars.
+   4. There will be no sync to Buffer Create. That's not the purpose of this app.
+   5. The app should keep an upper limit of how many items to be stored offline, and shuffle things off in a FIFO manner.
+3. What can be captured. Nothing is captured inside the app: someone who has to open an app to type can open Buffer and type there.
 
    | Capture | How | When |
    |---|---|---|
-   | Dictated text, app closed | Press the control or the widget, speak, press again or pause | First release |
-   | Dictated text, in the app | Hold the mic button, speak, release | First release |
-   | Typed text | A small keyboard option, for when you can't speak aloud. No control or widget can show a text box, so this is in the app | First release |
+   | Dictated text | Press the control or a widget, speak, press again or pause | First release |
    | Multiple pictures | One camera session: each shot adds a thumbnail to a strip in the corner, and you end it like a regular camera app. Buffer's API needs public URLs for images, so this depends on a hosting decision | Next |
 
 4. Smart batching: captures with less than 5 minutes between them (configurable) become one Buffer Create idea.
@@ -41,7 +38,7 @@ Capture starts once the phone is unlocked, which with Face ID is usually just a 
 The goal is to publicly launch the v1 in the app store in time for [Buffer Commit](https://buffer.com/api/commit): the app, a write-up and a demo video are due by Nov. 13, 11:59 PM PT, and the app must be publicly available by then.
 
 1. Scaffolding: The dev workflow is established, every component of the app is connected together, and the app is up and running on my iPhone through TestFlight or something. Nothing really work is fine — what's key here is the whole app flow can be run through even if everything is mocked and the architecture of the code base is settled. (~ Nov. 1)
-2. MVP: Authentication works, capturing by dictated and typed text works, batching works, offline storage & submission job works. (~ Nov. 9)
+2. MVP: Authentication works, capturing by dictated text works, batching works, offline storage & submission job works. (~ Nov. 9)
 3. v1: Submit to the app store early enough that a rejection still leaves time. (~ Nov. 10)
    * Then submit to Buffer Commit no matter what by Nov. 13
    * Everything to paste into App Store Connect, and the steps in order: [`docs/app-store/`](docs/app-store/checklist.md)
