@@ -112,6 +112,50 @@ actor ControllableSignInAuthService: AuthService {
     func accessTokenRejected(_ token: String) {}
 }
 
+/// An `IdeasAtSignIn` that counts what's asked of it.
+actor StubIdeasAtSignIn: IdeasAtSignIn {
+    private let heldIdeas: Int
+    private let holdError: (any Error)?
+    private var onHold: (@Sendable () async -> Void)?
+    private(set) var holdCount = 0
+    private(set) var sendCount = 0
+    private(set) var releaseCount = 0
+    private(set) var signInsAtHold: [Int] = []
+
+    init(heldIdeas: Int = 0, holdError: (any Error)? = nil) {
+        self.heldIdeas = heldIdeas
+        self.holdError = holdError
+    }
+
+    func setOnHold(_ onHold: @escaping @Sendable () async -> Void) {
+        self.onHold = onHold
+    }
+
+    func recordSignInsAtHold(_ count: Int) {
+        signInsAtHold.append(count)
+    }
+
+    func holdPendingCaptures() async throws {
+        await onHold?()
+        if let holdError {
+            throw holdError
+        }
+        holdCount += 1
+    }
+
+    func heldIdeaCount() -> Int {
+        heldIdeas
+    }
+
+    func sendHeldIdeas() {
+        sendCount += 1
+    }
+
+    func releaseHeldCaptures() {
+        releaseCount += 1
+    }
+}
+
 /// A `CaptureStore` that returns `captures` but fails every write.
 struct ReadOnlyCaptureStore: CaptureStore {
     let captures: [Capture]
