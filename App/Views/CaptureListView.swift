@@ -117,23 +117,15 @@ struct CaptureListView: View {
         )
     }
 
-    /// The names are the control's and the widget's own, as the system lists them (`Widget/`). One literal each, so
-    /// it's a localized key and the Markdown renders.
+    /// How to start, the same signed in or not: the offline row already says where ideas go. The name is the control's
+    /// and the widget's own, as the system lists it (`Widget/`). One literal, so it's a localized key and the Markdown
+    /// renders.
     private var emptyDescription: Text {
-        if isSignedIn {
-            Text(
-                """
-                Add **Dictate an Idea** to Control Center or the Action button, or put the **Dictate an Idea** \
-                widget on your Home Screen. Press it and speak: your idea shows up here and goes to Buffer.
-                """
-            )
-        } else {
-            Text(
-                """
-                Add **Dictate an Idea** to Control Center or the Action button, or put the **Dictate an Idea** \
-                widget on your Home Screen. Press it and speak: your idea is saved here on this iPhone.
-                """
-            )
-        }
+        Text(
+            """
+            Add **Dictate an Idea** to Control Center, the Action button or a widget.
+            Then press it and speak.
+            """
+        )
     }
 }
