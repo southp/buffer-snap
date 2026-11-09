@@ -1,7 +1,8 @@
 ---
 date: 2026-11-08
 issue: 46
-status: accepted
+status: superseded
+superseded_by: 81-only-the-dictate-widget.md
 ---
 
 # The widget counts what's waiting to send
