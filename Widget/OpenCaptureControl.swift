@@ -10,6 +10,6 @@ struct OpenCaptureControl: ControlWidget {
             }
         }
         .displayName("Capture an Idea")
-        .description("Opens BufferSnap on the capture screen.")
+        .description("Opens BufSnap on the capture screen.")
     }
 }

@@ -100,9 +100,9 @@ struct DictationMessage: View {
         case .finished(.tooLong):
             "Too long to save. Shorten it, then tap Save."
         case .failed(.microphoneDenied):
-            "BufferSnap can't use the microphone. Allow it in Settings, or type instead."
+            "BufSnap can't use the microphone. Allow it in Settings, or type instead."
         case .failed(.speechRecognitionDenied):
-            "BufferSnap can't use speech recognition. Allow it in Settings, or type instead."
+            "BufSnap can't use speech recognition. Allow it in Settings, or type instead."
         case .failed(.restricted):
             "Dictation isn't allowed on this iPhone. You can still type."
         case .failed(.unavailable):

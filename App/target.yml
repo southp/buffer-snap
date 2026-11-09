@@ -32,11 +32,11 @@ targets:
         # and fetch for background refresh) with its task identifiers, which have no INFOPLIST_KEY_ settings; the rest
         # is generated.
         INFOPLIST_FILE: App/Info.plist
-        INFOPLIST_KEY_CFBundleDisplayName: BufferSnap
+        INFOPLIST_KEY_CFBundleDisplayName: BufSnap
         # Skips the export-compliance prompt on every TestFlight build.
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "BufferSnap listens only while you dictate an idea, to turn what you say into text. No recording is kept."
-        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "BufferSnap turns what you say into text with Apple's speech recognition, which may send the audio to Apple. BufferSnap doesn't keep it."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "BufSnap listens only while you dictate an idea, to turn what you say into text. No recording is kept."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "BufSnap turns what you say into text with Apple's speech recognition, which may send the audio to Apple. BufSnap doesn't keep it."
         # The Live Activity of a dictation started from the control or the widget.
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

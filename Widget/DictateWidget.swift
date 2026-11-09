@@ -9,7 +9,7 @@ struct DictateWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Dictate an Idea")
-        .description("Saves what you say as an idea, without opening BufferSnap.")
+        .description("Saves what you say as an idea, without opening BufSnap.")
         .supportedFamilies([.systemSmall])
     }
 }
