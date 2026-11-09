@@ -27,9 +27,7 @@ struct BufferSnapApp: App {
         // Whoever signs in next may not be whoever made what's pending.
         let appModel = AppModel(
             auth: environment.auth,
-            prepareForSignIn: { [submissions = environment.submissions] in
-                try await submissions.holdPendingCaptures()
-            }
+            ideas: environment.submissions
         )
         _appModel = State(initialValue: appModel)
         OpenCaptureIntent.onRun = { appModel.showCapture() }

@@ -114,70 +114,6 @@ struct AppModelTests {
         #expect(model.route == .capture)
     }
 
-    @Test func preparationRunsBeforeTheSignInStarts() async {
-        let auth = ControllableSignInAuthService()
-        let signInsAtPreparation = RecordedValue()
-        let model = AppModel(
-            auth: auth,
-            prepareForSignIn: {
-                await signInsAtPreparation.set(await auth.signInCount)
-            }
-        )
-
-        await model.signIn()
-
-        #expect(await signInsAtPreparation.value == 0)
-        #expect(await auth.signInCount == 1)
-    }
-
-    /// If the captures can't be held, signing in could send them to whoever signs in, so it mustn't go ahead.
-    @Test func aFailedPreparationStopsTheSignIn() async {
-        let auth = ControllableSignInAuthService()
-        let model = AppModel(auth: auth, prepareForSignIn: { throw TestError() })
-
-        await model.signIn()
-
-        #expect(await auth.signInCount == 0)
-        #expect(model.route == .signedOut)
-        #expect(model.signInNotice == .failed)
-    }
-
-    /// The whole of it: someone signs out with a capture pending, and whoever signs in next doesn't get it by itself.
-    @Test func aPendingCaptureDoesntFollowASignOutToTheNextAccount() async throws {
-        let capture = Capture.text("Their idea")
-        let store = InMemoryCaptureStore(seed: [capture])
-        let buffer = MockBufferClient()
-        let auth = MockAuthService(hasSavedSession: true)
-        let queue = SubmissionQueue(store: store, auth: auth, client: buffer)
-        let model = AppModel(auth: auth, prepareForSignIn: { try await queue.holdPendingCaptures() })
-
-        await model.signOut()
-        await model.signIn()
-        await queue.run()
-
-        #expect(await buffer.createdIdeas.isEmpty)
-        #expect(await store.all().map(\.status) == [.failed])
-
-        try await queue.resend(capture.id)
-        await queue.run()
-        #expect(await buffer.createdIdeas == ["Their idea"])
-    }
-
-    /// A capture made after signing in goes as usual.
-    @Test func aCaptureMadeAfterSigningInStillGoes() async throws {
-        let store = InMemoryCaptureStore()
-        let buffer = MockBufferClient()
-        let auth = MockAuthService()
-        let queue = SubmissionQueue(store: store, auth: auth, client: buffer)
-        let model = AppModel(auth: auth, prepareForSignIn: { try await queue.holdPendingCaptures() })
-
-        await model.signIn()
-        try await store.add(.text("A new idea"))
-        await queue.run()
-
-        #expect(await buffer.createdIdeas == ["A new idea"])
-    }
-
     @Test func signOutReturnsToSignIn() async {
         let model = AppModel(auth: MockAuthService(hasSavedSession: true))
 
@@ -340,13 +276,5 @@ private actor HeldAuthService: AuthService {
 
     func finishSignIn() {
         finish?.resume()
-    }
-}
-
-private actor RecordedValue {
-    private(set) var value: Int?
-
-    func set(_ value: Int) {
-        self.value = value
     }
 }

@@ -1,3 +1,4 @@
+import OSLog
 import Observation
 
 /// App-wide state: which top-level screen to show.
@@ -34,17 +35,20 @@ public final class AppModel {
     public private(set) var isSigningIn = false
     /// A press couldn't listen because there was no Live Activity to show it on, so the app has to say why.
     public private(set) var isShowingLiveActivitiesNotice = false
+    /// How many ideas a sign-in that just finished asks about ("Send N ideas to this account?"), until answered.
+    /// `nil` means there's no question: `docs/decisions/68-ideas-at-sign-in.md`.
+    public private(set) var ideasToConfirm: Int?
 
     private let auth: any AuthService
-    private let prepareForSignIn: @Sendable () async throws -> Void
+    private let ideas: any IdeasAtSignIn
 
     /// Starts on the right screen for a saved session, without waiting for anything. So the first frame is already
     /// right, and `showCapture()` works from the moment the app exists, as a cold launch from the widget needs.
     ///
-    /// `prepareForSignIn` runs before each sign-in starts. If it throws, the sign-in doesn't happen.
-    public init(auth: any AuthService, prepareForSignIn: @escaping @Sendable () async throws -> Void = {}) {
+    /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen.
+    public init(auth: any AuthService, ideas: any IdeasAtSignIn = NoIdeasAtSignIn()) {
         self.auth = auth
-        self.prepareForSignIn = prepareForSignIn
+        self.ideas = ideas
         route = auth.hasSavedSession() ? .capture : .signedOut
     }
 
@@ -59,12 +63,32 @@ public final class AppModel {
             isSigningIn = false
         }
         do {
-            try await prepareForSignIn()
+            try await ideas.holdPendingCaptures()
             try await auth.signIn()
-            route = .capture
         } catch {
             signInNotice = Self.notice(for: error)
+            await releaseHeldCaptures()
+            return
         }
+        route = .capture
+        await askAboutHeldIdeas()
+    }
+
+    /// The person chose to send what was waiting to the account they just signed in to.
+    public func sendHeldIdeas() async {
+        ideasToConfirm = nil
+        do {
+            try await ideas.sendHeldIdeas()
+        } catch {
+            // What's held stays held, with Resend, so nothing is lost by not reaching the store.
+            Logger.auth.error("Can't send what was held at sign-in: \(Self.describe(error), privacy: .public)")
+        }
+    }
+
+    /// The person chose not to send what was waiting. It stays held, with Resend on each batch, so nothing is lost and
+    /// nothing is asked again until the next sign-in.
+    public func keepHeldIdeas() {
+        ideasToConfirm = nil
     }
 
     /// Signs out and moves to the sign-in screen.
@@ -72,16 +96,22 @@ public final class AppModel {
         do {
             try await auth.signOut()
             signInNotice = nil
+            await releaseHeldCaptures()
         } catch {
             signInNotice = .signOutFailed
         }
         route = .signedOut
+        ideasToConfirm = nil
     }
 
     /// Checks that the session still works, refreshing the token if it's due, for when the app comes to the foreground.
     /// Only losing the session changes anything: failing to reach Buffer is no reason to interrupt someone offline.
     public func checkSession() async {
         guard route != .signedOut else {
+            // A sign-in that never finished, such as a crash during it, may have left captures held.
+            if !isSigningIn {
+                await releaseHeldCaptures()
+            }
             return
         }
         do {
@@ -91,6 +121,8 @@ public final class AppModel {
             if route != .signedOut {
                 route = .signedOut
                 signInNotice = .sessionEnded
+                ideasToConfirm = nil
+                await releaseHeldCaptures()
             }
         } catch {
             // Offline, or Buffer is having a bad moment. The next check, or the next upload, tries again.
@@ -121,6 +153,34 @@ public final class AppModel {
         if route != .signedOut {
             route = .captureList
         }
+    }
+
+    /// Asks about what's held, once, after a sign-in. Whatever is held at this moment goes into the count, including
+    /// anything saved while Buffer's page was open.
+    private func askAboutHeldIdeas() async {
+        do {
+            try await ideas.holdPendingCaptures()
+            let count = try await ideas.heldIdeaCount()
+            ideasToConfirm = count > 0 ? count : nil
+        } catch {
+            // What's held stays held, with Resend, so nothing is lost by not asking.
+            Logger.auth.error("Can't ask about what's held at sign-in: \(Self.describe(error), privacy: .public)")
+        }
+    }
+
+    /// Nobody ended up signed in, so what's held can go back to waiting. Failing to write that loses nothing: it's
+    /// held again at the next sign-in, and shows as waiting meanwhile.
+    private func releaseHeldCaptures() async {
+        do {
+            try await ideas.releaseHeldCaptures()
+        } catch {
+            Logger.auth.error("Can't release what's held: \(Self.describe(error), privacy: .public)")
+        }
+    }
+
+    /// A store's error can name a file, so only its type goes in the log.
+    private static func describe(_ error: any Error) -> String {
+        String(describing: type(of: error))
     }
 
     private static func notice(for error: any Error) -> SignInNotice {

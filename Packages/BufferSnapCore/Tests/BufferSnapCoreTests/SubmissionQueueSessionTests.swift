@@ -237,6 +237,61 @@ struct SubmissionQueueSessionTests {
         #expect(await server.ideaTexts == ["First"])
     }
 
+    // MARK: - Ideas at sign-in
+
+    /// A batch is one idea, and a capture with nothing to send isn't one at all.
+    @Test func heldIdeasCountBatchesWithTextToSend() async throws {
+        let batch = UUID()
+        let refused = Capture.text("Refused", at: 4)
+        let store = InMemoryCaptureStore(seed: [
+            .text("First part", at: 1, batch: batch),
+            .text("Second part", at: 2, batch: batch),
+            .text("By itself", at: 3),
+            Capture(kind: .photo, createdAt: Date(timeIntervalSinceReferenceDate: 5)),
+            refused,
+        ])
+        try await store.setStatus(.failed, failure: .refused, ids: [refused.id])
+        let queue = fixture.makeQueue(store: store)
+
+        try await queue.holdPendingCaptures()
+
+        #expect(try await queue.heldIdeaCount() == 2)
+    }
+
+    /// Yes sends what was held, one idea per batch, and doesn't touch a batch that failed for another reason.
+    @Test func sendingWhatsHeldSendsOnlyThat() async throws {
+        let batch = UUID()
+        let refused = Capture.text("Refused", at: 3)
+        let store = InMemoryCaptureStore(seed: [
+            .text("First part", at: 1, batch: batch),
+            .text("Second part", at: 2, batch: batch),
+            refused,
+        ])
+        try await store.setStatus(.failed, failure: .refused, ids: [refused.id])
+        let queue = fixture.makeQueue(store: store)
+        try await queue.holdPendingCaptures()
+
+        try await queue.sendHeldIdeas()
+        await waitUntil { await server.ideaTexts.count == 1 }
+
+        #expect(await server.ideaTexts == ["First part\n\nSecond part"])
+        #expect(await store.all().first { $0.id == refused.id }?.failure == .refused)
+    }
+
+    /// Back to waiting, as if the sign-in never happened, and the batch it was closed into stays as it was.
+    @Test func releasingPutsHeldCapturesBackToPending() async throws {
+        let refused = Capture.text("Refused", at: 2)
+        let store = InMemoryCaptureStore(seed: [.text("Waiting", at: 1), refused])
+        try await store.setStatus(.failed, failure: .refused, ids: [refused.id])
+        let queue = fixture.makeQueue(store: store)
+        try await queue.holdPendingCaptures()
+
+        try await queue.releaseHeldCaptures()
+
+        #expect(await store.all().map(\.status) == [.pending, .failed])
+        #expect(await store.all().map(\.failure) == [nil, .refused])
+    }
+
     private func waitUntil(_ condition: @Sendable () async -> Bool) async {
         while await !condition() {
             await Task.yield()
