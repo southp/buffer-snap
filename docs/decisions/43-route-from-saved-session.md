@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 43
-status: accepted
+status: superseded
+superseded_by: 68-sign-in-from-the-list.md
 ---
 
 # Read the saved session before the first frame

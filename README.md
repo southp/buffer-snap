@@ -15,7 +15,7 @@ Capture starts once the phone is unlocked, which with Face ID is usually just a 
 
 1. Dictate without opening the app, as above. It's the main way to capture.
 2. The main app provides the following.
-   1. Authenticate the API access through a Buffer account.
+   1. Authenticate the API access through a Buffer account, when you want ideas sent. Until then the app is in offline mode: everything stays on this iPhone and capturing works the same.
    2. The capture screen, described below.
    3. View what's being captured
    4. Manage what's being captured

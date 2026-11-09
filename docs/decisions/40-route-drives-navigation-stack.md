@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 40
-status: accepted
+status: superseded
+superseded_by: 68-sign-in-from-the-list.md
 ---
 
 # Push the capture list from the capture screen, driven by the route

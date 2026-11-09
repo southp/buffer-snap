@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 44
-status: accepted
+status: superseded
+superseded_by: 68-ideas-at-sign-in.md
 ---
 
 # Hold pending captures when a sign-in starts
