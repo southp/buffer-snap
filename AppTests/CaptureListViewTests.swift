@@ -119,6 +119,37 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen(waitingCaptures, problem: .couldNotDelete), named: "couldNotDelete")
     }
 
+    /// A clear that couldn't be written says so, and the ideas stay listed with the button still there.
+    @Test func couldNotClear() {
+        assertScreenSnapshot(
+            of: listScreen(submittedCaptures, problem: .couldNotClear, clearableIdeaCount: 2),
+            named: "couldNotClear"
+        )
+    }
+
+    // MARK: - Clear Submitted
+
+    /// Something was submitted, so the toolbar offers to clear it.
+    @Test func clearSubmittedShown() {
+        assertScreenSnapshot(
+            of: listScreen(submittedCaptures, clearableIdeaCount: 2),
+            named: "clearSubmittedShown"
+        )
+    }
+
+    /// Nothing was submitted: what's waiting or failed gets no button.
+    @Test func clearSubmittedHidden() {
+        let failed = Capture(
+            kind: .text,
+            createdAt: Capture.samplesReferenceDate.addingTimeInterval(-3600),
+            status: .failed,
+            text: "Newsletter intro",
+            batchID: UUID(),
+            failure: .refused
+        )
+        assertScreenSnapshot(of: listScreen(waitingCaptures + [failed]), named: "clearSubmittedHidden")
+    }
+
     // MARK: - Offline mode
 
     /// A fresh install: nothing captured yet, and the list says plainly what offline mode means.
@@ -182,12 +213,25 @@ struct CaptureListViewTests {
         }
     }
 
+    private var submittedCaptures: [Capture] {
+        ["Thread hook idea", "Launch recap"].enumerated().map { index, text in
+            Capture(
+                kind: .text,
+                createdAt: Capture.samplesReferenceDate.addingTimeInterval(Double(index - 20) * 60),
+                status: .submitted,
+                text: text,
+                batchID: UUID()
+            )
+        }
+    }
+
     private func listScreen(
         _ captures: [Capture],
         isOffline: Bool = false,
         isSyncing: Bool = false,
         problem: CaptureListModel.Problem? = nil,
-        signInPrompt: AppModel.SignInPrompt? = nil
+        signInPrompt: AppModel.SignInPrompt? = nil,
+        clearableIdeaCount: Int = 0
     ) -> some View {
         let batches = Array(CaptureBatch.batches(of: captures, window: 5 * 60).reversed())
         let now = Capture.samplesReferenceDate
@@ -202,6 +246,8 @@ struct CaptureListViewTests {
                 onDelete: { _ in },
                 onSendNow: {},
                 onResend: { _ in },
+                clearableIdeaCount: clearableIdeaCount,
+                onClearSubmitted: {},
                 onShowBatchingSettings: {},
                 signInPrompt: signInPrompt,
                 onSignIn: {},

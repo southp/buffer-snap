@@ -2,7 +2,7 @@ import BufferSnapCore
 import SwiftUI
 
 /// The list of captures, grouped by batch, under whether everything reached Buffer and Sync now. With swipe-to-delete,
-/// "Send now" on the open batch, Resend on failed ones, what went wrong last, and an empty state.
+/// "Send now" on the open batch, Resend on failed ones, Clear Submitted, what went wrong last, and an empty state.
 ///
 /// Stateless: it renders the batches it's given and forwards what's tapped, so snapshot tests can show any state
 /// without loading anything. `CaptureListScreen` feeds it from `CaptureListModel`.
@@ -25,6 +25,10 @@ struct CaptureListView: View {
     let onSendNow: () -> Void
     /// Called when the user asks to send a failed batch again.
     let onResend: (CaptureBatch) -> Void
+    /// How many ideas Clear Submitted would remove. The button shows only above zero.
+    let clearableIdeaCount: Int
+    /// Called once the user has confirmed clearing everything submitted.
+    let onClearSubmitted: () -> Void
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
     /// What the sign-in row shows while nobody is signed in, or `nil` while someone is.
@@ -88,6 +92,11 @@ struct CaptureListView: View {
         }
         .navigationTitle("Captures")
         .toolbar {
+            if clearableIdeaCount > 0 {
+                ToolbarItem(placement: .topBarLeading) {
+                    ClearSubmittedButton(ideaCount: clearableIdeaCount, onClear: onClearSubmitted)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
                 Menu("Account", systemImage: "person.crop.circle") {

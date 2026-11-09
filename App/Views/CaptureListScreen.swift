@@ -2,8 +2,8 @@ import BufferSnapCore
 import SwiftUI
 
 /// The capture list's container: owns `CaptureListModel`, loads it on appearing, on returning to the foreground and
-/// when a send changes something, forwards deletes, resends, "Send now" and Sync now to it, and passes sign-out up to
-/// whoever owns the session.
+/// when a send changes something, forwards deletes, resends, "Send now", Sync now and a confirmed Clear Submitted to
+/// it, and passes sign-out up to whoever owns the session.
 /// Everything it shows is drawn by the stateless `CaptureListView`.
 struct CaptureListScreen: View {
     @State private var model: CaptureListModel
@@ -64,6 +64,12 @@ struct CaptureListScreen: View {
                 onResend: { batch in
                     Task {
                         await model.resend(batch)
+                    }
+                },
+                clearableIdeaCount: model.clearableIdeaCount,
+                onClearSubmitted: {
+                    Task {
+                        await model.clearSubmitted()
                     }
                 },
                 onShowBatchingSettings: {
