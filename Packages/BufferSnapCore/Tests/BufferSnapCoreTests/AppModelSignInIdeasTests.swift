@@ -26,7 +26,7 @@ struct AppModelSignInIdeasTests {
         await model.signIn()
 
         #expect(await auth.signInCount == 0)
-        #expect(model.route == .signedOut)
+        #expect(!model.isSignedIn)
         #expect(model.signInNotice == .failed)
     }
 

@@ -27,19 +27,41 @@ struct CaptureListView: View {
     let onResend: (CaptureBatch) -> Void
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
+    /// What the sign-in row shows while nobody is signed in, or `nil` while someone is.
+    let signInPrompt: AppModel.SignInPrompt?
+    /// Called when the user asks to sign in.
+    let onSignIn: () -> Void
+    /// Called when the user asks to type an idea.
+    let onTypeIdea: () -> Void
     /// Called when the user signs out.
     let onSignOut: () -> Void
 
+    private var isSignedIn: Bool {
+        signInPrompt == nil
+    }
+
     var body: some View {
         List {
-            if syncStatus != .nothingYet || problem != nil {
+            if let signInPrompt {
                 Section {
-                    if syncStatus != .nothingYet {
+                    SignInPromptRow(prompt: signInPrompt, onSignIn: onSignIn)
+                }
+            }
+            if syncStatus != .nothingYet && isSignedIn || problem != nil {
+                Section {
+                    if syncStatus != .nothingYet && isSignedIn {
                         SyncStatusRow(status: syncStatus, isSyncing: isSyncing, onSyncNow: onSyncNow)
                     }
                     if let problem {
                         CaptureListProblemRow(problem: problem)
                     }
+                }
+            }
+            // Signed out, the row above would run into it if it floated over the middle of the screen.
+            if batches.isEmpty && problem == nil && !isSignedIn {
+                Section {
+                    emptyState
+                        .listRowBackground(Color.clear)
                 }
             }
             ForEach(batches) { batch in
@@ -53,26 +75,15 @@ struct CaptureListView: View {
                             }
                     }
                 } header: {
-                    CaptureBatchHeader(batch: batch, now: now, onSendNow: onSendNow) {
+                    CaptureBatchHeader(batch: batch, now: now, isSignedIn: isSignedIn, onSendNow: onSendNow) {
                         onResend(batch)
                     }
                 }
             }
         }
         .overlay {
-            if batches.isEmpty && problem == nil {
-                // The names are the control's and the widget's own, as the system lists them (`Widget/`).
-                ContentUnavailableView(
-                    "No captures yet",
-                    systemImage: "mic.fill",
-                    // One literal, so it's a localized key and the Markdown renders.
-                    description: Text(
-                        """
-                        Add **Dictate an Idea** to Control Center or the Action button, or put the **Dictate an Idea** \
-                        widget on your Home Screen. Press it and speak: your idea shows up here and goes to Buffer.
-                        """
-                    )
-                )
+            if batches.isEmpty && problem == nil && isSignedIn {
+                emptyState
             }
         }
         .navigationTitle("Captures")
@@ -80,12 +91,43 @@ struct CaptureListView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
                 Menu("Account", systemImage: "person.crop.circle") {
+                    Button("Type an Idea", systemImage: "square.and.pencil", action: onTypeIdea)
                     Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
-                    Button(
-                        "Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive,
-                        action: onSignOut)
+                    if isSignedIn {
+                        Button(
+                            "Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive,
+                            action: onSignOut)
+                    }
                 }
             }
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView(
+            "No captures yet",
+            systemImage: "mic.fill",
+            description: emptyDescription
+        )
+    }
+
+    /// The names are the control's and the widget's own, as the system lists them (`Widget/`). One literal each, so
+    /// it's a localized key and the Markdown renders.
+    private var emptyDescription: Text {
+        if isSignedIn {
+            Text(
+                """
+                Add **Dictate an Idea** to Control Center or the Action button, or put the **Dictate an Idea** \
+                widget on your Home Screen. Press it and speak: your idea shows up here and goes to Buffer.
+                """
+            )
+        } else {
+            Text(
+                """
+                Add **Dictate an Idea** to Control Center or the Action button, or put the **Dictate an Idea** \
+                widget on your Home Screen. Press it and speak: your idea is saved here on this iPhone.
+                """
+            )
         }
     }
 }

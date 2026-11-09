@@ -1,10 +1,8 @@
 import BufferSnapCore
 import SwiftUI
 
-/// The top-level screen: shows whichever screen `AppModel.route` names.
-///
-/// The capture list is pushed on top of the capture screen, so a draft survives a look at the list. The route still
-/// decides: the stack only reports back when the user goes back.
+/// The top-level screen: the capture list, with the capture screen pushed on it when `AppModel.route` says so. The
+/// route still decides: the stack only reports back when the user goes back.
 struct RootView: View {
     let appModel: AppModel
     let captureModel: CaptureModel
@@ -13,71 +11,89 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        screen
-            .onChange(of: scenePhase, initial: true) { _, phase in
-                switch phase {
-                case .active:
-                    // Refreshes a token that's due, and finds out if Buffer has ended the session.
+        NavigationStack {
+            CaptureListScreen(
+                store: environment.captureStore,
+                submissions: environment.submissions,
+                batchWindow: environment.batchWindow,
+                signInPrompt: appModel.signInPrompt,
+                onSignIn: {
                     Task {
-                        await appModel.checkSession()
+                        await appModel.signIn()
                     }
+                },
+                onTypeIdea: appModel.showCapture,
+                onSignOut: {
+                    captureModel.discardDraft()
                     Task {
-                        await environment.submissions.run()
+                        await appModel.signOut()
                     }
-                case .background:
-                    BackgroundSubmission.scheduleWakeUp()
-                    BackgroundSubmission.finishSending(on: environment.submissions)
-                default:
-                    break
                 }
+            )
+            .navigationDestination(isPresented: isShowingCapture) {
+                CaptureScreen(model: captureModel, onShowCaptures: appModel.showCaptureList)
             }
-            .task {
-                await environment.submissions.runOnEachReconnection(of: environment.connectivity)
-            }
-            // A send found the session over: the route goes to sign-in the same way as coming to the foreground.
-            .task {
-                for await event in environment.submissions.events() where event == .sessionLost {
+        }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            switch phase {
+            case .active:
+                // Refreshes a token that's due, and finds out if Buffer has ended the session.
+                Task {
                     await appModel.checkSession()
                 }
-            }
-    }
-
-    @ViewBuilder
-    private var screen: some View {
-        switch appModel.route {
-        case .signedOut:
-            SignInView(notice: appModel.signInNotice, isSigningIn: appModel.isSigningIn) {
                 Task {
-                    await appModel.signIn()
+                    await environment.submissions.run()
+                }
+            case .background:
+                BackgroundSubmission.scheduleWakeUp()
+                BackgroundSubmission.finishSending(on: environment.submissions)
+            default:
+                break
+            }
+        }
+        .task {
+            await environment.submissions.runOnEachReconnection(of: environment.connectivity)
+        }
+        // A send found the session over: the list says so, the same way as coming to the foreground.
+        .task {
+            for await event in environment.submissions.events() where event == .sessionLost {
+                await appModel.checkSession()
+            }
+        }
+        .alert(ideasQuestion, isPresented: isAskingAboutIdeas) {
+            Button("Send") {
+                Task {
+                    await appModel.sendHeldIdeas()
                 }
             }
-        case .capture, .captureList:
-            NavigationStack {
-                CaptureScreen(model: captureModel, onShowCaptures: appModel.showCaptureList)
-                    .navigationDestination(isPresented: isShowingCaptureList) {
-                        CaptureListScreen(
-                            store: environment.captureStore,
-                            submissions: environment.submissions,
-                            batchWindow: environment.batchWindow
-                        ) {
-                            captureModel.discardDraft()
-                            Task {
-                                await appModel.signOut()
-                            }
-                        }
-                    }
-            }
+            Button("Not Now", role: .cancel, action: appModel.keepHeldIdeas)
+        } message: {
+            Text(
+                """
+                You saved them before signing in. If you choose Not Now, they stay on this iPhone, with Resend on each.
+                """
+            )
         }
     }
 
-    private var isShowingCaptureList: Binding<Bool> {
+    private var isShowingCapture: Binding<Bool> {
         Binding(
-            get: { appModel.route == .captureList },
+            get: { appModel.route == .capture },
             set: { isShowing in
                 if !isShowing {
-                    appModel.showCapture()
+                    appModel.showCaptureList()
                 }
             }
         )
+    }
+
+    /// Answered only through the alert's buttons, which clear it.
+    private var isAskingAboutIdeas: Binding<Bool> {
+        Binding(get: { appModel.ideasToConfirm != nil }, set: { _ in })
+    }
+
+    private var ideasQuestion: Text {
+        let count = appModel.ideasToConfirm ?? 0
+        return count == 1 ? Text("Send 1 idea to this account?") : Text("Send \(count) ideas to this account?")
     }
 }

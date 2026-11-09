@@ -6,12 +6,24 @@ struct CaptureBatchHeader: View {
     let batch: CaptureBatch
     /// The moment that decides whether the batch is still counting down. Passed in, so snapshots are stable.
     let now: Date
+    /// Whether anyone is signed in. Without a session nothing goes, so there's nothing to offer or promise.
+    var isSignedIn = true
     /// Called when the user asks to send the open batch without waiting.
     let onSendNow: () -> Void
     /// Called when the user asks to send a failed batch again.
     let onResend: () -> Void
 
+    @ViewBuilder
     var body: some View {
+        if isSignedIn {
+            signedIn
+        } else {
+            signedOut
+        }
+    }
+
+    @ViewBuilder
+    private var signedIn: some View {
         switch batch.state {
         case .open(let sendsAt) where batch.isWaiting(at: now):
             row(Text("Sends at \(sendsAt, format: .dateTime.hour().minute())"), action: "Send now", onSendNow)
@@ -23,6 +35,23 @@ struct CaptureBatchHeader: View {
             row(Text("Sent as one idea"))
         case .submitted, .unsendable:
             // A single capture's own row already says it all.
+            EmptyView()
+        }
+    }
+
+    /// Nothing goes while signed out: it's safe here, and a sign-in decides the rest.
+    @ViewBuilder
+    private var signedOut: some View {
+        switch batch.state {
+        case .open, .closed:
+            row(Text("Stored on this iPhone"))
+        case .failed where batch.failure == .heldAtSignIn:
+            row(Text("Stored on this iPhone"))
+        case .failed:
+            row(failureTitle)
+        case .submitted where batch.captures.count > 1:
+            row(Text("Sent as one idea"))
+        case .submitted, .unsendable:
             EmptyView()
         }
     }
