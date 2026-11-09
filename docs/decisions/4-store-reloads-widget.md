@@ -1,7 +1,8 @@
 ---
 date: 2026-11-03
 issue: 4
-status: accepted
+status: superseded
+superseded_by: 81-only-the-dictate-widget.md
 ---
 
 # The app reloads the widget by wrapping its store

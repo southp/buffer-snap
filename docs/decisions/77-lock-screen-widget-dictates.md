@@ -1,7 +1,8 @@
 ---
 date: 2026-11-09
 issue: 77
-status: accepted
+status: superseded
+superseded_by: 81-only-the-dictate-widget.md
 ---
 
 # The Lock Screen widget starts dictating with a button
