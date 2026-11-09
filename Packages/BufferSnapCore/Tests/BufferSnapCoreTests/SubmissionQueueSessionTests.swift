@@ -72,6 +72,57 @@ struct SubmissionQueueSessionTests {
         #expect(await store.all().map(\.status) == [.pending])
     }
 
+    /// Never having signed in is the normal state of a fresh install, not a session someone lost.
+    @Test func neverHavingSignedInIsAQuietWait() async {
+        let store = InMemoryCaptureStore(seed: [.text("An idea")])
+        let queue = fixture.makeQueue(store: store, auth: StubAuthService(tokenError: AuthError.notSignedIn))
+        let events = queue.events()
+
+        await queue.run()
+        await queue.replan()
+
+        #expect(await server.organizationRequests == 0)
+        #expect(await server.ideaRequests == 0)
+        #expect(await store.all().map(\.status) == [.pending])
+        #expect(clock.sleeps.isEmpty)
+        // The replan's own event comes first, so nothing was published before it.
+        var iterator = events.makeAsyncIterator()
+        #expect(await iterator.next() == .capturesChanged)
+    }
+
+    /// Signed out, batches keep closing by the same clock, so each is one idea after sign-in. Closing asks Buffer
+    /// nothing, and the wait for the open one is the only thing scheduled.
+    @Test func batchesKeepClosingByTheClockWhileSignedOut() async throws {
+        let store = InMemoryCaptureStore()
+        let auth = StubAuthService(tokenError: AuthError.notSignedIn)
+        let queue = fixture.makeQueue(store: store, auth: auth, window: 300)
+        for text in ["First", "Second", "Still open"] {
+            try await store.add(fixture.capture(text))
+            clock.advance(by: 301)
+        }
+        clock.advance(by: -301)
+
+        await queue.run()
+
+        let captures = try await store.all().sorted { $0.createdAt < $1.createdAt }
+        #expect(captures.map { $0.batchID != nil } == [true, true, false])
+        #expect(await server.organizationRequests == 0)
+        #expect(await clock.waitForSleep(number: 1) == 300)
+    }
+
+    /// Only Buffer ending a session is worth telling the app about.
+    @Test func anEndedSessionIsStillReported() async {
+        let store = InMemoryCaptureStore(seed: [.text("An idea")])
+        let queue = fixture.makeQueue(store: store, auth: StubAuthService(tokenError: AuthError.sessionExpired))
+        let events = queue.events()
+
+        await queue.run()
+
+        var iterator = events.makeAsyncIterator()
+        #expect(await iterator.next() == .sessionLost)
+        #expect(await store.all().map(\.status) == [.pending])
+    }
+
     /// Couldn't refresh for now, which says nothing about the capture or the session.
     @Test(arguments: [AuthError.network, .server, .storage])
     func aTokenFailureThatCanPassBacksOff(error: AuthError) async {

@@ -14,7 +14,7 @@ public actor SubmissionQueue {
     public enum Event: Sendable, Equatable {
         /// A capture's status changed.
         case capturesChanged
-        /// A send needs the user to sign in again.
+        /// Buffer ended the session. Never having signed in doesn't count: that's a quiet wait.
         case sessionLost
         /// `isOffline` changed.
         case reachabilityChanged
@@ -38,11 +38,11 @@ public actor SubmissionQueue {
     /// Rejected tokens in one pass before it stops. Buffer rejecting a brand new token won't change in a moment.
     private static let maxTokenRejections = 2
 
-    private let store: any CaptureStore
+    let store: any CaptureStore
     private let auth: any AuthService
     private let client: any BufferClient
-    private let planner: SubmissionPlanner
-    private let clock: any SubmissionClock
+    let planner: SubmissionPlanner
+    let clock: any SubmissionClock
     private let backoff: SubmissionBackoff
     private let jitter: @Sendable () -> TimeInterval
 
@@ -59,7 +59,7 @@ public actor SubmissionQueue {
     /// Buffer has these, but saving that failed. Sending them again would be a sure duplicate, so nothing else goes
     /// until a write works.
     private var sentButUnsaved: Set<Capture.ID> = []
-    private let subscribers = EventSubscribers<Event>()
+    let subscribers = EventSubscribers<Event>()
 
     // Looked up for each pass and never kept, so no session can use another's. It costs one request per pass.
     private var organizationID: String?
@@ -128,21 +128,6 @@ public actor SubmissionQueue {
         _ = startDrain()
     }
 
-    /// Turns every pending capture into a failed one, so it goes nowhere until someone taps Resend. Called before a
-    /// sign-in, which might be someone else's: `docs/decisions/44-hold-captures-at-sign-in.md`.
-    ///
-    /// What's open closes first, in its own write, so a held batch stays together and nothing saved later can join it.
-    /// A crash between the two writes leaves it closed and pending, and the next sign-in holds it again.
-    public func holdPendingCaptures() async throws {
-        let pending = try await store.pendingCaptures()
-        guard !pending.isEmpty else {
-            return
-        }
-        try await store.closeOpenBatches(planner.batches(of: pending))
-        try await store.setStatus(.failed, failure: .heldAtSignIn, ids: Set(pending.map(\.id)))
-        subscribers.publish(.capturesChanged)
-    }
-
     /// Plans again, for when something other than a new capture may have changed when a batch goes, such as the
     /// setting or a delete. Doesn't wait for what that starts.
     public func replan() {
@@ -196,6 +181,9 @@ public actor SubmissionQueue {
     private func sendNextHandlingFailures() async -> Step {
         do {
             return try await sendNext()
+        } catch AuthError.notSignedIn {
+            // Never having signed in isn't a lost session: nothing to tell anyone, and no call to Buffer.
+            return await closeDueBatchesWhileSignedOut().map { .waiting(until: $0) } ?? .nothingLeft
         } catch let error as AuthError where error.requiresSignIn {
             return .sessionLost
         } catch AuthError.network {
