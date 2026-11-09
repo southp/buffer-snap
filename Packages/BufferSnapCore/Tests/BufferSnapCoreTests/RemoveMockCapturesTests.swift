@@ -1,23 +1,9 @@
 import BufferSnapCore
 import Foundation
-import Synchronization
 import Testing
 
 /// An install that tapped the widget's mock buttons between #40 and #41: its file holds both mocks and real captures.
 struct RemoveMockCapturesTests {
-    /// Counts `onChange` calls.
-    private final class ChangeCounter: Sendable {
-        private let count = Mutex(0)
-
-        var value: Int {
-            count.withLock { $0 }
-        }
-
-        func increment() {
-            count.withLock { $0 += 1 }
-        }
-    }
-
     private let mocks = [
         Capture(kind: .text, text: "Mock text capture"),
         Capture(kind: .photo, text: "Mock photo capture"),
@@ -40,7 +26,7 @@ struct RemoveMockCapturesTests {
         #expect(try await store.all() == real)
     }
 
-    @Test func removesMocksFromTheFileTheAppAndWidgetShare() async throws {
+    @Test func removesMocksFromTheFile() async throws {
         let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = JSONFileCaptureStore(fileURL: fileURL)
         for capture in mocks + real {
@@ -50,17 +36,6 @@ struct RemoveMockCapturesTests {
         try await store.removeMockCaptures()
 
         #expect(try await JSONFileCaptureStore(fileURL: fileURL).all() == real)
-    }
-
-    @Test func reloadsTheWidgetOnlyWhenItRemovesSomething() async throws {
-        let counter = ChangeCounter()
-        let store = NotifyingCaptureStore(base: InMemoryCaptureStore(seed: real + mocks), onChange: counter.increment)
-
-        try await store.removeMockCaptures()
-        #expect(counter.value == mocks.count)
-
-        try await store.removeMockCaptures()
-        #expect(counter.value == mocks.count)
     }
 
     @Test func aMissingFileIsNothingToRemove() async throws {

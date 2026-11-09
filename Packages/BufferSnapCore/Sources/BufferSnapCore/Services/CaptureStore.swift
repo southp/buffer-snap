@@ -1,4 +1,4 @@
-/// Where captures are kept between launches, shared by the app and the widget.
+/// Where captures are kept between launches.
 ///
 /// The real implementation, `JSONFileCaptureStore`, is an `actor` doing file I/O, so the API is `async throws` and
 /// `Sendable`.
@@ -10,8 +10,7 @@ public protocol CaptureStore: Sendable {
     /// Removes the capture with `id`. Does nothing if there is none.
     func delete(id: Capture.ID) async throws
     /// Removes every submitted capture, all in one write, and nothing that's still on its way or failed. A requirement
-    /// rather than a loop over `delete(id:)`, so a send finishing part-way through can't change what goes, and the
-    /// widget reloads once.
+    /// rather than a loop over `delete(id:)`, so a send finishing part-way through can't change what goes.
     func deleteSubmitted() async throws
     /// Changes the status of the captures with `ids`, all in one write. Skips any that are gone, so an upload finishing
     /// can't bring back a capture deleted while it ran. `failure` is kept only with `.failed`, and cleared otherwise.

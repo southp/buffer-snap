@@ -1,7 +1,6 @@
 import BufferSnapCore
 import OSLog
 import SwiftUI
-import WidgetKit
 
 @main
 struct BufferSnapApp: App {
@@ -147,8 +146,7 @@ struct BufferSnapApp: App {
         return GraphQLBufferClient(transport: URLSession.forBufferAPI())
     }
 
-    /// The App Group store the widget also writes to. Every write through it reloads the widget, so its count never
-    /// goes stale.
+    /// The store in the App Group container, capped so it can't grow forever.
     private static func makeCaptureStore() -> any CaptureStore {
         do {
             try SharedStorage.removeLegacyCaptures()
@@ -160,17 +158,11 @@ struct BufferSnapApp: App {
         do {
             store = JSONFileCaptureStore(fileURL: try SharedStorage.capturesFileURL())
         } catch {
-            // Still usable, but nothing persists or reaches the widget. Only a build without the App Group entitlement
-            // gets here, so it's logged, not shown: `docs/decisions/46-in-memory-fallback-stays-silent.md`.
+            // Still usable, but nothing persists. Only a build without the App Group entitlement gets here,
+            // so it's logged, not shown: `docs/decisions/46-in-memory-fallback-stays-silent.md`.
             Logger().error("Can't open the shared capture store: \(error)")
             store = InMemoryCaptureStore()
         }
-        let reloadWidget: @Sendable () -> Void = {
-            WidgetCenter.shared.reloadTimelines(ofKind: SharedStorage.widgetKind)
-        }
-        // A widget added before an update may still show the count of the mock captures that update removed.
-        reloadWidget()
-        // Capped inside the notifier, so a send that trims old captures still reloads the widget once.
-        return NotifyingCaptureStore(base: CappedCaptureStore(base: store), onChange: reloadWidget)
+        return CappedCaptureStore(base: store)
     }
 }
