@@ -1,7 +1,8 @@
 ---
 date: 2026-11-06
 issue: 41
-status: accepted
+status: superseded
+superseded_by: 77-lock-screen-widget-dictates.md
 ---
 
 # Open the capture screen from the Lock Screen widget with a URL

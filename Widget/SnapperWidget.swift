@@ -10,7 +10,7 @@ struct SnapperWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("BufSnap")
-        .description("Capture an idea in one tap.")
+        .description("Dictate an idea in one press, without opening BufSnap.")
         .supportedFamilies([.systemMedium, .accessoryCircular])
     }
 }
