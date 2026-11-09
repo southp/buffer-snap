@@ -32,6 +32,8 @@ public final class AppModel {
     public private(set) var route: Route
     public private(set) var signInNotice: SignInNotice?
     public private(set) var isSigningIn = false
+    /// A press couldn't listen because there was no Live Activity to show it on, so the app has to say why.
+    public private(set) var isShowingLiveActivitiesNotice = false
 
     private let auth: any AuthService
     private let prepareForSignIn: @Sendable () async throws -> Void
@@ -103,6 +105,15 @@ public final class AppModel {
         if route == .captureList {
             route = .capture
         }
+    }
+
+    /// Says that dictating needs Live Activities.
+    public func showLiveActivitiesNotice() {
+        isShowingLiveActivitiesNotice = true
+    }
+
+    public func dismissLiveActivitiesNotice() {
+        isShowingLiveActivitiesNotice = false
     }
 
     /// Moves to the capture list, unless signed out.
