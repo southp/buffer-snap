@@ -205,6 +205,23 @@ struct OAuthSignInTests {
         }
     }
 
+    /// The list says nothing leaves while signed out, so a session that couldn't be removed can't be sent with.
+    @Test func aSessionThatCouldntBeRemovedIsntUsedUntilTheNextLaunch() async throws {
+        let service = oauth.makeService()
+        try await service.signIn()
+        oauth.store.fail(clears: true)
+        await #expect(throws: AuthError.storage) {
+            try await service.signOut()
+        }
+
+        await #expect(throws: AuthError.notSignedIn) {
+            try await service.validAccessToken()
+        }
+
+        oauth.store.fail()
+        _ = try await oauth.makeService().validAccessToken()
+    }
+
     /// Finding no session and failing to look are different: the second must not read as signed out.
     @Test func hasNoSavedSessionIfTheStoreCantBeRead() {
         oauth.store.fail(loads: true)
