@@ -212,7 +212,7 @@ struct HandsFreeDictationTests {
     }
 
     @Test(arguments: [
-        HandsFreeDictation.Outcome.needsPermission, .signedOut, .couldNotListen,
+        HandsFreeDictation.Outcome.needsPermission, .couldNotListen,
     ])
     func whatStopsItStartingIsItsOutcome(outcome: HandsFreeDictation.Outcome) {
         var dictation = HandsFreeDictation()

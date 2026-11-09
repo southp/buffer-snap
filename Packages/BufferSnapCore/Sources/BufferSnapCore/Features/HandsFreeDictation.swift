@@ -33,7 +33,6 @@ public struct HandsFreeDictation: Sendable, Equatable {
         case saved
         case nothingHeard
         case needsPermission
-        case signedOut
         case couldNotListen
         case couldNotSave
     }
@@ -41,7 +40,7 @@ public struct HandsFreeDictation: Sendable, Equatable {
     /// What the session must do next.
     public enum Command: Sendable, Equatable {
         case none
-        /// Check sign-in and permission, then turn the mic on.
+        /// Check permission, then turn the mic on.
         case start
         /// Ask the recognizer for its last words.
         case finish
@@ -241,8 +240,6 @@ extension DictationStatus.Phase {
             self = .nothingHeard
         case .needsPermission:
             self = .needsPermission
-        case .signedOut:
-            self = .signedOut
         case .couldNotListen:
             self = .couldNotListen
         case .couldNotSave:

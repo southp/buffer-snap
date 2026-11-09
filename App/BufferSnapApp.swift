@@ -46,7 +46,6 @@ struct BufferSnapApp: App {
         )
         handsFreeDictation = Self.makeHandsFreeDictation(
             store: environment.captureStore,
-            auth: environment.auth,
             submissions: environment.submissions,
             appModel: appModel
         )
@@ -95,7 +94,6 @@ struct BufferSnapApp: App {
     /// waits for this `init`, even when the intent is what launched the app.
     private static func makeHandsFreeDictation(
         store: any CaptureStore,
-        auth: any AuthService,
         submissions: SubmissionQueue,
         appModel: AppModel
     ) -> HandsFreeDictationSession {
@@ -104,8 +102,6 @@ struct BufferSnapApp: App {
             store: store,
             display: LiveActivityDictationDisplay(),
             keepAlive: BackgroundTaskKeepAlive(),
-            // Reads the Keychain each time, so a sign-out in the app counts at once.
-            isSignedIn: { auth.hasSavedSession() },
             // Sends it if its batch is due, or asks iOS to wake the app when it will be, since the app may never come
             // to the foreground. The session keeps the process awake until this returns.
             onSaved: {

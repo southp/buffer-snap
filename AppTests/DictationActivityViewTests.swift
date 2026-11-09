@@ -39,10 +39,6 @@ struct DictationActivityViewTests {
         assertScreenSnapshot(of: activity(.needsPermission), named: "needsPermission")
     }
 
-    @Test func signedOut() {
-        assertScreenSnapshot(of: activity(.signedOut), named: "signedOut")
-    }
-
     @Test func couldNotListen() {
         assertScreenSnapshot(of: activity(.couldNotListen), named: "couldNotListen")
     }

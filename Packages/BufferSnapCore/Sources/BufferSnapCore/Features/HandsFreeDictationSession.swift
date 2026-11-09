@@ -22,7 +22,6 @@ public final class HandsFreeDictationSession {
     private let display: any DictationDisplay
     private let keepAlive: any DictationKeepAlive
     private let clock: any DictationClock
-    private let isSignedIn: @MainActor () -> Bool
     private let onSaved: @MainActor () async -> Void
     private let finalWordsTimeout: TimeInterval
 
@@ -37,7 +36,6 @@ public final class HandsFreeDictationSession {
     public private(set) var needsPermissionPrompt = false
 
     /// - Parameters:
-    ///   - isSignedIn: Whether there's a Buffer session. Without one, a press says to sign in and doesn't listen.
     ///   - onSaved: Runs after each capture is stored, which is when it can start on its way to Buffer. The process is
     ///     kept awake until it returns.
     ///   - finalWordsTimeout: How long to wait for the recognizer's last words after a stop, before going with what
@@ -48,7 +46,6 @@ public final class HandsFreeDictationSession {
         display: any DictationDisplay,
         keepAlive: any DictationKeepAlive,
         clock: any DictationClock = SystemDictationClock(),
-        isSignedIn: @escaping @MainActor () -> Bool = { true },
         onSaved: @escaping @MainActor () async -> Void = {},
         finalWordsTimeout: TimeInterval = 3
     ) {
@@ -57,7 +54,6 @@ public final class HandsFreeDictationSession {
         self.display = display
         self.keepAlive = keepAlive
         self.clock = clock
-        self.isSignedIn = isSignedIn
         self.onSaved = onSaved
         self.finalWordsTimeout = finalWordsTimeout
     }
@@ -103,10 +99,6 @@ public final class HandsFreeDictationSession {
     }
 
     private func start() async {
-        guard isSignedIn() else {
-            couldNotStart(.signedOut)
-            return
-        }
         let permission = await speech.permission()
         guard permission == .granted else {
             needsPermissionPrompt = permission == .undetermined
