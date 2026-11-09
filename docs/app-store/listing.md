@@ -36,7 +36,7 @@ Press once, say the idea, and it's in Buffer. BufSnap turns your voice into Buff
 Ideas don't wait for you to sit down. They show up mid-workout, on a walk, with your hands full. BufSnap gets them into Buffer before they're gone: press once, say the idea, done.
 
 PRESS, SPEAK, DONE
-Add "Dictate an Idea" to Control Center, the Action button or the Lock Screen, or put the Dictate widget on your Home Screen. Press it and start talking. The app stays closed: your words show up live on the Lock Screen and in the Dynamic Island, and BufSnap saves them when you press again, tap Stop or pause for 3 seconds.
+Add "Dictate an Idea" to Control Center, the Action button or the Lock Screen's bottom buttons, or put the Dictate widget on your Home Screen. Press it and start talking. The app stays closed: your words show up live on the Lock Screen and in the Dynamic Island, and BufSnap saves them when you press again, tap Stop or pause for 3 seconds.
 
 STRAIGHT TO BUFFER
 Every idea goes to the Ideas in your Buffer account, ready to turn into a post. Ideas you capture a few minutes apart are combined into one, so a train of thought stays together. You choose how long that window is, or turn it off.

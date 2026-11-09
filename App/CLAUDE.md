@@ -63,6 +63,25 @@ For multi-screen flows (navigation, sign-in, anything a single view can't show),
   `axe tap -x <x> -y <y> --tap-style physical --udid "$(just _sim-udid)"`. Its `axe swipe` worked as is.
 - Screenshots from a run don't replace snapshot tests. Once a screen looks right, cover its states with snapshots.
 
+## The capture file
+
+Only the app reads and writes captures, in one file.
+
+- **The file:** `captures-v2.json` in the App Group container `group.me.southp.buffersnap`. Get its URL from
+  `SharedStorage.capturesFileURL()`; never build the path yourself.
+- **The store:** `JSONFileCaptureStore`, wrapped in `CappedCaptureStore`, built once in `BufferSnapApp`. Write through
+  that one: `docs/decisions/46-no-file-coordination.md` relies on there being a single writer.
+- **A missing file means no captures.** Nothing seeds it.
+- **The mock captures are removed at launch.** The buttons that wrote them are gone, and the app deletes what they left
+  (`docs/decisions/41-remove-mock-captures-by-text.md`).
+
+Inspect it on the simulator:
+
+```sh
+UDID="$(just _sim-udid)"
+cat "$(xcrun simctl get_app_container "$UDID" me.southp.buffersnap group.me.southp.buffersnap)/captures-v2.json"
+```
+
 ## App icon
 
 `App/Assets.xcassets/AppIcon.appiconset/AppIcon.png` is generated from `docs/design/app-icon.svg`. Edit the SVG, run

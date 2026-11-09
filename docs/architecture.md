@@ -19,11 +19,9 @@ SwiftUI shells over it.
 - **Views** (`App/Views/`) only render. `RootView` shows the capture list, signed in or not, and it's the only screen.
   Signing in is a row on the list. A screen feeds a stateless view (`CaptureListView`) plain values and closures, and
   `CaptureListScreen` owns its feature model. Conventions: [`App/CLAUDE.md`](../App/CLAUDE.md).
-- **The widget** (`Widget/`) is a WidgetKit extension: a control, a widget for the Home Screen, Today View and Lock
-  Screen, a small dictation widget, and a timeline that reads the count. All of them run `DictateIdeaIntent` (`Shared/`,
-  compiled into both the app and the widget), which dictates without opening the app, and the extension draws its Live
-  Activity. Conventions:
-  [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
+- **The widget** (`Widget/`) is a WidgetKit extension: the "Dictate an Idea" control and the "Dictate an Idea" widget.
+  Both run `DictateIdeaIntent` (`Shared/`, compiled into both the app and the widget), which dictates without opening
+  the app, and the extension draws its Live Activity. Conventions: [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
 
 Why: [`5-spm-core.md`](decisions/5-spm-core.md), [`5-core-ui-import-lint.md`](decisions/5-core-ui-import-lint.md).
 
@@ -35,7 +33,7 @@ Arrows point from a layer to what it uses.
 flowchart TD
     subgraph shells["UI shells (SwiftUI)"]
         App["App: BufferSnapApp → RootView<br/>(CaptureListScreen, BatchingSettingsScreen)"]
-        Widget["Widget: SnapperWidget, DictateWidget, DictateIdeaControl"]
+        Widget["Widget: DictateWidget, DictateIdeaControl"]
         Intent["Shared: DictateIdeaIntent"]
         AppleSpeech["App: AppleSpeechTranscriber"]
     end
@@ -62,7 +60,7 @@ flowchart TD
             MockAuth["MockAuthService"]
             MockSpeech["MockSpeechTranscriber"]
             FileStore["JSONFileCaptureStore"]
-            Notifying["NotifyingCaptureStore, CappedCaptureStore (wrap a store)"]
+            Capped["CappedCaptureStore (wraps a store)"]
             OAuth["OAuthAuthService → KeychainSessionStore"]
             GraphQL["GraphQLBufferClient, MockBufferClient"]
             Path["NetworkPathConnectivityMonitor, MockConnectivityMonitor"]
@@ -75,7 +73,6 @@ flowchart TD
     App --> features
     App --> Intent
     Widget --> Intent
-    Widget --> FileStore
     Env --> services
     AppModel --> AuthService
     Session --> CaptureStore
@@ -92,7 +89,7 @@ flowchart TD
     Queue --> Window
     InMemory -->|implements| CaptureStore
     FileStore -->|implements| CaptureStore
-    Notifying -->|implements| CaptureStore
+    Capped -->|implements| CaptureStore
     MockAuth -->|implements| AuthService
     OAuth -->|implements| AuthService
     GraphQL -->|implements| BufferClient
@@ -109,19 +106,15 @@ flowchart TD
 ```mermaid
 flowchart LR
     Mic["App: AppleSpeechTranscriber"] -->|"words heard so far"| Capture
-    Capture["HandsFreeDictationSession"] -->|"add(_:)"| Notifying["App: NotifyingCaptureStore"]
-    Delete["App: CaptureListView"] -->|"delete(id:)"| Notifying
-    Notifying -->|"add(_:), delete(id:)"| Store[("captures-v2.json in the App Group<br/>(JSONFileCaptureStore)")]
-    Notifying -.->|"reloads timelines"| Timeline["Widget: CaptureCountProvider"]
-    Store -->|"all()"| Timeline
-    Timeline -->|"N waiting to send"| Face["Widget: SnapperWidgetView"]
+    Capture["HandsFreeDictationSession"] -->|"add(_:)"| Capped["App: CappedCaptureStore"]
+    Delete["App: CaptureListView"] -->|"delete(id:)"| Capped
+    Capped -->|"add(_:), delete(id:)"| Store[("captures-v2.json in the App Group<br/>(JSONFileCaptureStore)")]
     Store -->|"all()"| List["CaptureListModel.load()"]
     List -->|captures| Delete
 ```
 
 A dictation saves what it heard as a pending text capture, and nothing if nothing was heard. No audio is kept. The write
-goes through `NotifyingCaptureStore`, which reloads the widget's timelines afterwards, as a delete in the list does. Inside it,
-`CappedCaptureStore` keeps at most 500 captures by dropping the oldest sent ones
+goes through `CappedCaptureStore`, as a delete in the list does. It keeps at most 500 captures by dropping the oldest sent ones
 ([`46-storage-limit.md`](decisions/46-storage-limit.md)). When the list opens, or the app returns to the foreground, it
 reads every capture from the store and shows them newest first, under one sync status with Sync now
 ([`46-sync-now.md`](decisions/46-sync-now.md)).
@@ -209,9 +202,10 @@ stateDiagram-v2
 - A joined batch has no length limit of its own: [`45-joined-batch-length.md`](decisions/45-joined-batch-length.md).
 - The wake-up iOS is asked for: [`45-background-wake-at-window-end.md`](decisions/45-background-wake-at-window-end.md).
 
-## The widget's store
+## The capture file
 
-The widget only reads the store. The store contract is in [`Widget/CLAUDE.md`](../Widget/CLAUDE.md).
+Only the app reads and writes the captures, in a file in the App Group container. The contract is in
+[`App/CLAUDE.md`](../App/CLAUDE.md).
 
 Installs from before #40 have a `captures.json` holding only mock captures. The app deletes it at launch and nothing
 reads it: [`40-new-capture-file.md`](decisions/40-new-capture-file.md). Installs from between #40 and #41 can have mock
@@ -228,7 +222,7 @@ sequenceDiagram
     participant Rules as HandsFreeDictation
     participant Mic as AppleSpeechTranscriber (mixes with others)
     participant Activity as LiveActivityDictationDisplay
-    participant Store as NotifyingCaptureStore
+    participant Store as CappedCaptureStore
     Surface->>Intent: Press
     Intent->>Session: press()
     Session->>Rules: press(at:) → .start
