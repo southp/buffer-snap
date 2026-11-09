@@ -61,11 +61,20 @@ struct DictationTimer: View {
 }
 
 /// Stops listening. It needs no passcode.
+///
+/// It's an icon because the Dynamic Island's trailing region, which it shares with the timer, is too narrow for the
+/// word: "Stop" wrapped there as "Sto / p". The label stays "Stop" for VoiceOver, and the large control size keeps it
+/// over 44 points, so it's as easy to hit as the word was.
 struct DictationStopButton: View {
     var body: some View {
-        Button("Stop", intent: StopDictationIntent())
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
+        Button(intent: StopDictationIntent()) {
+            Label("Stop", systemImage: "stop.fill")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .tint(.red)
     }
 }
 
