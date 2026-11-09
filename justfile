@@ -406,7 +406,8 @@ store-screenshots: build
     launch() {
         xcrun simctl terminate "$1" {{bundle_id}} 2>/dev/null || true
         # -batchWindow 300 is the standard window, whatever an earlier run chose. English, whatever the Mac's language.
-        xcrun simctl launch "$1" {{bundle_id}} -mockAuth signedIn -batchWindow 300 \
+        # -skipPermissionPrompt keeps the system's prompts off the screenshots.
+        xcrun simctl launch "$1" {{bundle_id}} -mockAuth signedIn -batchWindow 300 -skipPermissionPrompt YES \
             -AppleLanguages "(en-US)" -AppleLocale en_US > /dev/null
         sleep 4
     }

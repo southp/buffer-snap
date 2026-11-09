@@ -298,29 +298,6 @@ struct HandsFreeDictationSessionTests {
         #expect(session.dictation.phase == .ended(.needsPermission))
         #expect(fixture.display.shown.map(\.phase) == [.needsPermission])
         #expect(await fixture.speech.startCount == 0)
-        #expect(!session.needsPermissionPrompt)
-    }
-
-    // Only the app on screen can ask, so it asks next time it's opened.
-    @Test func aPermissionNotAskedForYetIsAskedForInTheApp() async {
-        let fixture = HandsFreeDictationSessionTests(speech: MockSpeechTranscriber(permission: .undetermined))
-        let session = fixture.makeSession()
-
-        await session.press()
-        #expect(session.dictation.phase == .ended(.needsPermission))
-        #expect(await fixture.speech.requestCount == 0)
-
-        await session.askForPermissionIfNeeded()
-        await session.askForPermissionIfNeeded()
-        #expect(await fixture.speech.requestCount == 1)
-    }
-
-    @Test func theAppDoesntAskForPermissionUnprompted() async {
-        let session = makeSession()
-
-        await session.askForPermissionIfNeeded()
-
-        #expect(await speech.requestCount == 0)
     }
 }
 

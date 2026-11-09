@@ -106,7 +106,7 @@ extension DictationStatus {
         case .nothingHeard:
             "Nothing was saved."
         case .needsPermission:
-            "Open BufSnap to allow the microphone and speech recognition."
+            "Open BufSnap to allow the microphone and speech recognition, or turn them on in Settings."
         case .couldNotListen:
             "Try again in a moment."
         case .couldNotSave:

@@ -40,5 +40,7 @@ schemes:
       commandLineArguments:
         "-AppleLanguages (en-US)": true
         "-AppleLocale en_US": true
+        # Nobody answers the system's prompts for the microphone and speech recognition in a test host.
+        "-skipPermissionPrompt YES": true
     run:
       config: Debug

@@ -78,9 +78,10 @@ struct BufferSnapApp: App {
             await environment.submissions.run()
             await BackgroundSubmission.scheduleWakeUpForOpenBatch(on: environment.submissions)
         }
-        .onChange(of: scenePhase) { _, phase in
-            // A press from the control can't ask for the mic with the app closed, so it asks now.
-            if phase == .active {
+        // `initial`, as the scene is already active the first time this reads it: without it, a first launch won't ask.
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            // A press can't ask for the mic with the app closed, so opening the app does. Then the first press works.
+            if phase == .active && Self.asksForPermission {
                 Task {
                     await handsFreeDictation.askForPermissionIfNeeded()
                 }
@@ -118,6 +119,16 @@ struct BufferSnapApp: App {
             await session.stop()
         }
         return session
+    }
+
+    /// The system's prompts would wait forever in a test host and cover a screenshot, so those launch with
+    /// `-skipPermissionPrompt YES`. Not in Release (`docs/decisions/77-ask-for-permissions-at-launch.md`).
+    private static var asksForPermission: Bool {
+        #if DEBUG
+            return !UserDefaults.standard.bool(forKey: "skipPermissionPrompt")
+        #else
+            return true
+        #endif
     }
 
     /// Mock captures from before the widget's buttons opened the capture screen must not reach Buffer.
