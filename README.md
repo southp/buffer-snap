@@ -24,7 +24,7 @@ Capture starts once the phone is unlocked, which with Face ID is usually just a 
       3. No edit
    5. There will be no sync to Buffer Create. That's not the purpose of this app.
    6. The app should keep an upper limit of how many items to be stored offline, and shuffle things off in a FIFO manner.
-3. Snapper: the capture screen, for typing or when you'd rather see the text first. The capture control and the Snapper widget open it. Text has a limit of, say, 300 chars.
+3. The capture screen, for typing or when you'd rather see the text first. The capture control and the BufSnap widget open it. Text has a limit of, say, 300 chars.
 
    | Capture | How | When |
    |---|---|---|
