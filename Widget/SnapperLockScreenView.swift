@@ -1,20 +1,21 @@
-import BufferSnapCore
+import AppIntents
 import SwiftUI
 import WidgetKit
 
-/// The widget's face on the Lock Screen: a round tap target that opens the capture screen.
+/// The widget's face on the Lock Screen: a round button that starts listening, without opening the app.
 ///
-/// Not a `Button(intent:)`, unlike the other faces. On an iPhone, tapping that here opened the app where it was,
-/// without running the intent. A `widgetURL` is what Apple documents for opening the app from a widget
-/// (`docs/decisions/41-lock-screen-widget-url.md`).
+/// Check it on an iPhone (`docs/decisions/77-lock-screen-widget-dictates.md`): a `Button(intent:)` here once opened the
+/// app without running its intent.
 struct SnapperLockScreenView: View {
     var body: some View {
-        ZStack {
-            AccessoryWidgetBackground()
-            Image(systemName: "bolt.fill")
-                .font(.title2)
-                .accessibilityLabel("Capture")
+        Button(intent: DictateIdeaIntent()) {
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "mic.fill")
+                    .font(.title2)
+                    .accessibilityLabel("Dictate an Idea")
+            }
         }
-        .widgetURL(AppLink.capture.url)
+        .buttonStyle(.plain)
     }
 }

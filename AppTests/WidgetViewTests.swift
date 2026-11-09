@@ -5,7 +5,7 @@ import Testing
 /// plain background. The system draws the real background, so these show the content, not a whole Home Screen.
 @MainActor
 struct WidgetViewTests {
-    /// How many captures are waiting to send, and the one button that opens the capture screen.
+    /// How many captures are waiting to send, and the one button that starts listening without opening the app.
     @Test func medium() {
         assertScreenSnapshot(of: homeScreenWidget(count: 12), named: "medium")
     }
@@ -15,7 +15,8 @@ struct WidgetViewTests {
         assertScreenSnapshot(of: homeScreenWidget(count: 0), named: "mediumEmpty")
     }
 
-    /// The symbol on the round button. The circle behind it, `AccessoryWidgetBackground`, only draws in a real widget.
+    /// The mic on the round button that starts listening. The circle behind it, `AccessoryWidgetBackground`, only
+    /// draws in a real widget.
     @Test func lockScreen() {
         assertScreenSnapshot(of: SnapperLockScreenView().frame(width: 76, height: 76), named: "lockScreen")
     }
