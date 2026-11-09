@@ -119,6 +119,58 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen(waitingCaptures, problem: .couldNotDelete), named: "couldNotDelete")
     }
 
+    // MARK: - Offline mode
+
+    /// A fresh install: nothing captured yet, and the list says plainly what offline mode means.
+    @Test func offlineModeEmpty() {
+        assertScreenSnapshot(of: listScreen([], signInPrompt: signedOut), named: "offlineModeEmpty")
+    }
+
+    /// Ideas stored here say so: no "Sends at", no Send now, no Sync now, and no Resend while signed out.
+    @Test func offlineModeWithIdeas() {
+        let now = Capture.samplesReferenceDate
+        let captures = [
+            Capture(kind: .text, createdAt: now.addingTimeInterval(-180), text: "Friday's post"),
+            Capture(kind: .text, createdAt: now.addingTimeInterval(-120), text: "Add a photo of the team"),
+            Capture(
+                kind: .text, createdAt: now.addingTimeInterval(-7200), status: .failed, text: "Refused long ago",
+                batchID: UUID(), failure: .refused),
+            Capture(
+                kind: .text, createdAt: now.addingTimeInterval(-90000), status: .submitted, text: "Sent long ago",
+                batchID: UUID()),
+        ]
+        assertScreenSnapshot(of: listScreen(captures, signInPrompt: signedOut), named: "offlineModeWithIdeas")
+    }
+
+    /// Buffer ended the session: the ideas wait and the row says to sign in, with no screen in the way.
+    @Test func offlineModeSessionEnded() {
+        let prompt = AppModel.SignInPrompt(notice: .sessionEnded, isSigningIn: false)
+        assertScreenSnapshot(of: listScreen(waitingCaptures, signInPrompt: prompt), named: "offlineModeSessionEnded")
+    }
+
+    /// The button is off while a sign-in is under way.
+    @Test func offlineModeSigningIn() {
+        let prompt = AppModel.SignInPrompt(notice: nil, isSigningIn: true)
+        assertScreenSnapshot(of: listScreen([], signInPrompt: prompt), named: "offlineModeSigningIn")
+    }
+
+    /// The other notices, one PNG each, so a message that no longer fits shows up. Cancelled isn't shown as an error.
+    @Test(arguments: [
+        (AppModel.SignInNotice.cancelled, "cancelled"),
+        (.denied, "denied"),
+        (.unreachable, "unreachable"),
+        (.failed, "failed"),
+        (.signOutFailed, "signOutFailed"),
+    ])
+    func offlineModeNotices(notice: AppModel.SignInNotice, name: String) {
+        let prompt = AppModel.SignInPrompt(notice: notice, isSigningIn: false)
+        assertScreenSnapshot(of: listScreen([], signInPrompt: prompt), named: name)
+    }
+
+    private var signedOut: AppModel.SignInPrompt {
+        AppModel.SignInPrompt(notice: nil, isSigningIn: false)
+    }
+
     private var waitingCaptures: [Capture] {
         ["Friday's post", "Add a photo of the team"].enumerated().map { index, text in
             Capture(
@@ -134,7 +186,8 @@ struct CaptureListViewTests {
         _ captures: [Capture],
         isOffline: Bool = false,
         isSyncing: Bool = false,
-        problem: CaptureListModel.Problem? = nil
+        problem: CaptureListModel.Problem? = nil,
+        signInPrompt: AppModel.SignInPrompt? = nil
     ) -> some View {
         let batches = Array(CaptureBatch.batches(of: captures, window: 5 * 60).reversed())
         let now = Capture.samplesReferenceDate
@@ -150,6 +203,9 @@ struct CaptureListViewTests {
                 onSendNow: {},
                 onResend: { _ in },
                 onShowBatchingSettings: {},
+                signInPrompt: signInPrompt,
+                onSignIn: {},
+                onTypeIdea: {},
                 onSignOut: {}
             )
         }

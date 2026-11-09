@@ -4,8 +4,8 @@ import SwiftUI
 /// The capture screen's container: forwards typing, Save and the mic to `CaptureModel`.
 /// Everything it shows is drawn by the stateless `CaptureView`.
 ///
-/// Unlike other screens it doesn't own its model, as routing to sign-in destroys this screen and the draft has to
-/// outlive that: `docs/decisions/44-draft-survives-session-end.md`.
+/// Unlike other screens it doesn't own its model, so a draft can outlive this screen, for one thing across a session
+/// Buffer ended: `docs/decisions/44-draft-survives-session-end.md`.
 struct CaptureScreen: View {
     let model: CaptureModel
     let onShowCaptures: () -> Void

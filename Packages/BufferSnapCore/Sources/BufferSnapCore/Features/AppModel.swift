@@ -1,20 +1,30 @@
 import OSLog
 import Observation
 
-/// App-wide state: which top-level screen to show.
+/// App-wide state: which screen to show, and whether anyone is signed in to Buffer.
 @Observable
 @MainActor
 public final class AppModel {
-    /// The top-level screen.
+    /// The top-level screen. Signing in doesn't change it: `docs/decisions/68-sign-in-from-the-list.md`.
     public enum Route: Sendable, Equatable {
-        case signedOut
-        /// The capture screen, the first one after sign-in.
-        case capture
-        /// The capture list, one step on from the capture screen.
+        /// The capture list, the first screen whether or not anyone is signed in.
         case captureList
+        /// The capture screen, pushed on the list.
+        case capture
     }
 
-    /// What the sign-in screen tells the user about the last attempt, or about why they're back on it.
+    /// What the list's sign-in row shows while nobody is signed in.
+    public struct SignInPrompt: Sendable, Equatable {
+        public let notice: SignInNotice?
+        public let isSigningIn: Bool
+
+        public init(notice: SignInNotice?, isSigningIn: Bool) {
+            self.notice = notice
+            self.isSigningIn = isSigningIn
+        }
+    }
+
+    /// What the list's sign-in row tells the user about the last attempt, or about why it's back.
     public enum SignInNotice: Sendable, Equatable {
         /// They closed Buffer's page.
         case cancelled
@@ -30,7 +40,10 @@ public final class AppModel {
         case signOutFailed
     }
 
-    public private(set) var route: Route
+    public private(set) var route: Route = .captureList
+    /// Whether there's a Buffer session to send with. Nothing else depends on this: capturing and the list work either
+    /// way, and the queue waits quietly without a session.
+    public private(set) var isSignedIn: Bool
     public private(set) var signInNotice: SignInNotice?
     public private(set) var isSigningIn = false
     /// A press couldn't listen because there was no Live Activity to show it on, so the app has to say why.
@@ -42,19 +55,24 @@ public final class AppModel {
     private let auth: any AuthService
     private let ideas: any IdeasAtSignIn
 
-    /// Starts on the right screen for a saved session, without waiting for anything. So the first frame is already
-    /// right, and `showCapture()` works from the moment the app exists, as a cold launch from the widget needs.
+    /// Reads the saved session without waiting for anything, so the first frame already shows the right state, and
+    /// `showCapture()` works from the moment the app exists, as a cold launch from the widget needs.
     ///
     /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen.
     public init(auth: any AuthService, ideas: any IdeasAtSignIn = NoIdeasAtSignIn()) {
         self.auth = auth
         self.ideas = ideas
-        route = auth.hasSavedSession() ? .capture : .signedOut
+        isSignedIn = auth.hasSavedSession()
     }
 
-    /// Signs in and, on success, moves to the capture screen. Otherwise stays here and says why.
+    /// What the list's sign-in row shows, or `nil` while someone is signed in.
+    public var signInPrompt: SignInPrompt? {
+        isSignedIn ? nil : SignInPrompt(notice: signInNotice, isSigningIn: isSigningIn)
+    }
+
+    /// Signs in, and asks about whatever was waiting. If it doesn't work out, says why in the list's row.
     public func signIn() async {
-        guard route == .signedOut, !isSigningIn else {
+        guard !isSignedIn, !isSigningIn else {
             return
         }
         isSigningIn = true
@@ -70,7 +88,7 @@ public final class AppModel {
             await releaseHeldCaptures()
             return
         }
-        route = .capture
+        isSignedIn = true
         await askAboutHeldIdeas()
     }
 
@@ -91,7 +109,7 @@ public final class AppModel {
         ideasToConfirm = nil
     }
 
-    /// Signs out and moves to the sign-in screen.
+    /// Signs out. The list stays, with every idea on it.
     public func signOut() async {
         do {
             try await auth.signOut()
@@ -100,14 +118,14 @@ public final class AppModel {
         } catch {
             signInNotice = .signOutFailed
         }
-        route = .signedOut
+        isSignedIn = false
         ideasToConfirm = nil
     }
 
     /// Checks that the session still works, refreshing the token if it's due, for when the app comes to the foreground.
     /// Only losing the session changes anything: failing to reach Buffer is no reason to interrupt someone offline.
     public func checkSession() async {
-        guard route != .signedOut else {
+        guard isSignedIn else {
             // A sign-in that never finished, such as a crash during it, may have left captures held.
             if !isSigningIn {
                 await releaseHeldCaptures()
@@ -118,8 +136,8 @@ public final class AppModel {
             _ = try await auth.validAccessToken()
         } catch let error as AuthError where error.requiresSignIn {
             // They may have signed out during the check. That's not a session that ended on them.
-            if route != .signedOut {
-                route = .signedOut
+            if isSignedIn {
+                isSignedIn = false
                 signInNotice = .sessionEnded
                 ideasToConfirm = nil
                 await releaseHeldCaptures()
@@ -129,14 +147,10 @@ public final class AppModel {
         }
     }
 
-    /// Moves back from the capture list to the capture screen, and does nothing anywhere else.
-    ///
-    /// A control or widget can ask for the capture screen at any moment, even while the app is still getting past
-    /// sign-in. That needs no remembering: every way past sign-in ends on the capture screen.
+    /// Opens the capture screen, on top of the list. A control or widget can ask for it at any moment, even at a cold
+    /// launch, and needs nothing remembered: the route is good from the moment the app exists.
     public func showCapture() {
-        if route == .captureList {
-            route = .capture
-        }
+        route = .capture
     }
 
     /// Says that dictating needs Live Activities.
@@ -148,11 +162,9 @@ public final class AppModel {
         isShowingLiveActivitiesNotice = false
     }
 
-    /// Moves to the capture list, unless signed out.
+    /// Back to the capture list.
     public func showCaptureList() {
-        if route != .signedOut {
-            route = .captureList
-        }
+        route = .captureList
     }
 
     /// Asks about what's held, once, after a sign-in. Whatever is held at this moment goes into the count, including
