@@ -10,7 +10,7 @@ Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `
 - **A screen is a container; a view is stateless.** A `…Screen` (e.g. `CaptureListScreen`) owns its Core model in
   `@State`, loads it (`.task`) and forwards actions to it. It renders through a `…View` that takes plain values plus
   closures (`CaptureListView(captures:now:onDelete:)`), so a snapshot test can show any state without async loading.
-  A screen with no state of its own (`SignInView`) is just the view, with its action as a closure.
+  A view with no state of its own (`SignInPromptRow`) is just the view, with its action as a closure.
 - **No logic in views.** Routing, loading, deleting and every other state change belong to a Core model and its unit
   tests. A view may only map values to pixels (a kind's SF Symbol, a status's color).
 - **Never read the clock or the locale in a view.** Take `now: Date` as a parameter (the screen feeds it from a
