@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 41
-status: accepted
+status: superseded
+superseded_by: 68-sign-in-from-the-list.md
 ---
 
 # Don't remember a request for the capture screen made before sign-in

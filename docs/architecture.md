@@ -16,8 +16,8 @@ SwiftUI shells over it.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
   only place that picks which implementations run.
 - **Models** are plain `Sendable` values (`Capture`).
-- **Views** (`App/Views/`) only render. `RootView` shows what `AppModel.route` names: sign-in, or the capture screen
-  with the capture list pushed on top of it. A screen feeds a stateless view (`CaptureView`, `CaptureListView`) plain
+- **Views** (`App/Views/`) only render. `RootView` shows the capture list, signed in or not, with the capture screen pushed
+  on it when `AppModel.route` says so. Signing in is a row on the list. A screen feeds a stateless view (`CaptureView`, `CaptureListView`) plain
   values and closures. `CaptureListScreen` owns its feature model, and `BufferSnapApp` owns `CaptureModel`, so a draft
   outlives the screen when a session ends. Conventions: [`App/CLAUDE.md`](../App/CLAUDE.md).
 - **The widget** (`Widget/`) is a WidgetKit extension: a control, a widget for the Home Screen, Today View and Lock
@@ -36,7 +36,7 @@ Arrows point from a layer to what it uses.
 ```mermaid
 flowchart TD
     subgraph shells["UI shells (SwiftUI)"]
-        App["App: BufferSnapApp → RootView<br/>(SignInView, CaptureScreen, CaptureListScreen, BatchingSettingsScreen)"]
+        App["App: BufferSnapApp → RootView<br/>(CaptureListScreen, CaptureScreen, BatchingSettingsScreen)"]
         Widget["Widget: SnapperWidget, OpenCaptureControl"]
         Intent["Shared: OpenCaptureIntent"]
         AppleSpeech["App: AppleSpeechTranscriber"]
@@ -151,12 +151,13 @@ sequenceDiagram
     Auth->>Buffer: POST /token with the code and PKCE verifier
     Buffer->>Auth: Access and refresh tokens
     Auth->>Keychain: Save, before anything uses them
-    Auth->>Model: Done, route is now .capture
+    Auth->>Model: Done, signed in
+    Model->>Model: Ask "Send N ideas to this account?"
 ```
 
-`AppModel` picks its first route from `hasSavedSession()`, which reads the Keychain, so the first frame is already right.
-When the scene becomes active, `checkSession()` asks for a valid token, which refreshes it if it's due. Only Buffer
-rejecting the refresh token sends the user back to sign-in. Everything that needs a token calls `validAccessToken()`,
+`AppModel` reads `hasSavedSession()` at launch, which reads the Keychain, so the first frame is already right, and the
+list is the first screen either way. When the scene becomes active, `checkSession()` asks for a valid token, which
+refreshes it if it's due. Only Buffer rejecting the refresh token ends the session, and the list's row then says so. Everything that needs a token calls `validAccessToken()`,
 and `OAuthAuthService` makes sure only one refresh ever runs, because reusing a refresh token revokes the session:
 [`43-single-use-refresh-tokens.md`](decisions/43-single-use-refresh-tokens.md).
 
@@ -188,7 +189,7 @@ flowchart LR
 
 `SubmissionQueue` asks `validAccessToken()` for a token and reports a 401 with `accessTokenRejected(_:)`. Each pass looks up the organization once. A capture stays `pending` until Buffer has it (`submitted`) or it can't get there without someone stepping in (`failed`). What each failure leads to: [`44-what-gets-retried.md`](decisions/44-what-gets-retried.md). Why a lost response can leave a duplicate: [`44-duplicate-ideas.md`](decisions/44-duplicate-ideas.md).
 
-All of this runs in the app's process, on the one `AuthService`: [`44-background-sending.md`](decisions/44-background-sending.md). Before any sign-in, pending captures turn to `failed`, so they can't reach the next account by themselves: [`44-hold-captures-at-sign-in.md`](decisions/44-hold-captures-at-sign-in.md).
+All of this runs in the app's process, on the one `AuthService`: [`44-background-sending.md`](decisions/44-background-sending.md). Signed out, the queue waits quietly without calling Buffer. Before any sign-in, pending captures are held, so they can't reach the next account by themselves, and it asks once what to do with them: [`68-ideas-at-sign-in.md`](decisions/68-ideas-at-sign-in.md).
 
 ## Batches
 
@@ -199,11 +200,12 @@ stateDiagram-v2
     [*] --> Open: Saved
     Open --> Open: Another capture restarts the window
     Open --> Closed: The window has ended, or Send now
-    Open --> Failed: Held before a sign-in
+    Open --> Held: Before a sign-in
     Closed --> Submitted: createIdea succeeds
     Closed --> Closed: No answer, so the same text goes again
     Closed --> Failed: Refused, too many server failures, or held
     Failed --> Closed: Resend
+    Held --> Closed: Yes to "Send N ideas?"
 ```
 
 `CaptureBatch.batches` is the one place that groups, and it's pure. An open batch comes from timestamps and the current window, so a relaunch mid-window needs nothing restored, and a wake-up follows from what the planner says. A closed batch comes from its captures' `batchID`, written just before the first attempt, so a retry sends the same text and a capture saved after that goes in the next batch: [`45-batch-membership.md`](decisions/45-batch-membership.md).
@@ -231,15 +233,14 @@ flowchart LR
     Hook --> Show["AppModel.showCapture()"]
     Lock["Lock Screen widget"] -->|"widgetURL"| URL["buffersnap://capture"]
     URL -->|"onOpenURL, if AppLink(url:) is .capture"| Show
-    Show -->|"on the capture list"| Capture["Capture screen"]
-    Show -.->|"anywhere else: nothing to do"| Route["Route stays, and every way past sign-in ends on capture"]
+    Show -->|"from anywhere, signed in or not"| Capture["Capture screen, pushed on the list"]
 ```
 
 From a locked phone, the system asks to unlock first, since the intent isn't always allowed, and a widget tap always
 needs an unlock to open the app. The Lock Screen widget uses a URL because its intent button didn't run on a device:
-[`41-lock-screen-widget-url.md`](decisions/41-lock-screen-widget-url.md). A cold launch reaches
-capture whichever comes first, the intent or getting past sign-in:
-[`41-no-remembered-capture-request.md`](decisions/41-no-remembered-capture-request.md).
+[`41-lock-screen-widget-url.md`](decisions/41-lock-screen-widget-url.md). The route is good from the
+moment the app exists, so a cold launch reaches capture with nothing to remember:
+[`68-sign-in-from-the-list.md`](decisions/68-sign-in-from-the-list.md).
 
 ## Dictating without opening the app
 

@@ -1,7 +1,8 @@
 ---
 date: 2026-11-08
 issue: 58
-status: accepted
+status: superseded
+superseded_by: 68-dictate-while-signed-out.md
 ---
 
 # Dictate from a control without opening the app
