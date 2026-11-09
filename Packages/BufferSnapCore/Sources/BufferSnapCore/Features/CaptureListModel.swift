@@ -13,6 +13,8 @@ public final class CaptureListModel {
         case couldNotResend
         /// Send now or Sync now couldn't close what's open, so nothing changed.
         case couldNotSend
+        /// The clear didn't happen, so everything is still listed.
+        case couldNotClear
     }
 
     /// Stored captures, newest first. Empty until `load()` finishes.
@@ -30,6 +32,11 @@ public final class CaptureListModel {
     public private(set) var isSyncing = false
     /// What went wrong last, until the next try of the same kind works.
     public private(set) var problem: Problem?
+    /// How many ideas have gone in full and could be cleared, counted as the list shows them: a batch of three captures
+    /// is one idea. A batch with anything unsent isn't one of them.
+    public var clearableIdeaCount: Int {
+        batches.count { $0.state == .submitted }
+    }
 
     private let store: any CaptureStore
     private let submissions: SubmissionQueue
@@ -108,6 +115,15 @@ public final class CaptureListModel {
         } catch {
             // Keep it listed, since the store still has it.
             problem = .couldNotDelete
+        }
+    }
+
+    /// Removes every submitted capture from this iPhone, in one write. They stay in Buffer. Only submitted captures go,
+    /// so a batch that's partly unsent loses just its sent part, and the rest is listed and resent as before.
+    public func clearSubmitted() async {
+        await attempt(failingWith: .couldNotClear) {
+            try await store.deleteSubmitted()
+            await submissions.replan()
         }
     }
 

@@ -115,6 +115,8 @@ struct CaptureListProblemRow: View {
             "Couldn't resend. Try again."
         case .couldNotSend:
             "Couldn't start sending. Try again."
+        case .couldNotClear:
+            "Couldn't clear your submitted ideas. Try again."
         }
     }
 }
