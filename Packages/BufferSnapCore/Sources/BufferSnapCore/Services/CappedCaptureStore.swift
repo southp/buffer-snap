@@ -29,6 +29,10 @@ public struct CappedCaptureStore: CaptureStore {
         try await base.delete(id: id)
     }
 
+    public func deleteSubmitted() async throws {
+        try await base.deleteSubmitted()
+    }
+
     public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
         try await base.setStatus(status, failure: failure, ids: ids)
         guard status == .submitted else {

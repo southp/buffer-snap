@@ -9,6 +9,10 @@ public protocol CaptureStore: Sendable {
     func add(_ capture: Capture) async throws
     /// Removes the capture with `id`. Does nothing if there is none.
     func delete(id: Capture.ID) async throws
+    /// Removes every submitted capture, all in one write, and nothing that's still on its way or failed. A requirement
+    /// rather than a loop over `delete(id:)`, so a send finishing part-way through can't change what goes, and the
+    /// widget reloads once.
+    func deleteSubmitted() async throws
     /// Changes the status of the captures with `ids`, all in one write. Skips any that are gone, so an upload finishing
     /// can't bring back a capture deleted while it ran. `failure` is kept only with `.failed`, and cleared otherwise.
     func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws
@@ -43,6 +47,10 @@ public actor InMemoryCaptureStore: CaptureStore {
 
     public func delete(id: Capture.ID) {
         captures.removeAll { $0.id == id }
+    }
+
+    public func deleteSubmitted() {
+        captures.removeAll { $0.status == .submitted }
     }
 
     public func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) {

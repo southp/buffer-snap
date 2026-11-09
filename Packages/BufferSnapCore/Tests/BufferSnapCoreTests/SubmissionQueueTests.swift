@@ -123,6 +123,21 @@ struct SubmissionQueueTests {
         #expect(await server.ideaTexts == ["First", "Second"])
     }
 
+    /// The request is out, so the capture isn't submitted yet: the clear leaves it, and it's kept once it is.
+    @Test func aClearDuringASendLeavesTheCaptureBeingSent() async throws {
+        let store = InMemoryCaptureStore(seed: [.text("First", at: 1)])
+        let queue = fixture.makeQueue(store: store)
+        await server.holdNextIdea()
+
+        async let run: Void = queue.run()
+        await server.waitForHeldIdea()
+        await store.deleteSubmitted()
+        await server.releaseIdea()
+        await run
+
+        #expect(await store.all().map(\.status) == [.submitted])
+    }
+
     /// The tightest case: the pass has read the store and found nothing, and it's about to end.
     @Test func aCaptureSavedJustAsAPassEndsIsStillSent() async throws {
         let late = Capture.text("Late", at: 2)
