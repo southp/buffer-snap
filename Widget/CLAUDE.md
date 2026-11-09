@@ -7,46 +7,29 @@ in [`docs/architecture.md`](../docs/architecture.md).
 
 | Surface | Type | Runs |
 |---|---|---|
-| Action button, Control Center, Lock Screen control | `OpenCaptureControl` | `OpenCaptureIntent` |
-| Home Screen and Today View (`systemMedium`) | `SnapperWidget`, drawn by `SnapperWidgetView` | `OpenCaptureIntent` |
-| Lock Screen widget (`accessoryCircular`) | `SnapperWidget`, drawn by `SnapperLockScreenView` | `widgetURL` to `buffersnap://capture` |
+| Home Screen and Today View (`systemMedium`) | `SnapperWidget`, drawn by `SnapperWidgetView` | `DictateIdeaIntent` |
+| Lock Screen widget (`accessoryCircular`) | `SnapperWidget`, drawn by `SnapperLockScreenView` | `DictateIdeaIntent` |
 | Action button, Control Center, Lock Screen control | `DictateIdeaControl` | `DictateIdeaIntent` |
 | Home Screen (`systemSmall`) | `DictateWidget`, drawn by `DictateWidgetView` | `DictateIdeaIntent` |
 | Lock Screen and Dynamic Island, while dictating | `DictationLiveActivity`, drawn by `DictationActivityView` | Stop: `StopDictationIntent` |
 
-`SnapperWidgetBundle` is the extension's `@main` and lists them all. Nothing captures in this extension's process: the
-capture surfaces open the app, and the dictation ones run in the app's process with the app closed.
+`SnapperWidgetBundle` is the extension's `@main` and lists them all. Nothing captures in this extension's process: every
+press runs in the app's process, with the app closed.
 
 ## Dictating without opening the app
 
 - **`DictateIdeaIntent` and `StopDictationIntent` live in `Shared/`.** They're `LiveActivityIntent`s, so the system runs
-  them in the app's process, where they call `HandsFreeDictationSession` through `onRun`. Like `OpenCaptureIntent`'s,
-  the hook stays `nil` here (`docs/decisions/58-dictate-outside-app.md`).
+  them in the app's process, where they call `HandsFreeDictationSession` through `onRun`. The hook stays
+  `nil` here (`docs/decisions/58-dictate-outside-app.md`).
 - **The app owns the Live Activity**: `LiveActivityDictationDisplay` starts, updates and ends it. This extension only
   draws `DictationActivityAttributes`, whose content state is Core's `DictationStatus`.
 - **Only a listening status shows the timer and Stop.** A timer left in any other state kept running after "Saved" on
   the #57 spike. `DictationActivityView` takes `timerPausedAt` so a snapshot can freeze the timer.
+- **The Lock Screen widget is a `Button(intent:)` too.** On an iPhone, the same button with the `openAppWhenRun` intent
+  it used to run opened the app without running it. `DictateIdeaIntent` is a different kind of intent, but check that
+  this one runs (`docs/decisions/77-lock-screen-widget-dictates.md`).
 - **Check it on an iPhone** (`just device`): listening with the app closed, the background audio and the Lock Screen
   are what the #57 spike proved there, and none of it is something the simulator can show.
-
-## Opening the capture screen
-
-- **`OpenCaptureIntent` lives in `Shared/`, which both `target.yml` files compile.** Apple requires an `openAppWhenRun`
-  intent in both targets. If it's only in the widget, it runs without opening the app.
-- **The system runs it in the app's process**, and the log confirms that for the widget's button and the control
-  (`simctl spawn "$UDID" log show` shows `BufferSnap[<pid>]` invoking `OpenCaptureIntent.perform()`). The simulator
-  can't show what the device did on the Lock Screen, below.
-- **The app does the navigating.** `BufferSnapApp.init` sets `OpenCaptureIntent.onRun` to `AppModel.showCapture()`, and
-  in this extension's process it stays `nil` (`docs/decisions/41-open-capture-hook.md`). Don't read app-only state in
-  `perform()`, since the widget compiles it too.
-- **The Lock Screen widget opens a URL instead.** On an iPhone, its `Button(intent:)` opened the app where it was left,
-  without running the intent. The whole circle now carries `widgetURL(AppLink.capture.url)`, which the app handles in
-  `onOpenURL` (`docs/decisions/41-lock-screen-widget-url.md`). Apple's advice is the same for any widget whose tap only
-  opens the app: use `widgetURL` or `Link`, not a button.
-- **`buffersnap://oauth` belongs to sign-in.** `AppLink` handles only the `capture` host. Add a host there, and a test,
-  for any new link.
-- **A cold launch needs nothing extra.** `showCapture()` remembers nothing, because every way past sign-in ends on the
-  capture screen (`docs/decisions/41-no-remembered-capture-request.md`).
 
 ## The App Group store contract
 
@@ -111,5 +94,3 @@ what worked on the iOS 27.2 simulator:
 | Leave the app without killing it | `xcrun simctl launch "$UDID" com.apple.Preferences`, then `xcrun simctl terminate "$UDID" com.apple.Preferences` (`axe button home` and a bottom-edge swipe didn't leave it). This lands on the first page |
 
 When you check the count, make the expected value differ from what's on screen, and compare it with the store's count.
-
-To check the intent, start on the capture list, so that landing on the capture screen shows the intent did something.

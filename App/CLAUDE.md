@@ -5,7 +5,7 @@ Notes for working on the app's views. Repo-wide rules are in the root `CLAUDE.md
 ## Views
 
 Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `AppEnvironment` and owns `AppModel`
-(`@State`), and passes both to `RootView`, which switches on `AppModel.route`.
+(`@State`), and passes both to `RootView`, which shows the capture list, the only screen.
 
 - **A screen is a container; a view is stateless.** A `…Screen` (e.g. `CaptureListScreen`) owns its Core model in
   `@State`, loads it (`.task`) and forwards actions to it. It renders through a `…View` that takes plain values plus
