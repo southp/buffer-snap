@@ -13,7 +13,6 @@ public struct DictationStatus: Codable, Hashable, Sendable {
         case nothingHeard
         /// The microphone or speech recognition isn't allowed, or hasn't been asked for yet.
         case needsPermission
-        case signedOut
         case couldNotListen
         case couldNotSave
     }

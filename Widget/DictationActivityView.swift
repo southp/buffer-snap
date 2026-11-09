@@ -91,8 +91,6 @@ extension DictationStatus {
             "Nothing heard"
         case .needsPermission:
             "Can't listen yet"
-        case .signedOut:
-            "Signed out"
         case .couldNotListen:
             "Couldn't listen"
         case .couldNotSave:
@@ -109,8 +107,6 @@ extension DictationStatus {
             "Nothing was saved."
         case .needsPermission:
             "Open BufferSnap to allow the microphone and speech recognition."
-        case .signedOut:
-            "Open BufferSnap to sign in."
         case .couldNotListen:
             "Try again in a moment."
         case .couldNotSave:
@@ -126,7 +122,7 @@ extension DictationStatus {
             "checkmark.circle.fill"
         case .nothingHeard:
             "mic.slash"
-        case .needsPermission, .signedOut, .couldNotListen, .couldNotSave:
+        case .needsPermission, .couldNotListen, .couldNotSave:
             "exclamationmark.circle"
         }
     }
@@ -139,7 +135,7 @@ extension DictationStatus {
             .secondary
         case .saved:
             .green
-        case .needsPermission, .signedOut, .couldNotListen, .couldNotSave:
+        case .needsPermission, .couldNotListen, .couldNotSave:
             .orange
         }
     }

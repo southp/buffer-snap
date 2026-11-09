@@ -21,14 +21,13 @@ struct HandsFreeDictationSessionTests {
         self.store = store
     }
 
-    private func makeSession(isSignedIn: Bool = true) -> HandsFreeDictationSession {
+    private func makeSession() -> HandsFreeDictationSession {
         HandsFreeDictationSession(
             speech: speech,
             store: store,
             display: display,
             keepAlive: keepAlive,
             clock: clock,
-            isSignedIn: { isSignedIn },
             onSaved: { [sends] in
                 sends.increment()
             }
@@ -322,16 +321,6 @@ struct HandsFreeDictationSessionTests {
         await session.askForPermissionIfNeeded()
 
         #expect(await speech.requestCount == 0)
-    }
-
-    @Test func signedOutDoesntListen() async {
-        let session = makeSession(isSignedIn: false)
-
-        await session.press()
-
-        #expect(session.dictation.phase == .ended(.signedOut))
-        #expect(display.shown.map(\.phase) == [.signedOut])
-        #expect(await speech.startCount == 0)
     }
 }
 

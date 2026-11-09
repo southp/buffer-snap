@@ -37,6 +37,40 @@ struct HandsFreeDictationSendingTests {
     }
 }
 
+/// Signed out, a press still listens and the words are saved: only sending needs an account.
+@MainActor
+struct HandsFreeDictationSignedOutTests {
+    private let speech = MockSpeechTranscriber()
+    private let display = MockDictationDisplay()
+
+    @Test func aDictationWhileSignedOutSavesAndWaits() async throws {
+        let store = InMemoryCaptureStore()
+        let buffer = MockBufferClient()
+        let queue = SubmissionQueue(store: store, auth: MockAuthService(), client: buffer)
+        let session = HandsFreeDictationSession(
+            speech: speech,
+            store: store,
+            display: display,
+            keepAlive: MockDictationKeepAlive(),
+            clock: ManualDictationClock(),
+            onSaved: {
+                await queue.run()
+            }
+        )
+
+        await session.press()
+        await speech.hear("An idea")
+        await waitFor { display.shown.last?.words == "An idea" }
+        await session.press()
+        await waitFor { session.dictation.phase == .ended(.saved) }
+
+        await queue.run()
+        #expect(await store.all().map(\.status) == [.pending])
+        #expect(await speech.startCount == 1)
+        #expect(await buffer.createdIdeas.isEmpty)
+    }
+}
+
 /// Holds whoever waits on it until the test opens it.
 private actor Gate {
     private var isOpen = false
