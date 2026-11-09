@@ -68,19 +68,19 @@ struct JSONFileCaptureStoreTests {
         #expect(try await store.all() == [newest, middle, oldest])
     }
 
-    // The app and the widget are two processes with a store each, so neither may answer from a cache.
+    // Neither store may answer from a cache.
     @Test func storesOnTheSameFileSeeEachOthersWrites() async throws {
         let fileURL = try missingFileURL()
-        let app = JSONFileCaptureStore(fileURL: fileURL)
-        let widget = JSONFileCaptureStore(fileURL: fileURL)
+        let first = JSONFileCaptureStore(fileURL: fileURL)
+        let second = JSONFileCaptureStore(fileURL: fileURL)
         let capture = Capture(kind: .photo)
 
-        #expect(try await app.all().isEmpty)
-        try await widget.add(capture)
-        #expect(try await app.all() == [capture])
+        #expect(try await first.all().isEmpty)
+        try await second.add(capture)
+        #expect(try await first.all() == [capture])
 
-        try await app.delete(id: capture.id)
-        #expect(try await widget.all().isEmpty)
+        try await first.delete(id: capture.id)
+        #expect(try await second.all().isEmpty)
     }
 
     @Test func aFailuresReasonPersistsUntilTheStatusChanges() async throws {
