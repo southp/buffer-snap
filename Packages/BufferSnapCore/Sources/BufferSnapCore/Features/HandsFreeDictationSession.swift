@@ -32,8 +32,8 @@ public final class HandsFreeDictationSession {
     private var keepAliveHolds = 0
     private var isHoldingForDictation = false
     private var hadNowhereToShow = false
-    /// A press found the permission not asked for yet, which only the app on screen can ask for.
-    public private(set) var needsPermissionPrompt = false
+    /// The system's prompts are up. Answering one brings the app back to the foreground while the next is to come.
+    private var isAskingForPermission = false
 
     /// - Parameters:
     ///   - onSaved: Runs after each capture is stored, which is when it can start on its way to Buffer. The process is
@@ -73,14 +73,20 @@ public final class HandsFreeDictationSession {
         await perform(dictation.stopTapped())
     }
 
-    /// Asks for the microphone and speech recognition if a press found them not asked for yet. For when the app comes
-    /// to the foreground, the only time the system lets it ask.
+    /// Asks for the microphone and speech recognition if they haven't been decided yet, so that the first press just
+    /// works. For when the app comes to the foreground, the only time the system lets it ask. Once they're decided,
+    /// this does nothing: `docs/decisions/77-ask-for-permissions-at-launch.md`.
     public func askForPermissionIfNeeded() async {
-        guard needsPermissionPrompt else {
+        guard !isAskingForPermission else {
             return
         }
-        needsPermissionPrompt = false
-        _ = await speech.requestPermission()
+        isAskingForPermission = true
+        defer {
+            isAskingForPermission = false
+        }
+        if await speech.permission() == .undetermined {
+            _ = await speech.requestPermission()
+        }
     }
 
     private func perform(_ command: HandsFreeDictation.Command) async {
@@ -101,7 +107,6 @@ public final class HandsFreeDictationSession {
     private func start() async {
         let permission = await speech.permission()
         guard permission == .granted else {
-            needsPermissionPrompt = permission == .undetermined
             couldNotStart(.needsPermission)
             return
         }
