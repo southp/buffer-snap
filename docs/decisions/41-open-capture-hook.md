@@ -1,7 +1,8 @@
 ---
 date: 2026-11-05
 issue: 41
-status: accepted
+status: superseded
+superseded_by: 77-capture-only-from-outside-the-app.md
 ---
 
 # Reach the app from the intent through a hook the app sets

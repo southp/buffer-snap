@@ -12,8 +12,8 @@ targets:
         excludes:
           - "target.yml"
           - "**/*.md"
-      # Intents and the Live Activity's attributes, compiled into both targets: `openAppWhenRun` needs that, and the
-      # widget draws the Live Activity that the app starts.
+      # Intents and the Live Activity's attributes, compiled into both targets: the widget's buttons name the intents
+      # that the app's process runs, and the widget draws the Live Activity that the app starts.
       - path: Shared
     dependencies:
       - package: BufferSnapCore

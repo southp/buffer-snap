@@ -30,7 +30,6 @@ struct BufferSnapApp: App {
             ideas: environment.submissions
         )
         _appModel = State(initialValue: appModel)
-        OpenCaptureIntent.onRun = { appModel.showCapture() }
         _captureModel = State(
             initialValue: CaptureModel(
                 store: environment.captureStore,
@@ -64,12 +63,6 @@ struct BufferSnapApp: App {
                 )
                 .task {
                     await removeMockCaptures()
-                }
-                // The Lock Screen widget opens `buffersnap://capture`. Other URLs, such as sign-in's, aren't ours.
-                .onOpenURL { url in
-                    if AppLink(url: url) == .capture {
-                        appModel.showCapture()
-                    }
                 }
         }
         // Runs in this process and on this environment's queue, so there's still only one `AuthService`.
