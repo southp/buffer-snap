@@ -67,13 +67,13 @@ struct SyncStatusTests {
         let photo = Capture(kind: .photo, createdAt: Date(timeIntervalSinceReferenceDate: 0))
 
         #expect(status([photo, capture(.submitted, batch: UUID())]) == .allSent)
-        #expect(SyncStatus.waitingCount(of: [photo]) == 0)
+        #expect(status([photo]) == .allSent)
     }
 
     @Test func theWaitingCountLeavesOutFailedAndSent() {
         let captures = [capture(.pending, at: 0), capture(.pending, at: 1000), capture(.failed), capture(.submitted)]
 
-        #expect(SyncStatus.waitingCount(of: captures) == 2)
+        #expect(status(captures) == .failed(count: 1, waiting: 2))
     }
 
     @Test(arguments: [

@@ -50,11 +50,7 @@ public enum SyncStatus: Sendable, Equatable {
         }
     }
 
-    /// How many of `captures` will go to Buffer by themselves: pending ones that can become an idea.
-    public static func waitingCount(of captures: [Capture]) -> Int {
-        waitingCount(of: CaptureBatch.batches(of: captures, window: 0))
-    }
-
+    /// How many captures in `batches` will go to Buffer by themselves: pending ones that can become an idea.
     private static func waitingCount(of batches: [CaptureBatch]) -> Int {
         batches.reduce(0) { count, batch in
             switch batch.state {
