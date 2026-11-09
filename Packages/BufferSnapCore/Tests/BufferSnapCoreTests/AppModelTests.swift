@@ -227,6 +227,17 @@ struct AppModelTests {
         #expect(model.signInNotice == nil)
     }
 
+    @Test func theLiveActivitiesNoticeShowsUntilDismissed() {
+        let model = AppModel(auth: StubAuthService(hasSavedSession: true))
+        #expect(!model.isShowingLiveActivitiesNotice)
+
+        model.showLiveActivitiesNotice()
+        #expect(model.isShowingLiveActivitiesNotice)
+
+        model.dismissLiveActivitiesNotice()
+        #expect(!model.isShowingLiveActivitiesNotice)
+    }
+
     @Test(arguments: [AuthError.sessionExpired, .notSignedIn])
     func losingTheSessionReturnsToSignInAndSaysWhy(error: AuthError) async {
         let model = AppModel(auth: StubAuthService(hasSavedSession: true, tokenError: error))

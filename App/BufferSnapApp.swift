@@ -47,13 +47,24 @@ struct BufferSnapApp: App {
         handsFreeDictation = Self.makeHandsFreeDictation(
             store: environment.captureStore,
             auth: environment.auth,
-            submissions: environment.submissions
+            submissions: environment.submissions,
+            appModel: appModel
         )
     }
 
     var body: some Scene {
         WindowGroup {
             RootView(appModel: appModel, captureModel: captureModel, environment: environment)
+                .liveActivitiesNotice(
+                    isPresented: Binding(
+                        get: { appModel.isShowingLiveActivitiesNotice },
+                        set: { isShowing in
+                            if !isShowing {
+                                appModel.dismissLiveActivitiesNotice()
+                            }
+                        }
+                    )
+                )
                 .task {
                     await removeMockCaptures()
                 }
@@ -85,7 +96,8 @@ struct BufferSnapApp: App {
     private static func makeHandsFreeDictation(
         store: any CaptureStore,
         auth: any AuthService,
-        submissions: SubmissionQueue
+        submissions: SubmissionQueue,
+        appModel: AppModel
     ) -> HandsFreeDictationSession {
         let session = HandsFreeDictationSession(
             speech: AppleSpeechTranscriber(mixesWithOthers: true),
@@ -102,7 +114,11 @@ struct BufferSnapApp: App {
             }
         )
         DictateIdeaIntent.onRun = {
-            await session.press()
+            let result = await session.press()
+            if result == .needsTheApp {
+                appModel.showLiveActivitiesNotice()
+            }
+            return result
         }
         StopDictationIntent.onRun = {
             await session.stop()

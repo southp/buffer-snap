@@ -1,4 +1,5 @@
 import AppIntents
+import BufferSnapCore
 import OSLog
 
 /// What the "Dictate an Idea" control and the Home Screen widget run: listens and saves what's said, without opening
@@ -15,8 +16,14 @@ struct DictateIdeaIntent: AudioRecordingIntent, LiveActivityIntent {
     // As in the #57 spike, which ran it from a control on the Lock Screen too.
     static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
 
+    /// Stays out of the way, unless there's no Live Activity to say why it couldn't listen.
+    @available(iOS 26.0, *)
+    static var supportedModes: IntentModes {
+        [.background, .foreground(.dynamic)]
+    }
+
     /// Set once by the app at launch: `HandsFreeDictationSession.press()`.
-    @MainActor static var onRun: (@MainActor () async -> Void)?
+    @MainActor static var onRun: (@MainActor () async -> HandsFreeDictationSession.PressResult)?
 
     @MainActor
     func perform() async throws -> some IntentResult {
@@ -24,7 +31,10 @@ struct DictateIdeaIntent: AudioRecordingIntent, LiveActivityIntent {
             Logger().error("Dictate an Idea ran where the app can't listen")
             return .result()
         }
-        await onRun()
+        let result = await onRun()
+        if result == .needsTheApp, #available(iOS 26.0, *) {
+            try await continueInForeground(alwaysConfirm: false)
+        }
         return .result()
     }
 }
