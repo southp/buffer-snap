@@ -104,6 +104,7 @@ const PENDING_KEY = "oauthScopeCheck.pending";
 const attempts = [];
 const finishedStates = new Set();
 let watcher = null;
+let waitingForBuffer = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -179,6 +180,7 @@ async function start() {
     return;
   }
   setStatus("Waiting for Buffer…");
+  waitingForBuffer = true;
   watch(popup, request.redirectUri);
 }
 
@@ -191,7 +193,8 @@ function watch(popup, redirectUri) {
     if (popup.closed) {
       clearInterval(watcher);
       watcher = null;
-      if ($("status").textContent === "Waiting for Buffer…") {
+      if (waitingForBuffer) {
+        waitingForBuffer = false;
         // Also what happens if Buffer's pages cut this page off from the popup, so offer the fallback.
         setStatus("Lost track of the popup. If Buffer redirected, paste the URL it landed on below.");
         $("pasteBox").open = true;
@@ -214,6 +217,7 @@ function watch(popup, redirectUri) {
 }
 
 async function finish(href) {
+  waitingForBuffer = false;
   const url = new URL(href);
   const state = url.searchParams.get("state");
   if (finishedStates.has(state)) {
@@ -346,15 +350,21 @@ function md(text) {
   return String(text).replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
 
+// An inline code span: a backtick inside one needs a longer fence.
+function codeSpan(text) {
+  const value = md(text);
+  return value.includes("`") ? `\`\` ${value} \`\`` : `\`${value}\``;
+}
+
 function report() {
   const lines = [
     "| # | Time (UTC) | prompt | Scope requested | Scope granted | Refresh token | Token response fields | What I did on Buffer's page |",
     "|---|---|---|---|---|---|---|---|",
   ];
   for (const a of attempts) {
-    const granted = a.error ? md(a.error) : `\`${md(a.granted)}\``;
+    const granted = a.error ? md(a.error) : codeSpan(a.granted);
     const refresh = a.error ? "n/a" : (a.refreshToken ? "yes" : "**no**");
-    const cells = [a.number, a.time, md(a.prompt), `\`${md(a.requested)}\``, granted, refresh, md(a.responseFields), md(a.note)];
+    const cells = [a.number, a.time, md(a.prompt), codeSpan(a.requested), granted, refresh, md(a.responseFields), md(a.note)];
     lines.push(`| ${cells.join(" | ")} |`);
   }
   lines.push("", `Browser: ${navigator.userAgent}`);
