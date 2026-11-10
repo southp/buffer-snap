@@ -1,0 +1,192 @@
+import SwiftUI
+
+// MARK: - Cards
+
+/// Which part of a card a list row draws. A `List` gives each row its own background, so a card of several rows is
+/// drawn a part per row: the top one has the top corners, the bottom one the bottom corners and the shadow below.
+enum CardPart: Equatable {
+    case whole
+    case top
+    case middle
+    case bottom
+
+    /// The part of the row at `index` in a card of `count` rows.
+    init(index: Int, count: Int) {
+        switch (index == 0, index == count - 1) {
+        case (true, true):
+            self = .whole
+        case (true, false):
+            self = .top
+        case (false, true):
+            self = .bottom
+        case (false, false):
+            self = .middle
+        }
+    }
+
+    /// Whether the card goes on above this row.
+    var continuesAbove: Bool {
+        self == .middle || self == .bottom
+    }
+
+    /// Whether the card goes on below this row.
+    var continuesBelow: Bool {
+        self == .top || self == .middle
+    }
+}
+
+/// A card, or a row's part of one: white, with an ink outline and an ink shadow offset right and down, with no blur.
+/// It leaves `Theme.cardMargin` on each side, and room below for the shadow where the card ends.
+struct CardBackground: View {
+    var part: CardPart = .whole
+
+    /// How far an open edge reaches past the row, so its outline and shadow are cut off rather than drawn.
+    private let overhang: CGFloat = 6
+
+    var body: some View {
+        // Clear takes the row's size, and `clipped()` cuts what the card draws past it.
+        Color.clear
+            .overlay {
+                let shape = UnevenRoundedRectangle(cornerRadii: radii, style: .continuous)
+                ZStack {
+                    shape
+                        .fill(Theme.ink)
+                        .offset(x: Theme.cardShadow, y: Theme.cardShadow)
+                    shape.fill(Theme.surface)
+                    shape.strokeBorder(Theme.ink, lineWidth: Theme.borderWidth)
+                }
+                .padding(.horizontal, Theme.cardMargin)
+                .padding(.top, part.continuesAbove ? -overhang : 0)
+                .padding(.bottom, part.continuesBelow ? -overhang : Theme.cardShadow)
+            }
+            .overlay(alignment: .top) {
+                if part.continuesAbove {
+                    Theme.divider
+                        .frame(height: 1)
+                        .padding(.horizontal, Theme.cardMargin + Theme.cardPadding)
+                }
+            }
+            .clipped()
+    }
+
+    private var radii: RectangleCornerRadii {
+        let top = part.continuesAbove ? 0 : Theme.cornerRadius
+        let bottom = part.continuesBelow ? 0 : Theme.cornerRadius
+        return RectangleCornerRadii(
+            topLeading: top, bottomLeading: bottom, bottomTrailing: bottom, topTrailing: top
+        )
+    }
+}
+
+extension View {
+    /// Draws this list row as `part` of a card: inside its outline, with the List's own separator and background off.
+    func cardRow(_ part: CardPart = .whole, verticalPadding: CGFloat = 12) -> some View {
+        let inset = Theme.cardMargin + Theme.cardPadding
+        return
+            self
+            .padding(.top, verticalPadding)
+            .padding(.bottom, verticalPadding + (part.continuesBelow ? 0 : Theme.cardShadow))
+            .listRowInsets(EdgeInsets(top: 0, leading: inset, bottom: 0, trailing: inset))
+            .listRowBackground(CardBackground(part: part))
+            .listRowSeparator(.hidden)
+    }
+
+    /// The paper behind a whole screen, in place of the system's grouped background.
+    func paperBackground() -> some View {
+        self
+            .scrollContentBackground(.hidden)
+            .background(Theme.paper)
+    }
+}
+
+// MARK: - Buttons
+
+/// A capsule with an ink outline: Tomato for the main action, white for the others, and white with a small offset
+/// shadow for a chip, such as a toolbar's. Text on Tomato is ink, never white.
+struct PaperInkButtonStyle: ButtonStyle {
+    enum Kind {
+        case primary
+        case secondary
+        case chip
+    }
+
+    var kind: Kind = .secondary
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.inter(kind == .primary ? .body : .subheadline, weight: .bold))
+            .foregroundStyle(kind == .primary ? Theme.onColor : Theme.ink)
+            .padding(.horizontal, kind == .primary ? 16 : 12)
+            .padding(.vertical, kind == .primary ? 12 : 7)
+            .background {
+                ZStack {
+                    if kind == .chip {
+                        Capsule()
+                            .fill(Theme.ink)
+                            .offset(x: Theme.chipShadow, y: Theme.chipShadow)
+                    }
+                    Capsule().fill(kind == .primary ? Theme.tomato : Theme.surface)
+                    Capsule().strokeBorder(Theme.ink, lineWidth: Theme.borderWidth)
+                }
+            }
+            .opacity(isEnabled ? (configuration.isPressed ? 0.75 : 1) : 0.45)
+    }
+}
+
+extension ButtonStyle where Self == PaperInkButtonStyle {
+    /// The main action: Tomato, with ink text.
+    static var paperInkPrimary: PaperInkButtonStyle {
+        PaperInkButtonStyle(kind: .primary)
+    }
+
+    /// Any other action: white, with ink text.
+    static var paperInkSecondary: PaperInkButtonStyle {
+        PaperInkButtonStyle(kind: .secondary)
+    }
+
+    /// A chip, such as a toolbar's: white, with a small offset shadow.
+    static var paperInkChip: PaperInkButtonStyle {
+        PaperInkButtonStyle(kind: .chip)
+    }
+}
+
+// MARK: - Pills and badges
+
+/// A status as a capsule: ink text on `fill`, with a thin ink outline.
+struct Pill: View {
+    let text: Text
+    let fill: Color
+
+    var body: some View {
+        text
+            .font(.inter(.caption, weight: .bold))
+            .foregroundStyle(Theme.onColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(fill, in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(Theme.ink, lineWidth: Theme.pillBorderWidth)
+            }
+    }
+}
+
+/// A symbol in a filled circle with a thin ink outline, such as a step's number or a status's icon.
+struct Badge<Content: View>: View {
+    var fill: Color = Theme.sun
+    var diameter: CGFloat = 30
+    @ViewBuilder let content: Content
+
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+
+    var body: some View {
+        content
+            .foregroundStyle(Theme.onColor)
+            .frame(width: diameter * scale, height: diameter * scale)
+            .background(fill, in: Circle())
+            .overlay {
+                Circle().strokeBorder(Theme.ink, lineWidth: Theme.pillBorderWidth)
+            }
+    }
+}

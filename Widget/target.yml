@@ -13,7 +13,9 @@ targets:
           - "target.yml"
           - "**/*.md"
       # Intents and the Live Activity's attributes, compiled into both targets: the widget's buttons name the intents
-      # that the app's process runs, and the widget draws the Live Activity that the app starts.
+      # that the app's process runs, and the widget draws the Live Activity that the app starts. Also the Paper & Ink
+      # theme, its color sets and its fonts with their licenses, which each bundle needs its own copy of
+      # (docs/decisions/84-paper-and-ink.md).
       - path: Shared
     dependencies:
       - package: BufferSnapCore
@@ -23,7 +25,7 @@ targets:
         # Not XcodeGen's `entitlements:` key: without `properties` it overwrites this file with an empty one.
         CODE_SIGN_ENTITLEMENTS: Widget/BufferSnapWidget.entitlements
         GENERATE_INFOPLIST_FILE: YES
-        # Holds only NSExtension, which has no INFOPLIST_KEY_ setting; the rest is generated.
+        # Holds only NSExtension and UIAppFonts, which have no INFOPLIST_KEY_ settings; the rest is generated.
         INFOPLIST_FILE: Widget/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: BufSnap
         TARGETED_DEVICE_FAMILY: "1"
