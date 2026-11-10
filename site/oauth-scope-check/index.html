@@ -73,7 +73,7 @@
     <button class="primary" id="start">Start attempt</button>
     <span id="status"></span>
   </div>
-  <details>
+  <details id="pasteBox">
     <summary>The popup didn't come back on its own?</summary>
     <label for="pasted">Paste the full URL Buffer redirected to (starts with the redirect_uri). Codes expire fast, so paste it right away.</label>
     <textarea id="pasted" rows="3"></textarea>
@@ -102,6 +102,7 @@ const AUTHORIZE_URL = "https://auth.buffer.com/auth";
 const TOKEN_URL = "https://auth.buffer.com/token";
 const PENDING_KEY = "oauthScopeCheck.pending";
 const attempts = [];
+const finishedStates = new Set();
 let watcher = null;
 
 const $ = (id) => document.getElementById(id);
@@ -191,7 +192,9 @@ function watch(popup, redirectUri) {
       clearInterval(watcher);
       watcher = null;
       if ($("status").textContent === "Waiting for Buffer…") {
-        setStatus("The popup closed before Buffer redirected. If it did redirect, paste the URL below.");
+        // Also what happens if Buffer's pages cut this page off from the popup, so offer the fallback.
+        setStatus("Lost track of the popup. If Buffer redirected, paste the URL it landed on below.");
+        $("pasteBox").open = true;
       }
       return;
     }
@@ -213,11 +216,16 @@ function watch(popup, redirectUri) {
 async function finish(href) {
   const url = new URL(href);
   const state = url.searchParams.get("state");
+  if (finishedStates.has(state)) {
+    setStatus("That attempt is already in the table.");
+    return;
+  }
   const request = memoryPending[state] || loadPending()[state];
   if (!request) {
     setStatus("This URL's state doesn't match any attempt started on this page.");
     return;
   }
+  finishedStates.add(state);
   delete memoryPending[state];
   const pending = loadPending();
   delete pending[state];
@@ -245,8 +253,9 @@ async function finish(href) {
   }
 
   setStatus("Exchanging the code…");
+  let response;
   try {
-    const response = await fetch(TOKEN_URL, {
+    response = await fetch(TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
       body: new URLSearchParams({
@@ -257,18 +266,27 @@ async function finish(href) {
         code_verifier: request.verifier,
       }),
     });
-    const body = await response.json();
-    // Keep only what's safe to show; the tokens go out of scope here.
-    attempt.responseFields = Object.keys(body).sort().join(",");
-    if (body.error) {
-      attempt.error = `token error: ${body.error} (HTTP ${response.status})`;
-    } else {
-      attempt.granted = typeof body.scope === "string" ? body.scope : "(no scope field)";
-      attempt.offlineAccess = attempt.granted.split(" ").includes("offline_access");
-      attempt.refreshToken = typeof body.refresh_token === "string" && body.refresh_token.length > 0;
-    }
   } catch (error) {
     attempt.error = `couldn't reach the token endpoint: ${error.message}`;
+    record(attempt);
+    return;
+  }
+  let body;
+  try {
+    body = JSON.parse(await response.text());
+  } catch {
+    attempt.error = `token endpoint returned HTTP ${response.status} with a body that isn't JSON`;
+    record(attempt);
+    return;
+  }
+  // Keep only what's safe to show; the tokens go out of scope here.
+  attempt.responseFields = Object.keys(body).sort().join(",");
+  if (body.error) {
+    attempt.error = `token error: ${body.error} (HTTP ${response.status})`;
+  } else {
+    attempt.granted = typeof body.scope === "string" ? body.scope : "(no scope field)";
+    attempt.offlineAccess = attempt.granted.split(" ").includes("offline_access");
+    attempt.refreshToken = typeof body.refresh_token === "string" && body.refresh_token.length > 0;
   }
   record(attempt);
 }
@@ -323,15 +341,21 @@ function render() {
   }
 }
 
+// One table cell: a pipe or a line break would end the cell or the row.
+function md(text) {
+  return String(text).replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+}
+
 function report() {
   const lines = [
     "| # | Time (UTC) | prompt | Scope requested | Scope granted | Refresh token | Token response fields | What I did on Buffer's page |",
     "|---|---|---|---|---|---|---|---|",
   ];
   for (const a of attempts) {
-    const granted = a.error ? a.error : `\`${a.granted}\``;
+    const granted = a.error ? md(a.error) : `\`${md(a.granted)}\``;
     const refresh = a.error ? "n/a" : (a.refreshToken ? "yes" : "**no**");
-    lines.push(`| ${a.number} | ${a.time} | ${a.prompt} | \`${a.requested}\` | ${granted} | ${refresh} | ${a.responseFields} | ${a.note.replace(/\|/g, "/")} |`);
+    const cells = [a.number, a.time, md(a.prompt), `\`${md(a.requested)}\``, granted, refresh, md(a.responseFields), md(a.note)];
+    lines.push(`| ${cells.join(" | ")} |`);
   }
   lines.push("", `Browser: ${navigator.userAgent}`);
   return lines.join("\n");
