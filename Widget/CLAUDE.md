@@ -37,7 +37,11 @@ press runs in the app's process, with the app closed. Nothing here reads or writ
   The targets set `CODE_SIGN_ENTITLEMENTS` to a committed file instead.
 - **No per-target team, signing or version settings.** They come from the project level, so the widget's build number
   always matches the app's, which App Store Connect requires.
-- `Widget/Info.plist` holds only `NSExtension`, which has no `INFOPLIST_KEY_` setting; the rest is generated.
+- `Widget/Info.plist` holds only `NSExtension` and `UIAppFonts`, which have no `INFOPLIST_KEY_` settings; the rest is
+  generated.
+- **Draw with the Paper & Ink theme in `Shared/`**, as the app does. The extension is a process of its own, so it
+  bundles its own copy of the fonts and color sets (`Shared/Fonts/`, `Shared/Theme.xcassets`). The widget stays Sun in
+  dark mode, so what's drawn on it is `Theme.onColor`, never `Theme.ink`.
 - **A test can't import an extension.** `AppTests/target.yml` compiles the widget's stateless views and `Shared/` into the
   test target, so a new view needs a line there.
 

@@ -8,23 +8,28 @@ struct DictationLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: DictationActivityAttributes.self) { context in
             DictationActivityView(status: context.state)
+                .activityBackgroundTint(Theme.paper)
+                .activitySystemActionForegroundColor(Theme.ink)
         } dynamicIsland: { context in
             let status = context.state
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     DictationTitle(status: status)
-                        .font(.headline)
+                        .font(.inter(.headline, weight: .bold))
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if status.isListening {
                         HStack(spacing: 8) {
                             DictationTimer(status: status)
+                                .font(.inter(.headline, weight: .bold))
                             DictationStopButton()
                         }
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
+                    // The island is always black, so the system's white and grey stay, in Inter.
                     Text(status.detail)
+                        .font(.inter(.body))
                         .foregroundStyle(status.words.isEmpty ? .secondary : .primary)
                         .lineLimit(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -35,10 +40,11 @@ struct DictationLiveActivity: Widget {
             } compactTrailing: {
                 if status.isListening {
                     DictationTimer(status: status)
+                        .font(.inter(.subheadline, weight: .semibold))
                         .frame(width: 40)
                 } else {
                     Text(status.title)
-                        .font(.caption2)
+                        .font(.inter(.caption2, weight: .semibold))
                         .lineLimit(1)
                 }
             } minimal: {

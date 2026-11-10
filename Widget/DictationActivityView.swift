@@ -11,19 +11,20 @@ struct DictationActivityView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 DictationTitle(status: status)
-                    .font(.headline)
+                    .font(.inter(.headline, weight: .bold))
                 Spacer(minLength: 0)
                 if status.isListening {
                     DictationTimer(status: status, pausedAt: timerPausedAt)
-                        .font(.headline)
+                        .font(.inter(.headline, weight: .bold))
+                        .foregroundStyle(Theme.ink)
                     DictationStopButton()
                 }
             }
             Text(status.detail)
-                .font(.body)
-                .foregroundStyle(status.words.isEmpty ? .secondary : .primary)
+                .font(.inter(.body))
+                .foregroundStyle(status.words.isEmpty ? Theme.muted : Theme.ink)
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -63,18 +64,22 @@ struct DictationTimer: View {
 /// Stops listening. It needs no passcode.
 ///
 /// It's an icon because the Dynamic Island's trailing region, which it shares with the timer, is too narrow for the
-/// word: "Stop" wrapped there as "Sto / p". The label stays "Stop" for VoiceOver, and the large control size keeps it
-/// over 44 points, so it's as easy to hit as the word was.
+/// word: "Stop" wrapped there as "Sto / p". The label stays "Stop" for VoiceOver, and the circle is over 44 points, so
+/// it's as easy to hit as the word was. Tomato with an ink outline and an ink icon, never white on Tomato.
 struct DictationStopButton: View {
     var body: some View {
         Button(intent: StopDictationIntent()) {
             Label("Stop", systemImage: "stop.fill")
                 .labelStyle(.iconOnly)
+                .font(.inter(.headline, weight: .bold))
+                .foregroundStyle(Theme.onColor)
+                .frame(width: 46, height: 46)
+                .background {
+                    OutlinedShape(shape: Circle(), fill: Theme.tomato)
+                }
+                .contentShape(Circle())
         }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
-        .tint(.red)
+        .buttonStyle(.plain)
     }
 }
 
@@ -129,14 +134,12 @@ extension DictationStatus {
 
     var tint: Color {
         switch phase {
-        case .listening:
-            .red
+        case .listening, .needsPermission, .couldNotListen, .couldNotSave:
+            Theme.tomatoText
         case .finishing, .nothingHeard:
-            .secondary
+            Theme.muted
         case .saved:
-            .green
-        case .needsPermission, .couldNotListen, .couldNotSave:
-            .orange
+            Theme.saved
         }
     }
 }
