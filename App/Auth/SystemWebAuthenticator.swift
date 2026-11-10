@@ -7,6 +7,10 @@ import UIKit
 ///
 /// The callback scheme needs no `CFBundleURLTypes` entry: the session itself watches for it, and the page it opens
 /// forwards to it (`site/oauth/`).
+///
+/// The page doesn't share Safari's cookies, so it never starts out signed in to a Buffer account from before. Buffer
+/// leaves out the refresh token when someone switches account from there
+/// (`docs/decisions/85-private-sign-in-sheet.md`).
 @MainActor
 final class SystemWebAuthenticator: NSObject, WebAuthenticator, ASWebAuthenticationPresentationContextProviding {
     /// The session in progress, which nothing else keeps alive while the page is open.
@@ -19,10 +23,7 @@ final class SystemWebAuthenticator: NSObject, WebAuthenticator, ASWebAuthenticat
         }
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
-            let session = ASWebAuthenticationSession(
-                url: url,
-                callback: .customScheme(callbackScheme)
-            ) { callbackURL, error in
+            let session = Self.makeSession(url: url, callbackScheme: callbackScheme) { callbackURL, error in
                 let result = Self.result(callbackURL: callbackURL, error: error)
                 Task { @MainActor in
                     self.finish(with: result)
@@ -34,6 +35,21 @@ final class SystemWebAuthenticator: NSObject, WebAuthenticator, ASWebAuthenticat
                 finish(with: .failure(AuthError.authorizationFailed))
             }
         }
+    }
+
+    /// A session with its own, empty cookie store, which it throws away when it ends.
+    static func makeSession(
+        url: URL,
+        callbackScheme: String,
+        completionHandler: @escaping ASWebAuthenticationSession.CompletionHandler
+    ) -> ASWebAuthenticationSession {
+        let session = ASWebAuthenticationSession(
+            url: url,
+            callback: .customScheme(callbackScheme),
+            completionHandler: completionHandler
+        )
+        session.prefersEphemeralWebBrowserSession = true
+        return session
     }
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
