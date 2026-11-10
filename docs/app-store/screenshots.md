@@ -34,6 +34,8 @@ required for builds on the iOS 27.1 SDK or later from April 2027, not yet.
 - **The simulator can't show a Live Activity or a widget with real content,** so 1 and 3 put the snapshot tests'
   renders (`AppTests/__Snapshots__/DictationActivityViewTests/`, `WidgetViewTests/`) under a caption. They're
   the same SwiftUI views the iPhone draws. A real Lock Screen photo from an iPhone would be better if there's time.
+- **The frame is Paper & Ink,** like the app: a Caveat caption on paper, set in the app's own font files from
+  `Shared/Fonts/`, with each render outlined in ink and given an ink offset shadow.
 - **The app runs its Debug build** with `-mockAuth signedIn`, so it's past sign-in without a Buffer account, and with
   the mocked Buffer that goes with it, so nothing is sent anywhere. Sample captures are written into the App Group
   file before launch, dated from the moment it runs.
