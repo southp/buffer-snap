@@ -18,6 +18,9 @@ struct ClearSubmittedButton: View {
         Button("Clear Submitted") {
             isConfirming = true
         }
+        .buttonStyle(.paperInkChip)
+        // In the toolbar, it was squeezed down to its first letter without this.
+        .fixedSize()
         .confirmationDialog(confirmation.title, isPresented: $isConfirming, titleVisibility: .visible) {
             Button("Clear", role: .destructive, action: onClear)
             Button("Cancel", role: .cancel) {}

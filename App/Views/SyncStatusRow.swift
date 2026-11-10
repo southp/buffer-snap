@@ -10,25 +10,25 @@ struct SyncStatusRow: View {
     let onSyncNow: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbolName)
-                .font(.title2)
-                .foregroundStyle(tint)
-                .frame(width: 32)
-                .accessibilityHidden(true)
+        HStack(spacing: 10) {
+            Badge(fill: badgeFill) {
+                Image(systemName: symbolName)
+                    .font(.inter(.subheadline, weight: .bold))
+            }
+            .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 title
-                    .font(.headline)
+                    .font(.inter(.headline, weight: .bold))
+                    .foregroundStyle(Theme.ink)
                 if let detail {
                     detail
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.inter(.footnote))
+                        .foregroundStyle(Theme.muted)
                 }
             }
             Spacer(minLength: 8)
             Button(isSyncing ? "Syncing…" : "Sync now", action: onSyncNow)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .buttonStyle(.paperInkSecondary)
                 .disabled(isSyncing || !status.canSyncNow)
         }
         .accessibilityElement(children: .combine)
@@ -67,26 +67,26 @@ struct SyncStatusRow: View {
     private var symbolName: String {
         switch status {
         case .nothingYet, .allSent:
-            "checkmark.circle.fill"
+            "checkmark"
         case .waiting:
-            "clock.fill"
+            "clock"
         case .offline:
             "wifi.slash"
         case .failed:
-            "exclamationmark.triangle.fill"
+            "exclamationmark"
         }
     }
 
-    private var tint: Color {
+    private var badgeFill: Color {
         switch status {
         case .nothingYet, .allSent:
-            .green
+            Theme.mint
         case .waiting:
-            .orange
+            Theme.sun
         case .offline:
-            .secondary
+            Theme.divider
         case .failed:
-            .red
+            Theme.tomato
         }
     }
 }
@@ -98,11 +98,12 @@ struct CaptureListProblemRow: View {
     var body: some View {
         Label {
             Text(message)
+                .foregroundStyle(Theme.ink)
         } icon: {
             Image(systemName: "exclamationmark.circle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.tomatoText)
         }
-        .font(.subheadline)
+        .font(.inter(.subheadline))
     }
 
     private var message: LocalizedStringKey {
