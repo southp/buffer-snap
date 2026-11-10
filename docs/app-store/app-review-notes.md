@@ -13,7 +13,7 @@ Tick **Sign-in required** and fill in the demo Buffer account. Never commit its 
 
 Before submitting, check the account on a phone that has never signed in to it:
 
-- It signs in with the password alone: no two-factor authentication, and no step that needs its inbox.
+- It signs in with the password alone: no two-factor authentication, and no step that needs its inbox. Checked on 2026-11-10 (#67): the password alone signed in, both in a browser and in the app.
 - It has one organization, where the ideas land.
 - It's on a Buffer plan that has Ideas and API access.
 
@@ -35,7 +35,7 @@ FIRST LAUNCH
 
 SIGNING IN
 2. In the first row of the list, tap "Authenticate using your Buffer account". iOS asks to use "buffer.com" to sign in: tap Continue.
-3. On Buffer's page, sign in with the demo account's email and password. Buffer may offer to email a sign-in link (a "magic link") instead; please choose the password option, as the demo account's inbox isn't available to you.
+3. On Buffer's page, sign in with the demo account's email and password. No emailed link or code is needed.
 4. Approve BufSnap's access. The app returns to the list. If ideas were waiting from before you signed in, it asks "Send N ideas to this account?": tap Send.
 
 DICTATING WITHOUT OPENING THE APP
