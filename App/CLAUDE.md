@@ -89,6 +89,7 @@ cat "$(xcrun simctl get_app_container "$UDID" me.southp.buffersnap group.me.sout
 
 ## App icon
 
-`App/Assets.xcassets/AppIcon.appiconset/AppIcon.png` is generated from `docs/design/app-icon.svg`. Edit the SVG, run
-`just app-icon`, and commit both. It's one 1024×1024 PNG with no transparency, and iOS derives the other sizes and the
-dark and tinted looks. It's a stand-in until there's final branding (`docs/decisions/35-stand-in-app-icon.md`).
+`App/Assets.xcassets/AppIcon.appiconset/` holds three 1024×1024 PNGs with no transparency, generated from
+`docs/design/app-icon.svg`: the light icon and iOS 18's dark and tinted ones. The SVG's drawing is the light icon, and
+its own style recolors it for the other two. Edit the SVG, run `just app-icon`, and commit all four files
+(`docs/decisions/84-doodle-bulb-icon.md`).

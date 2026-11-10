@@ -1,7 +1,8 @@
 ---
 date: 2026-11-03
 issue: 35
-status: accepted
+status: superseded
+superseded_by: 84-doodle-bulb-icon.md
 ---
 
 # Use a hand-drawn bolt and viewfinder as a stand-in app icon
