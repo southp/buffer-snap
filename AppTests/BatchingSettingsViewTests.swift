@@ -10,6 +10,7 @@ struct BatchingSettingsViewTests {
     /// What a new install has.
     @Test func standard() {
         assertScreenSnapshot(of: screen(window: BatchWindow.standard), named: "fiveMinutes")
+        assertScreenSnapshot(of: screen(window: BatchWindow.standard), named: "fiveMinutes-dark", appearance: .dark)
     }
 
     /// Each capture goes by itself.

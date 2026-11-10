@@ -47,14 +47,10 @@ struct CardBackground: View {
         // Clear takes the row's size, and `clipped()` cuts what the card draws past it.
         Color.clear
             .overlay {
-                let shape = UnevenRoundedRectangle(cornerRadii: radii, style: .continuous)
-                ZStack {
-                    shape
-                        .fill(Theme.ink)
-                        .offset(x: Theme.cardShadow, y: Theme.cardShadow)
-                    shape.fill(Theme.surface)
-                    shape.strokeBorder(Theme.ink, lineWidth: Theme.borderWidth)
-                }
+                OutlinedShape(
+                    shape: UnevenRoundedRectangle(cornerRadii: radii, style: .continuous),
+                    shadow: Theme.cardShadow
+                )
                 .padding(.horizontal, Theme.cardMargin)
                 .padding(.top, part.continuesAbove ? -overhang : 0)
                 .padding(.bottom, part.continuesBelow ? -overhang : Theme.cardShadow)
@@ -102,36 +98,51 @@ extension View {
 // MARK: - Buttons
 
 /// A capsule with an ink outline: Tomato for the main action, white for the others, and white with a small offset
-/// shadow for a chip, such as a toolbar's. Text on Tomato is ink, never white.
+/// shadow for a chip, such as a toolbar's, or a round one around an icon. Text on Tomato is ink, never white.
+///
+/// Capsules are `.circular`: on iOS 27, a `.continuous` capsule's outline drew stray bars beside its ends.
 struct PaperInkButtonStyle: ButtonStyle {
     enum Kind {
         case primary
         case secondary
         case chip
+        case iconChip
     }
 
     var kind: Kind = .secondary
 
     @Environment(\.isEnabled) private var isEnabled
+    @ScaledMetric(relativeTo: .body) private var iconChipDiameter: CGFloat = 38
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.inter(kind == .primary ? .body : .subheadline, weight: .bold))
+        styled(configuration.label)
             .foregroundStyle(kind == .primary ? Theme.onColor : Theme.ink)
-            .padding(.horizontal, kind == .primary ? 16 : 12)
-            .padding(.vertical, kind == .primary ? 12 : 7)
-            .background {
-                ZStack {
-                    if kind == .chip {
-                        Capsule()
-                            .fill(Theme.ink)
-                            .offset(x: Theme.chipShadow, y: Theme.chipShadow)
-                    }
-                    Capsule().fill(kind == .primary ? Theme.tomato : Theme.surface)
-                    Capsule().strokeBorder(Theme.ink, lineWidth: Theme.borderWidth)
-                }
-            }
             .opacity(isEnabled ? (configuration.isPressed ? 0.75 : 1) : 0.45)
+    }
+
+    @ViewBuilder
+    private func styled(_ label: Configuration.Label) -> some View {
+        switch kind {
+        case .iconChip:
+            label
+                .font(.inter(.body, weight: .semibold))
+                .frame(width: iconChipDiameter, height: iconChipDiameter)
+                .background {
+                    OutlinedShape(shape: Circle(), shadow: Theme.chipShadow)
+                }
+        case .primary, .secondary, .chip:
+            label
+                .font(.inter(kind == .primary ? .body : .subheadline, weight: .bold))
+                .padding(.horizontal, kind == .primary ? 16 : 12)
+                .padding(.vertical, kind == .primary ? 12 : 7)
+                .background {
+                    OutlinedShape(
+                        shape: Capsule(style: .circular),
+                        fill: kind == .primary ? Theme.tomato : Theme.surface,
+                        shadow: kind == .chip ? Theme.chipShadow : 0
+                    )
+                }
+        }
     }
 }
 
@@ -150,6 +161,31 @@ extension ButtonStyle where Self == PaperInkButtonStyle {
     static var paperInkChip: PaperInkButtonStyle {
         PaperInkButtonStyle(kind: .chip)
     }
+
+    /// A round chip around an icon.
+    static var paperInkIconChip: PaperInkButtonStyle {
+        PaperInkButtonStyle(kind: .iconChip)
+    }
+}
+
+/// A shape filled with `fill`, with an ink outline and, if `shadow` isn't zero, an ink shadow that far right and down.
+struct OutlinedShape<S: InsettableShape>: View {
+    let shape: S
+    var fill: Color = Theme.surface
+    var lineWidth: CGFloat = Theme.borderWidth
+    var shadow: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            if shadow > 0 {
+                shape
+                    .fill(Theme.ink)
+                    .offset(x: shadow, y: shadow)
+            }
+            shape.fill(fill)
+            shape.strokeBorder(Theme.ink, lineWidth: lineWidth)
+        }
+    }
 }
 
 // MARK: - Pills and badges
@@ -165,9 +201,8 @@ struct Pill: View {
             .foregroundStyle(Theme.onColor)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(fill, in: Capsule())
-            .overlay {
-                Capsule().strokeBorder(Theme.ink, lineWidth: Theme.pillBorderWidth)
+            .background {
+                OutlinedShape(shape: Capsule(style: .circular), fill: fill, lineWidth: Theme.pillBorderWidth)
             }
     }
 }

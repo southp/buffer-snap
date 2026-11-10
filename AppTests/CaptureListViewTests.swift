@@ -13,11 +13,13 @@ struct CaptureListViewTests {
     /// The five sample captures: every kind and every status, newest first, with Resend on the failed one.
     @Test func seeded() {
         assertScreenSnapshot(of: listScreen(Capture.samples()), named: "fiveSamples")
+        assertScreenSnapshot(of: listScreen(Capture.samples()), named: "fiveSamples-dark", appearance: .dark)
     }
 
     /// No captures: the empty state.
     @Test func empty() {
         assertScreenSnapshot(of: listScreen([]), named: "noCaptures")
+        assertScreenSnapshot(of: listScreen([]), named: "noCaptures-dark", appearance: .dark)
     }
 
     /// An open batch showing when it goes, with "Send now", above one that failed and one that was sent.
@@ -43,6 +45,7 @@ struct CaptureListViewTests {
             capture("A second angle on it", minutesAgo: 598, status: .submitted, batch: sent),
         ]
         assertScreenSnapshot(of: listScreen(captures), named: "openFailedAndSent")
+        assertScreenSnapshot(of: listScreen(captures), named: "openFailedAndSent-dark", appearance: .dark)
     }
 
     /// Its window has ended, or it's closed: it goes when it can, with nothing left to tap.
@@ -135,6 +138,11 @@ struct CaptureListViewTests {
             of: listScreen(submittedCaptures, clearableIdeaCount: 2),
             named: "clearSubmittedShown"
         )
+        assertScreenSnapshot(
+            of: listScreen(submittedCaptures, clearableIdeaCount: 2),
+            named: "clearSubmittedShown-dark",
+            appearance: .dark
+        )
     }
 
     /// Nothing was submitted: what's waiting or failed gets no button.
@@ -155,6 +163,15 @@ struct CaptureListViewTests {
     /// A fresh install: nothing captured yet, and the list says plainly what offline mode means.
     @Test func offlineModeEmpty() {
         assertScreenSnapshot(of: listScreen([], signInPrompt: signedOut), named: "offlineModeEmpty")
+        assertScreenSnapshot(
+            of: listScreen([], signInPrompt: signedOut), named: "offlineModeEmpty-dark", appearance: .dark)
+    }
+
+    /// The handwritten titles and the rest of the text grow with Dynamic Type.
+    @Test func largeText() {
+        let screen = listScreen(waitingCaptures, signInPrompt: signedOut)
+            .dynamicTypeSize(.xxxLarge)
+        assertScreenSnapshot(of: screen, named: "xxxLarge")
     }
 
     /// Ideas stored here say so: no "Sends at", no Send now, no Sync now, and no Resend while signed out.

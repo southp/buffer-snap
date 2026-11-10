@@ -44,18 +44,25 @@ struct CaptureListView: View {
 
     var body: some View {
         List {
+            Section {
+                ScreenTitle("Captures")
+            }
             if let signInPrompt {
                 Section {
                     SignInPromptRow(prompt: signInPrompt, onSignIn: onSignIn)
+                        .cardRow(verticalPadding: 14)
                 }
             }
-            if syncStatus != .nothingYet && isSignedIn || problem != nil {
+            if showsSyncStatus || problem != nil {
                 Section {
-                    if syncStatus != .nothingYet && isSignedIn {
+                    let rows = (showsSyncStatus ? 1 : 0) + (problem == nil ? 0 : 1)
+                    if showsSyncStatus {
                         SyncStatusRow(status: syncStatus, isSyncing: isSyncing, onSyncNow: onSyncNow)
+                            .cardRow(CardPart(index: 0, count: rows))
                     }
                     if let problem {
                         CaptureListProblemRow(problem: problem)
+                            .cardRow(CardPart(index: rows - 1, count: rows))
                     }
                 }
             }
@@ -63,13 +70,17 @@ struct CaptureListView: View {
             if batches.isEmpty && problem == nil && !isSignedIn {
                 Section {
                     emptyState
+                        .listRowInsets(EdgeInsets(top: 12, leading: 22, bottom: 12, trailing: 22))
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             }
             ForEach(batches) { batch in
                 Section {
-                    ForEach(batch.newestFirst) { capture in
+                    let captures = batch.newestFirst
+                    ForEach(Array(captures.enumerated()), id: \.element.id) { index, capture in
                         CaptureRow(capture: capture, now: now)
+                            .cardRow(CardPart(index: index, count: captures.count))
                             .swipeActions {
                                 Button("Delete", systemImage: "trash", role: .destructive) {
                                     onDelete(capture)
@@ -80,52 +91,83 @@ struct CaptureListView: View {
                     CaptureBatchHeader(batch: batch, now: now, isSignedIn: isSignedIn, onSendNow: onSendNow) {
                         onResend(batch)
                     }
+                    .paperInkSectionHeader()
                 }
             }
         }
         .overlay {
             if batches.isEmpty && problem == nil && isSignedIn {
                 emptyState
+                    .padding(.horizontal, 22)
             }
         }
-        .navigationTitle("Captures")
+        .paperInkScreen(title: "Captures")
         .toolbar {
             if clearableIdeaCount > 0 {
-                ToolbarItem(placement: .topBarLeading) {
+                ChipToolbarItem(placement: .topBarLeading) {
                     ClearSubmittedButton(ideaCount: clearableIdeaCount, onClear: onClearSubmitted)
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ChipToolbarItem(placement: .topBarTrailing) {
                 // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
-                Menu("Account", systemImage: "person.crop.circle") {
+                Menu {
                     Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
                     if isSignedIn {
                         Button(
                             "Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive,
                             action: onSignOut)
                     }
+                } label: {
+                    Label("Account", systemImage: "person")
+                        .labelStyle(.iconOnly)
                 }
+                // A menu styled as a button keeps the chip in the toolbar, where a custom label lost it.
+                .menuStyle(.button)
+                .buttonStyle(.paperInkIconChip)
             }
         }
     }
 
-    private var emptyState: some View {
-        ContentUnavailableView(
-            "No captures yet",
-            systemImage: "mic.fill",
-            description: emptyDescription
-        )
+    private var showsSyncStatus: Bool {
+        syncStatus != .nothingYet && isSignedIn
     }
 
     /// How to start, the same signed in or not: the offline row already says where ideas go. The name is the control's
-    /// and the widget's own, as the system lists it (`Widget/`). One literal, so it's a localized key and the Markdown
-    /// renders.
-    private var emptyDescription: Text {
-        Text(
-            """
-            Add **Dictate an Idea** to Control Center, the Action button or a widget.
-            Then press it and speak.
-            """
-        )
+    /// and the widget's own, as the system lists it (`Widget/`). Each step is one literal, so it's a localized key and
+    /// the Markdown renders.
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("No captures yet")
+                .font(.caveat(.title))
+                .foregroundStyle(Theme.ink)
+                .accessibilityAddTraits(.isHeader)
+            EmptyStateStep(
+                number: 1, text: Text("Add **Dictate an Idea** to Control Center, the Action button or a widget."))
+            EmptyStateStep(number: 2, text: Text("Then press it and speak."))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One numbered step of the empty state.
+private struct EmptyStateStep: View {
+    let number: Int
+    let text: Text
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Badge(diameter: 26) {
+                Text(number, format: .number)
+                    .font(.inter(.footnote, weight: .heavy))
+            }
+            .alignmentGuide(.firstTextBaseline) { dimensions in
+                dimensions[VerticalAlignment.center] + 5
+            }
+            text
+                .font(.inter(.body))
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

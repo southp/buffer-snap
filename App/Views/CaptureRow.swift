@@ -11,20 +11,21 @@ struct CaptureRow: View {
     @Environment(\.calendar) private var calendar
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: capture.kind.symbolName)
-                .font(.title3)
-                .foregroundStyle(.tint)
-                .frame(width: 32)
+                .font(.inter(.subheadline, weight: .semibold))
+                .foregroundStyle(Theme.muted)
                 .accessibilityLabel(capture.kind.displayName)
                 // Without text, the title already is the kind's name; don't read it twice.
                 .accessibilityHidden(title == capture.kind.displayName)
             VStack(alignment: .leading, spacing: 4) {
                 // In full: it's the only place to check what was heard before it reaches Buffer.
                 Text(title)
+                    .font(.inter(.body))
+                    .foregroundStyle(Theme.ink)
                 Text(relativeTimestamp)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.inter(.footnote))
+                    .foregroundStyle(Theme.muted)
             }
             Spacer(minLength: 8)
             CaptureStatusBadge(status: capture.status)
@@ -49,17 +50,12 @@ struct CaptureRow: View {
     }
 }
 
-/// A capture's status as a small colored capsule.
+/// A capture's status as a pill: Sun while it waits, Mint once it's in Buffer, Tomato if it didn't get there.
 private struct CaptureStatusBadge: View {
     let status: Capture.Status
 
     var body: some View {
-        Text(label)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(tint.opacity(0.15), in: Capsule())
+        Pill(text: Text(label), fill: fill)
     }
 
     private var label: String {
@@ -73,14 +69,14 @@ private struct CaptureStatusBadge: View {
         }
     }
 
-    private var tint: Color {
+    private var fill: Color {
         switch status {
         case .pending:
-            .orange
+            Theme.sun
         case .submitted:
-            .green
+            Theme.mint
         case .failed:
-            .red
+            Theme.tomato
         }
     }
 }

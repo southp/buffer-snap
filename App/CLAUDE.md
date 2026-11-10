@@ -13,6 +13,10 @@ Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `
   A view with no state of its own (`SignInPromptRow`) is just the view, with its action as a closure.
 - **No logic in views.** Routing, loading, deleting and every other state change belong to a Core model and its unit
   tests. A view may only map values to pixels (a kind's SF Symbol, a status's color).
+- **Draw with the Paper & Ink theme** (`Shared/Theme.swift`, `Shared/ThemeStyles.swift`): `Theme`'s colors, `.inter(_:)`
+  and `.caveat(_:)` fonts, `.cardRow(_:)` for a list row in a card, `PaperInkButtonStyle`, `Pill` and `Badge`. Never a
+  hard-coded color or the system font. A screen is a grouped `List` with `.paperInkScreen(title:)` and a `ScreenTitle`
+  row (`docs/decisions/84-paper-and-ink.md`).
 - **Never read the clock or the locale in a view.** Take `now: Date` as a parameter (the screen feeds it from a
   `TimelineView`), and read `locale`/`calendar` from the environment. That's what keeps snapshots identical on every
   machine and every day. Snapshot tests count from `Capture.samplesReferenceDate`, the date `Capture.samples()` is
@@ -34,7 +38,8 @@ Each view gets a snapshot test in `AppTests/` that renders it, full-screen, in e
 
 - Write snapshot tests with `assertScreenSnapshot(of:named:)` from `AppTests/Support/Snapshot.swift`. It owns the
   device (iPhone 16, the pinned `SIM_DEVICE`), light mode, the en_US locale with a Gregorian calendar in GMT, and
-  the 0.98 perceptual precision. Don't pass your own.
+  the 0.98 perceptual precision. Don't pass your own. For a dark variant of a main state, pass `appearance: .dark` and
+  name it after the light one with `-dark` (`named: "fiveSamples-dark"`).
 - Snapshot a screen's stateless view, not the screen. Wrap it in a `NavigationStack` if the screen shows it in one,
   so its title renders.
 - Name each snapshot after the state it shows (`named: "empty"`, `named: "signedOut"`), one PNG per state.

@@ -27,6 +27,8 @@ struct RootView: View {
                 }
             )
         }
+        // Ink for the system's own controls, such as the back button. Accents are set where they're drawn.
+        .tint(Theme.ink)
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .active:

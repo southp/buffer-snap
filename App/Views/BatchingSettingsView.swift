@@ -15,18 +15,39 @@ struct BatchingSettingsView: View {
     @Environment(\.locale) private var locale
 
     var body: some View {
-        Form {
+        List {
             Section {
-                Picker("Combine captures", selection: Binding(get: { window }, set: onChoose)) {
-                    ForEach(options, id: \.self) { option in
-                        Text(label(for: option)).tag(option)
+                ScreenTitle("Batching")
+            }
+            Section {
+                // Rows rather than an inline Picker, whose rows can't take a card's background. The same choices,
+                // each saying whether it's the one chosen.
+                ForEach(Array(options.enumerated()), id: \.element) { index, option in
+                    Button {
+                        onChoose(option)
+                    } label: {
+                        HStack {
+                            Text(label(for: option))
+                                .font(.inter(.body))
+                                .foregroundStyle(Theme.ink)
+                            Spacer(minLength: 8)
+                            Image(systemName: "checkmark")
+                                .font(.inter(.body, weight: .bold))
+                                .foregroundStyle(Theme.tomatoText)
+                                .opacity(option == window ? 1 : 0)
+                                .accessibilityHidden(true)
+                        }
+                        .contentShape(.rect)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(option == window ? .isSelected : [])
+                    .cardRow(CardPart(index: index, count: options.count))
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
             } header: {
                 Text("Combine captures made within")
-                    .textCase(nil)
+                    .font(.inter(.subheadline, weight: .medium))
+                    .foregroundStyle(Theme.muted)
+                    .paperInkSectionHeader()
             } footer: {
                 Text(
                     """
@@ -35,9 +56,12 @@ struct BatchingSettingsView: View {
                     sends each capture by itself right away.
                     """
                 )
+                .font(.inter(.footnote))
+                .foregroundStyle(Theme.muted)
+                .paperInkSectionHeader()
             }
         }
-        .navigationTitle("Batching")
+        .paperInkScreen(title: "Batching")
     }
 
     private func label(for option: TimeInterval) -> String {

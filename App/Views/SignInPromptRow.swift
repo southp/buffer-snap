@@ -11,37 +11,36 @@ struct SignInPromptRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "iphone")
-                    .font(.title2)
-                    .foregroundStyle(.tint)
-                    .frame(width: 32)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Offline mode")
-                        .font(.headline)
-                    Text(
-                        """
-                        Everything is stored locally on this iPhone. Ideas are only submitted to Buffer once you \
-                        authenticate your Buffer account.
-                        """
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Badge {
+                    Image(systemName: "iphone")
+                        .font(.inter(.subheadline, weight: .bold))
                 }
+                .accessibilityHidden(true)
+                Text("Offline mode")
+                    .font(.inter(.headline, weight: .bold))
+                    .foregroundStyle(Theme.ink)
             }
+            Text(
+                """
+                Everything is stored locally on this iPhone. Ideas are only submitted to Buffer once you \
+                authenticate your Buffer account.
+                """
+            )
+            .font(.inter(.subheadline))
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
             if let notice = prompt.notice {
                 SignInNoticeLabel(notice: notice)
             }
             Button(action: onSignIn) {
                 Text("Authenticate using your Buffer account")
+                    .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.paperInkPrimary)
             .disabled(prompt.isSigningIn)
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -51,8 +50,8 @@ private struct SignInNoticeLabel: View {
 
     var body: some View {
         Text(message)
-            .font(.subheadline)
-            .foregroundStyle(notice == .cancelled ? AnyShapeStyle(.secondary) : AnyShapeStyle(.red))
+            .font(.inter(.subheadline, weight: notice == .cancelled ? .regular : .semibold))
+            .foregroundStyle(notice == .cancelled ? Theme.muted : Theme.tomatoText)
             .fixedSize(horizontal: false, vertical: true)
     }
 

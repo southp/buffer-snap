@@ -7,7 +7,8 @@ import UIKit
 /// `AppTests/__Snapshots__/<test file>/<test name>.<name>.png`.
 ///
 /// Every snapshot test goes through this helper, so they all share one configuration:
-/// - the screen of the pinned `SIM_DEVICE` (iPhone 16, portrait), in light mode;
+/// - the screen of the pinned `SIM_DEVICE` (iPhone 16, portrait), in light mode unless `appearance` says dark. Name a
+///   dark variant after its light one, with `-dark` (`named: "fiveSamples-dark"`);
 /// - an en_US locale and a Gregorian calendar in GMT, so dates render the same on every machine. The test host's own
 ///   language is pinned too, by the scheme's test arguments in `project.yml`, since text layout can follow it;
 /// - a perceptual precision of 0.98, which absorbs antialiasing noise but not visible changes;
@@ -19,6 +20,7 @@ import UIKit
 func assertScreenSnapshot(
     of view: some View,
     named name: String,
+    appearance: UIUserInterfaceStyle = .light,
     fileID: StaticString = #fileID,
     filePath: StaticString = #filePath,
     testName: String = #function,
@@ -36,8 +38,8 @@ func assertScreenSnapshot(
             of: pinnedView,
             as: .image(
                 perceptualPrecision: ScreenSnapshot.perceptualPrecision,
-                layout: .device(config: ScreenSnapshot.config),
-                traits: ScreenSnapshot.traits
+                layout: .device(config: ScreenSnapshot.config(appearance)),
+                traits: ScreenSnapshot.traits(appearance)
             ),
             named: name,
             fileID: fileID,
@@ -98,23 +100,27 @@ private enum ScreenSnapshot {
         return calendar
     }()
 
-    /// The pinned simulator's display, light mode.
-    static let traits = UITraitCollection { traits in
-        traits.userInterfaceIdiom = .phone
-        traits.userInterfaceStyle = .light
-        traits.displayScale = 3
-        traits.horizontalSizeClass = .compact
-        traits.verticalSizeClass = .regular
-        traits.layoutDirection = .leftToRight
-        traits.preferredContentSizeCategory = .large
+    /// The pinned simulator's display, in light mode or dark.
+    static func traits(_ appearance: UIUserInterfaceStyle) -> UITraitCollection {
+        UITraitCollection { traits in
+            traits.userInterfaceIdiom = .phone
+            traits.userInterfaceStyle = appearance == .dark ? .dark : .light
+            traits.displayScale = 3
+            traits.horizontalSizeClass = .compact
+            traits.verticalSizeClass = .regular
+            traits.layoutDirection = .leftToRight
+            traits.preferredContentSizeCategory = .large
+        }
     }
 
     /// iPhone 16 in portrait: 393 × 852 points, with the Dynamic Island and home indicator insets.
-    static let config = ViewImageConfig(
-        safeArea: UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0),
-        size: CGSize(width: 393, height: 852),
-        traits: traits
-    )
+    static func config(_ appearance: UIUserInterfaceStyle) -> ViewImageConfig {
+        ViewImageConfig(
+            safeArea: UIEdgeInsets(top: 59, left: 0, bottom: 34, right: 0),
+            size: CGSize(width: 393, height: 852),
+            traits: traits(appearance)
+        )
+    }
 }
 
 extension SnapshotTestingConfiguration.DiffTool {

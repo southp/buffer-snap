@@ -95,19 +95,20 @@ struct CaptureBatchHeader: View {
                 title
                 if let detail {
                     detail
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.inter(.footnote))
                 }
             }
+            .foregroundStyle(Theme.muted)
             Spacer(minLength: 8)
             if let action {
                 // Borderless, or a tap anywhere in the header would count.
                 Button(action, action: perform)
                     .buttonStyle(.borderless)
-                    .fontWeight(.semibold)
+                    .font(.inter(.subheadline, weight: .bold))
+                    .foregroundStyle(Theme.tomatoText)
             }
         }
-        .font(.subheadline)
+        .font(.inter(.subheadline, weight: .medium))
         // Section headers can capitalize their text by default, and this one reads as a sentence.
         .textCase(nil)
     }
