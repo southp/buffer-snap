@@ -318,39 +318,46 @@ store-screenshots: build
     }
 
     # A caption over the snapshot tests' renders, for what the simulator can't show: the Live Activity and the widget.
-    # Each render is cropped to what differs from its corner, so only the activity or the widget is kept.
+    # Each render is cropped to what differs from its corner, so only the activity or the widget is kept. The frame is
+    # Paper & Ink, in the app's own fonts (docs/decisions/84-paper-and-ink.md): a Caveat title on paper, and each render
+    # with an ink shadow, and an ink outline unless it draws its own (the third value, 1 or 0).
     frame() {
         local width="$1" height="$2" title="$3" subtitle="$4" target="$5"
         shift 5
         local images=""
         while [[ $# -gt 0 ]]; do
-            images+="[\"data:image/png;base64,$(base64 < "$1" | tr -d '\n')\",$2],"
-            shift 2
+            images+="[\"data:image/png;base64,$(base64 < "$1" | tr -d '\n')\",$2,$3],"
+            shift 3
         done
         cat > "$tmp/frame.html" <<HTML
     <!doctype html><meta charset="utf-8">
     <style>
+    @font-face{font-family:Caveat;src:url("file://{{justfile_directory()}}/Shared/Fonts/Caveat.ttf")}
+    @font-face{font-family:Inter;src:url("file://{{justfile_directory()}}/Shared/Fonts/Inter.ttf")}
     html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden}
-    body{box-sizing:border-box;padding:13vh 6vw 0;background:linear-gradient(180deg,#24345f,#0d1222);color:#fff;
-      font-family:-apple-system,system-ui,sans-serif;text-align:center;display:flex;flex-direction:column;align-items:center}
-    h1{margin:0;font-size:9vw;font-weight:800;letter-spacing:-0.02em;text-wrap:balance}
-    p{margin:3vw 0 0;font-size:4.4vw;line-height:1.3;opacity:.8;text-wrap:balance}
-    div{margin-top:9vh;width:100%;display:flex;flex-direction:column;align-items:center;gap:6vw}
-    canvas{filter:drop-shadow(0 2vw 5vw rgba(0,0,0,.45))}
+    body{box-sizing:border-box;padding:12vh 6vw 0;background:#FBF7EE;color:#1A1A1A;
+      font-family:Inter,sans-serif;text-align:center;display:flex;flex-direction:column;align-items:center}
+    h1{margin:0;font-family:Caveat,cursive;font-size:14vw;font-weight:700;line-height:1;text-wrap:balance}
+    p{margin:3vw 0 0;font-size:4.4vw;line-height:1.35;color:#57534C;text-wrap:balance}
+    div{margin-top:9vh;width:100%;display:flex;flex-direction:column;align-items:center;gap:7vw}
     </style>
     <h1>${title}</h1><p>${subtitle}</p><div id="shots"></div>
     <script>
     const shots = [${images}];
+    // The renders' corners and outline, in points: the snapshots are drawn at 3 pixels a point.
+    const cornerPoints = 22, outlinePoints = 2, shadowPoints = 3, pixelsPerPoint = 3;
     const load = (src) => new Promise((done) => { const img = new Image(); img.onload = () => done(img); img.src = src; });
     (async () => {
-      for (const [src, percent] of shots) {
+      await document.fonts.ready;
+      for (const [src, percent, outlined] of shots) {
         const img = await load(src);
         const full = document.createElement("canvas");
         full.width = img.width; full.height = img.height;
         const ctx = full.getContext("2d"); ctx.drawImage(img, 0, 0);
         const data = ctx.getImageData(0, 0, img.width, img.height), px = data.data;
-        // Clear the background from the edges inwards, so white inside the render, such as Stop's label, stays.
-        const isBackground = (i) => Math.abs(px[i] - px[0]) + Math.abs(px[i + 1] - px[1]) + Math.abs(px[i + 2] - px[2]) < 45;
+        // Clear the background from the edges inwards, so what's inside the render stays. Tight, as the Live Activity's
+        // paper is close to the snapshot's white.
+        const isBackground = (i) => Math.abs(px[i] - px[0]) + Math.abs(px[i + 1] - px[1]) + Math.abs(px[i + 2] - px[2]) < 12;
         const seen = new Uint8Array(img.width * img.height), queue = [];
         for (let x = 0; x < img.width; x++) { queue.push(x, (img.height - 1) * img.width + x); }
         for (let y = 0; y < img.height; y++) { queue.push(y * img.width, y * img.width + img.width - 1); }
@@ -379,6 +386,12 @@ store-screenshots: build
         const out = canvas.getContext("2d");
         out.imageSmoothingQuality = "high";
         out.drawImage(full, left, top, w, h, 0, 0, canvas.width, canvas.height);
+        const scale = shown / w * pixelsPerPoint;
+        canvas.style.borderRadius = (cornerPoints * scale) + "px";
+        canvas.style.boxShadow = (shadowPoints * scale) + "px " + (shadowPoints * scale) + "px 0 #1A1A1A";
+        if (outlined) {
+          canvas.style.border = (outlinePoints * scale) + "px solid #1A1A1A";
+        }
         document.getElementById("shots").appendChild(canvas);
       }
     })();
@@ -423,11 +436,13 @@ store-screenshots: build
     }
 
     # A physical tap: SwiftUI's buttons ignore AXe's simulated one (App/CLAUDE.md). Right after a first boot, AXe can time
-    # out reaching the simulator, so it tries a few times.
+    # out reaching the simulator, so it tries a few times. The element type is Button unless a third argument says
+    # otherwise: the Account menu's chip is a PopUpButton.
     tap() {
         local attempt
         for attempt in 1 2 3 4 5; do
-            if "$axe" tap --label "$2" --element-type Button --tap-style physical --wait-timeout 10 --udid "$1" > /dev/null; then
+            if "$axe" tap --label "$2" --element-type "${3:-Button}" --tap-style physical --wait-timeout 10 \
+                --udid "$1" > /dev/null; then
                 return 0
             fi
             echo "  (tapping $2 failed, try $attempt of 5)" >&2
@@ -462,11 +477,11 @@ store-screenshots: build
 
         frame "$width" "$height" "Press. Speak. Done." "Your idea goes to Buffer, without opening the app." \
             "$dir/1-dictate.png" \
-            "$snapshots/DictationActivityViewTests/listeningWithWords.listeningWithWords.png" 88 \
-            "$snapshots/DictationActivityViewTests/saved.saved.png" 88
+            "$snapshots/DictationActivityViewTests/listeningWithWords.listeningWithWords.png" 88 1 \
+            "$snapshots/DictationActivityViewTests/saved.saved.png" 88 1
         frame "$width" "$height" "One press away" "Control Center, the Action button, the Lock Screen or the Home Screen." \
             "$dir/3-widget.png" \
-            "$snapshots/WidgetViewTests/dictate.dictate.png" 44
+            "$snapshots/WidgetViewTests/dictate.dictate.png" 44 0
 
         # Its own simulator per model and worktree, as for tests, so nothing else's state shows.
         udid="$(SIM_DEVICE="$model" just _sim-udid)"
@@ -484,7 +499,7 @@ store-screenshots: build
 
         launch "$udid"
         shoot "$udid" "$dir/2-captures.png"
-        tap "$udid" Account
+        tap "$udid" Account PopUpButton
         tap "$udid" Batching
         sleep 2
         shoot "$udid" "$dir/4-batching.png"
