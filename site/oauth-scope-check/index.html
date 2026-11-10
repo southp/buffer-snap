@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Buffer OAuth Scope Check</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --muted: #6b6b70;
+    --line: #d8d8dc;
+    --ok-bg: #e6f4ea; --ok-fg: #137333;
+    --bad-bg: #fce8e6; --bad-fg: #a50e0e;
+    --panel: #f5f5f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --muted: #a1a1a6;
+      --line: #3a3a3c;
+      --ok-bg: #0f2e1a; --ok-fg: #81c995;
+      --bad-bg: #3b1412; --bad-fg: #f28b82;
+      --panel: #1c1c1e;
+    }
+  }
+  body { font: 16px/1.5 -apple-system, system-ui, sans-serif; margin: 0 auto; max-width: 880px; padding: 32px 16px 64px; }
+  h1 { font-size: 26px; line-height: 1.2; margin-bottom: 4px; }
+  h2 { font-size: 19px; margin-top: 32px; }
+  .lede { color: var(--muted); margin-top: 0; }
+  fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  label { display: block; font-size: 14px; color: var(--muted); margin-top: 8px; }
+  input[type=text], textarea { width: 100%; box-sizing: border-box; font: 14px ui-monospace, Menlo, monospace; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+  button { font: inherit; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: inherit; cursor: pointer; }
+  button.primary { background: #2c6bed; border-color: #2c6bed; color: #fff; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  #status { color: var(--muted); font-size: 14px; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  td code { white-space: nowrap; }
+  .ok { background: var(--ok-bg); color: var(--ok-fg); font-weight: 600; }
+  .bad { background: var(--bad-bg); color: var(--bad-fg); font-weight: 600; }
+  td input { width: 100%; min-width: 160px; box-sizing: border-box; font: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; background: transparent; color: inherit; }
+  details { margin-top: 12px; }
+  ol li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<h1>Buffer OAuth scope check</h1>
+<p class="lede">Runs Buffer's Authorization Code flow with PKCE, then shows which scopes Buffer granted and whether a refresh token came back. Token values are never shown or stored: each response is reduced to its field names and scope, then dropped.</p>
+
+<h2>Reproduce</h2>
+<ol>
+  <li>In this browser, sign in to <a href="https://buffer.com" target="_blank" rel="noopener">buffer.com</a> as <strong>account A</strong>.</li>
+  <li>Click <strong>Start attempt</strong> and approve. Expected: <code>offline_access</code> granted, refresh token ✅.</li>
+  <li>Click <strong>Start attempt</strong> again. On Buffer's page, switch to <strong>account B</strong>, then approve. Observed: <code>offline_access</code> missing, no refresh token ❌.</li>
+  <li>Click <strong>Start attempt</strong> once more, already signed in as B. Observed: ✅ again.</li>
+</ol>
+<p>Note what you did on Buffer's page in each row, then click <strong>Copy report</strong>.</p>
+
+<fieldset>
+  <legend>Request</legend>
+  <label for="clientId">client_id (public client, no secret)</label>
+  <input type="text" id="clientId" value="U9uUzfVMfWkpU5P9PiVXL3W1o52xCFevd0B76yas3Br">
+  <label for="redirectUri">redirect_uri (registered for this client)</label>
+  <input type="text" id="redirectUri" value="https://southp.github.io/buffer-snap/oauth/">
+  <label for="scope">scope</label>
+  <input type="text" id="scope" value="ideas:write account:read offline_access">
+  <label for="prompt">prompt (empty to leave it out)</label>
+  <input type="text" id="prompt" value="consent">
+  <div class="row">
+    <button class="primary" id="start">Start attempt</button>
+    <span id="status"></span>
+  </div>
+  <details>
+    <summary>The popup didn't come back on its own?</summary>
+    <label for="pasted">Paste the full URL Buffer redirected to (starts with the redirect_uri). Codes expire fast, so paste it right away.</label>
+    <textarea id="pasted" rows="3"></textarea>
+    <div class="row"><button id="usePasted">Use this URL</button></div>
+  </details>
+</fieldset>
+
+<h2>Attempts</h2>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>#</th><th>Time (UTC)</th><th>prompt</th><th>Scope granted</th><th>offline_access</th><th>Refresh token</th><th>What you did on Buffer's page</th></tr>
+  </thead>
+  <tbody id="attempts"><tr><td colspan="7" id="empty">No attempts yet.</td></tr></tbody>
+</table>
+</div>
+<div class="row">
+  <button id="copy">Copy report</button>
+  <span id="copyStatus"></span>
+</div>
+
+<script>
+"use strict";
+
+const AUTHORIZE_URL = "https://auth.buffer.com/auth";
+const TOKEN_URL = "https://auth.buffer.com/token";
+const PENDING_KEY = "oauthScopeCheck.pending";
+const attempts = [];
+let watcher = null;
+
+const $ = (id) => document.getElementById(id);
+
+function base64url(bytes) {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function randomString() {
+  return base64url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
+async function challengeFor(verifier) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return base64url(new Uint8Array(digest));
+}
+
+function setStatus(text) {
+  $("status").textContent = text;
+}
+
+function loadPending() {
+  try {
+    return JSON.parse(sessionStorage.getItem(PENDING_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function savePending(pending) {
+  try {
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+  } catch {
+    // Nothing to do: the attempt still works while this page stays open, through `memoryPending`.
+  }
+}
+
+const memoryPending = {};
+
+async function start() {
+  const request = {
+    clientId: $("clientId").value.trim(),
+    redirectUri: $("redirectUri").value.trim(),
+    scope: $("scope").value.trim(),
+    prompt: $("prompt").value.trim(),
+    verifier: randomString(),
+  };
+  const state = randomString();
+  const params = new URLSearchParams({
+    client_id: request.clientId,
+    redirect_uri: request.redirectUri,
+    response_type: "code",
+    scope: request.scope,
+    state: state,
+    code_challenge: await challengeFor(request.verifier),
+    code_challenge_method: "S256",
+  });
+  if (request.prompt) {
+    params.set("prompt", request.prompt);
+  }
+
+  memoryPending[state] = request;
+  const pending = loadPending();
+  pending[state] = request;
+  savePending(pending);
+
+  const popup = window.open(`${AUTHORIZE_URL}?${params}`, "buffer-oauth", "width=520,height=760");
+  if (!popup) {
+    setStatus("The popup was blocked. Allow popups for this page and try again.");
+    return;
+  }
+  setStatus("Waiting for Buffer…");
+  watch(popup, request.redirectUri);
+}
+
+// Reads the popup's URL once it's back on this origin, before the redirect page hands it to the app's scheme.
+function watch(popup, redirectUri) {
+  if (watcher) {
+    clearInterval(watcher);
+  }
+  watcher = setInterval(() => {
+    if (popup.closed) {
+      clearInterval(watcher);
+      watcher = null;
+      if ($("status").textContent === "Waiting for Buffer…") {
+        setStatus("The popup closed before Buffer redirected. If it did redirect, paste the URL below.");
+      }
+      return;
+    }
+    let href = "";
+    try {
+      href = popup.location.href;
+    } catch {
+      return; // Still on Buffer's origin.
+    }
+    if (href.startsWith(redirectUri) && /[?&](code|error)=/.test(href)) {
+      clearInterval(watcher);
+      watcher = null;
+      popup.close();
+      finish(href);
+    }
+  }, 20);
+}
+
+async function finish(href) {
+  const url = new URL(href);
+  const state = url.searchParams.get("state");
+  const request = memoryPending[state] || loadPending()[state];
+  if (!request) {
+    setStatus("This URL's state doesn't match any attempt started on this page.");
+    return;
+  }
+  delete memoryPending[state];
+  const pending = loadPending();
+  delete pending[state];
+  savePending(pending);
+
+  const attempt = {
+    number: attempts.length + 1,
+    time: new Date().toISOString().replace("T", " ").replace(/\.\d+Z$/, ""),
+    prompt: request.prompt || "(none)",
+    requested: request.scope,
+    callbackFields: [...url.searchParams.keys()].join(","),
+    granted: "",
+    offlineAccess: false,
+    refreshToken: false,
+    responseFields: "",
+    error: "",
+    note: "",
+  };
+
+  const callbackError = url.searchParams.get("error");
+  if (callbackError) {
+    attempt.error = `callback error: ${callbackError}`;
+    record(attempt);
+    return;
+  }
+
+  setStatus("Exchanging the code…");
+  try {
+    const response = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+      body: new URLSearchParams({
+        client_id: request.clientId,
+        grant_type: "authorization_code",
+        code: url.searchParams.get("code") || "",
+        redirect_uri: request.redirectUri,
+        code_verifier: request.verifier,
+      }),
+    });
+    const body = await response.json();
+    // Keep only what's safe to show; the tokens go out of scope here.
+    attempt.responseFields = Object.keys(body).sort().join(",");
+    if (body.error) {
+      attempt.error = `token error: ${body.error} (HTTP ${response.status})`;
+    } else {
+      attempt.granted = typeof body.scope === "string" ? body.scope : "(no scope field)";
+      attempt.offlineAccess = attempt.granted.split(" ").includes("offline_access");
+      attempt.refreshToken = typeof body.refresh_token === "string" && body.refresh_token.length > 0;
+    }
+  } catch (error) {
+    attempt.error = `couldn't reach the token endpoint: ${error.message}`;
+  }
+  record(attempt);
+}
+
+function record(attempt) {
+  attempts.push(attempt);
+  setStatus(attempt.error ? attempt.error : `Attempt ${attempt.number} done.`);
+  render();
+}
+
+function cell(text, className) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  if (className) {
+    td.className = className;
+  }
+  return td;
+}
+
+function render() {
+  const body = $("attempts");
+  body.replaceChildren();
+  for (const attempt of attempts) {
+    const tr = document.createElement("tr");
+    tr.append(cell(String(attempt.number)), cell(attempt.time), cell(attempt.prompt));
+    if (attempt.error) {
+      const td = cell(attempt.error, "bad");
+      td.colSpan = 3;
+      tr.append(td);
+    } else {
+      const granted = document.createElement("td");
+      const code = document.createElement("code");
+      code.textContent = attempt.granted;
+      granted.append(code);
+      tr.append(
+        granted,
+        cell(attempt.offlineAccess ? "✅ granted" : "❌ missing", attempt.offlineAccess ? "ok" : "bad"),
+        cell(attempt.refreshToken ? "✅ returned" : "❌ missing", attempt.refreshToken ? "ok" : "bad"),
+      );
+    }
+    const noteCell = document.createElement("td");
+    const note = document.createElement("input");
+    note.type = "text";
+    note.value = attempt.note;
+    note.placeholder = "e.g. switched from A to B";
+    note.addEventListener("input", () => {
+      attempt.note = note.value;
+    });
+    noteCell.append(note);
+    tr.append(noteCell);
+    body.append(tr);
+  }
+}
+
+function report() {
+  const lines = [
+    "| # | Time (UTC) | prompt | Scope requested | Scope granted | Refresh token | Token response fields | What I did on Buffer's page |",
+    "|---|---|---|---|---|---|---|---|",
+  ];
+  for (const a of attempts) {
+    const granted = a.error ? a.error : `\`${a.granted}\``;
+    const refresh = a.error ? "n/a" : (a.refreshToken ? "yes" : "**no**");
+    lines.push(`| ${a.number} | ${a.time} | ${a.prompt} | \`${a.requested}\` | ${granted} | ${refresh} | ${a.responseFields} | ${a.note.replace(/\|/g, "/")} |`);
+  }
+  lines.push("", `Browser: ${navigator.userAgent}`);
+  return lines.join("\n");
+}
+
+$("start").addEventListener("click", () => {
+  start().catch((error) => setStatus(`Couldn't start: ${error.message}`));
+});
+$("usePasted").addEventListener("click", () => {
+  const href = $("pasted").value.trim();
+  if (href) {
+    $("pasted").value = "";
+    finish(href).catch((error) => setStatus(`Couldn't use that URL: ${error.message}`));
+  }
+});
+$("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(report());
+    $("copyStatus").textContent = "Copied.";
+  } catch {
+    $("copyStatus").textContent = "Couldn't copy. Select the table instead.";
+  }
+});
+</script>
+</body>
+</html>
