@@ -3,8 +3,8 @@ import SwiftUI
 import Testing
 
 /// The dictation's Live Activity on the Lock Screen, rendered to AppTests/__Snapshots__/DictationActivityViewTests/ at
-/// its size on the pinned iPhone 16, on a plain background. The system draws the real background, so these show the
-/// content, not a whole Lock Screen.
+/// its size on the pinned iPhone 16, on the paper `DictationLiveActivity` asks the system for. These show the activity,
+/// not a whole Lock Screen.
 @MainActor
 struct DictationActivityViewTests {
     private let startedAt = Capture.samplesReferenceDate
@@ -18,6 +18,9 @@ struct DictationActivityViewTests {
     @Test func listeningWithWords() {
         let words = "Post idea: the worst tofu I ever had, in the finest restaurant in town"
         assertScreenSnapshot(of: activity(.listening, words: words, pausedAfter: 18), named: "listeningWithWords")
+        assertScreenSnapshot(
+            of: activity(.listening, words: words, pausedAfter: 18), named: "listeningWithWords-dark", appearance: .dark
+        )
     }
 
     /// Stopped: no timer and no Stop, while the last words come in.
@@ -28,6 +31,8 @@ struct DictationActivityViewTests {
     /// Saved, with what was saved, and no timer: the spike's kept running here.
     @Test func saved() {
         assertScreenSnapshot(of: activity(.saved, words: "Post idea: the worst tofu"), named: "saved")
+        assertScreenSnapshot(
+            of: activity(.saved, words: "Post idea: the worst tofu"), named: "saved-dark", appearance: .dark)
     }
 
     @Test func nothingHeard() {
@@ -37,6 +42,7 @@ struct DictationActivityViewTests {
     /// The mic or speech recognition isn't allowed, or wasn't asked for yet.
     @Test func needsPermission() {
         assertScreenSnapshot(of: activity(.needsPermission), named: "needsPermission")
+        assertScreenSnapshot(of: activity(.needsPermission), named: "needsPermission-dark", appearance: .dark)
     }
 
     @Test func couldNotListen() {
@@ -61,6 +67,6 @@ struct DictationActivityViewTests {
         )
         return DictationActivityView(status: status, timerPausedAt: startedAt + seconds)
             .frame(width: 361)
-            .background(Color(white: 0.92), in: .rect(cornerRadius: 22))
+            .background(Theme.paper, in: .rect(cornerRadius: 22))
     }
 }

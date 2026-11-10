@@ -6,7 +6,9 @@ struct DictateWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "DictateWidget", provider: DictateWidgetProvider()) { _ in
             DictateWidgetView()
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) {
+                    DictateWidgetBackground()
+                }
         }
         .configurationDisplayName("Dictate an Idea")
         .description("Saves what you say as an idea, without opening BufSnap.")

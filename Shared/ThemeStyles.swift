@@ -169,9 +169,11 @@ extension ButtonStyle where Self == PaperInkButtonStyle {
 }
 
 /// A shape filled with `fill`, with an ink outline and, if `shadow` isn't zero, an ink shadow that far right and down.
+/// On something that stays light in dark mode, such as the widget's Sun, pass `Theme.onColor` as `ink`.
 struct OutlinedShape<S: InsettableShape>: View {
     let shape: S
     var fill: Color = Theme.surface
+    var ink: Color = Theme.ink
     var lineWidth: CGFloat = Theme.borderWidth
     var shadow: CGFloat = 0
 
@@ -179,11 +181,11 @@ struct OutlinedShape<S: InsettableShape>: View {
         ZStack {
             if shadow > 0 {
                 shape
-                    .fill(Theme.ink)
+                    .fill(ink)
                     .offset(x: shadow, y: shadow)
             }
             shape.fill(fill)
-            shape.strokeBorder(Theme.ink, lineWidth: lineWidth)
+            shape.strokeBorder(ink, lineWidth: lineWidth)
         }
     }
 }
