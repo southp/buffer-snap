@@ -83,7 +83,8 @@ public actor OAuthAuthService: AuthService {
         }
         // Without one, the session would quietly end in an hour, so fail now, where it's obvious.
         guard let refreshToken = tokens.refreshToken else {
-            Logger.auth.error("No refresh token: is offline_access enabled for this app client?")
+            let granted = tokens.scope ?? "none listed"
+            Logger.auth.error("No refresh token: Buffer granted [\(granted, privacy: .public)] without offline_access")
             throw AuthError.authorizationFailed
         }
 

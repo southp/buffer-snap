@@ -21,16 +21,21 @@ extension URLSession: HTTPTransport {
     }
 }
 
-/// What Buffer's token endpoint returns. `refreshToken` can be missing if the client isn't allowed `offline_access`.
+/// What Buffer's token endpoint returns. `refreshToken` is missing whenever Buffer didn't grant `offline_access`, which
+/// `scope` then shows: if the client isn't allowed it, or after an account switch on a page that shared Safari's login
+/// (`docs/decisions/85-private-sign-in-sheet.md`).
 struct TokenResponse: Decodable, Sendable {
     let accessToken: String
     let refreshToken: String?
     let expiresIn: TimeInterval?
+    /// The scopes Buffer granted, space-separated. Names only, so it's safe to log.
+    let scope: String?
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
         case expiresIn = "expires_in"
+        case scope
     }
 }
 
