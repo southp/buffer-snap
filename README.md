@@ -1,5 +1,7 @@
 # buffer-snap
-A minimal iOS app that gives you the most frictionless way to capture any inspiration into Buffer Create on the go. Grab it from the App Store here: https://apps.apple.com/us/app/bufsnap/id6830422547.
+A minimal iOS app that gives you the most frictionless way to capture any inspiration into Buffer Create on the go.
+
+[Download on the App Store](https://apps.apple.com/us/app/bufsnap/id6830422547)
 
 ## Context
 Inspiration is naughty. They come when you are lifting weights in a gym, eating the worst tofu in a fine dining, walking alongside a street carrying stuff with only one finger free, or being tripped over in a hike and seeing the most beautiful flower you've ever seen. 
