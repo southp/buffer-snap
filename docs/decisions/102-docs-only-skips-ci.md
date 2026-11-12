@@ -41,3 +41,5 @@ Accepted cost: runs on `main` share a concurrency group that keeps only one wait
 code merge's run is dropped that way and the newest waiting merge is docs-only, the newest run compares against the
 dropped commit, finds only docs and skips. The code merge was tested on its PR, and it reaches TestFlight with the next
 merge that takes the full path, or when its own run is re-run from the Actions tab.
+The same goes for a code merge whose `ci` run fails or is cancelled: if the next merge is docs-only, it compares
+only against that commit and skips, so re-run the failed run once it's fixed.

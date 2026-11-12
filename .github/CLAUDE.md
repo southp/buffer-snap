@@ -32,6 +32,7 @@
   TestFlight. A docs-only merge skips `ci`, and so skips `deploy` too. PRs never run this job and never see its secrets.
 - If a code merge's run on `main` is dropped (see below) and the merge after it is docs-only, nothing deploys the
   code until the next full-path merge. Re-run the dropped commit's workflow from the Actions tab to ship it sooner.
+  The same holds when a code merge's `ci` fails or is cancelled and the next merge is docs-only: re-run that run.
 - The recipe archives unsigned, so CI needs no certificate of its own (`docs/decisions/9-unsigned-archive.md`).
 - It needs the repo secrets `ASC_KEY_P8` (the `.p8` file's contents), `ASC_KEY_ID`, `ASC_ISSUER_ID` and `DEVELOPMENT_TEAM`.
 - Runs on `main` go one at a time, in order. GitHub keeps only one waiting run per group, so with three quick merges the
