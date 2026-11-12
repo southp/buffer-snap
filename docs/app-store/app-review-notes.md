@@ -51,6 +51,9 @@ SEEING IT REACH BUFFER
 7. Open BufSnap to see the idea in the list. Captures made within 5 minutes of each other are combined into one Buffer idea and sent once 5 minutes have passed since the last one. Tap "Send now" to send at once. The batching window is under the account menu (person icon) → Batching.
 8. Sign in to https://buffer.com with the same account to see the ideas under Create → Ideas.
 
+HELP
+The account menu (person icon) also has Report a Problem, which opens the support page in Safari, Source Code on GitHub, and the app's version.
+
 BACKGROUND MODES
 - audio: BufSnap uses the audio background mode only while dictating an idea. Dictation starts only when the user presses the "Dictate an Idea" control or widget, shows a Live Activity with the words being heard and a Stop button for as long as it listens, and stops after 3 seconds of silence or 60 seconds at most. No audio is recorded or kept: speech goes straight to Apple's speech recognition, and only the text is saved.
 - fetch (background app refresh): used only to send ideas to Buffer when a batch's 5-minute window ends while the app is closed.
