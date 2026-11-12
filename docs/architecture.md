@@ -76,6 +76,7 @@ flowchart TD
     Widget --> Intent
     Env --> services
     AppModel --> AuthService
+    AppModel -->|permission only| SpeechTranscriber
     Session --> CaptureStore
     Session --> SpeechTranscriber
     CaptureListModel --> CaptureStore
@@ -250,4 +251,13 @@ The `audio` background mode keeps the app running while it listens, and a backgr
 from the stop until the outcome is gone and the capture is on its way. Why:
 [`58-dictate-outside-app.md`](decisions/58-dictate-outside-app.md).
 
-The microphone and speech recognition can only be asked for with the app on screen, so `askForPermissionIfNeeded()` asks when the app opens, until both are decided. A press made before that shows "Can't listen yet": [`77-ask-for-permissions-at-launch.md`](decisions/77-ask-for-permissions-at-launch.md).
+The microphone and speech recognition can only be asked for with the app on screen, so `askForPermissionIfNeeded()` asks when the app opens, until both are decided.
+
+When only the app can say what went wrong, `press()` returns `.needsTheApp` with a reason: `.liveActivitiesOff` when
+there was no Live Activity to show the press on ([`69-no-live-activity-no-mic.md`](decisions/69-no-live-activity-no-mic.md)),
+or `.permission(_:)` when a permission isn't granted, which also shows "Can't listen yet" in the Live Activity. On iOS 26
+and later, `DictateIdeaIntent` then calls `continueInForeground`, and `AppModel.showDictationNotice(for:)` turns the
+reason into a `DictationNotice`, an alert with Open Settings (none for `.restricted`, and no alert for an undecided
+permission, which the app asks for as it opens). `AppModel.speechPermission` is read each time the app becomes active,
+after any asking, and while it's refused or restricted, `permissionNotice` puts a `PermissionRow` at the top of the
+list: [`99-say-when-a-permission-is-off.md`](decisions/99-say-when-a-permission-is-off.md).

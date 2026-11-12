@@ -1,7 +1,8 @@
 ---
 date: 2026-11-09
 issue: 77
-status: accepted
+status: superseded
+superseded_by: 99-say-when-a-permission-is-off.md
 ---
 
 # Ask for the microphone and speech recognition when the app opens
