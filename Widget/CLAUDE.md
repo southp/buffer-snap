@@ -46,8 +46,8 @@ brand (`docs/decisions/103-filled-bulb-dictate-symbol.md`).
   widths; scale sizes and side bearings match `lightbulb.fill`.
 - To check it compiled: `xcrun assetutil --info <app>/PlugIns/BufferSnapWidget.appex/Assets.car` lists 27
   `Vector Glyph` renditions of `bufsnap.dictate`.
-- Draw it with `Image(decorative:)` next to text that says what it does. A plain `Image("bufsnap.dictate")` makes
-  VoiceOver read the asset's name.
+- Draw it with `Image(decorative:)`, next to text that says what it does or in a button labeled with it, like the
+  widget's face. A plain `Image("bufsnap.dictate")` makes VoiceOver read the asset's name.
 - **Tinted and clear Home Screens** draw a widget in one color, by opacity alone, so a symbol on a filled shape
   disappears. `DictateWidgetView` checks `widgetRenderingMode` and draws its circle as an outline there;
   `WidgetViewTests.dictateTinted` snapshots that branch.
