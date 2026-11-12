@@ -131,15 +131,32 @@ struct AppModelTests {
         #expect(model.signInNotice == nil)
     }
 
-    @Test func theLiveActivitiesNoticeShowsUntilDismissed() {
+    /// A press that opened the app says why, until the alert is dismissed. An undecided permission says nothing: the
+    /// app asks for it as it comes to the foreground.
+    @Test(arguments: [
+        (HandsFreeDictationSession.NeedsTheAppReason.liveActivitiesOff, Optional(DictationNotice.liveActivitiesOff)),
+        (.permission(.microphoneDenied), .microphoneOff),
+        (.permission(.speechRecognitionDenied), .speechRecognitionOff),
+        (.permission(.restricted), .restricted),
+        (.permission(.undetermined), nil),
+    ])
+    func aPressThatOpenedTheAppSaysWhy(reason: HandsFreeDictationSession.NeedsTheAppReason, notice: DictationNotice?) {
         let model = AppModel(auth: StubAuthService(hasSavedSession: true))
-        #expect(!model.isShowingLiveActivitiesNotice)
+        #expect(model.dictationNotice == nil)
 
-        model.showLiveActivitiesNotice()
-        #expect(model.isShowingLiveActivitiesNotice)
+        model.showDictationNotice(for: reason)
+        #expect(model.dictationNotice == notice)
 
-        model.dismissLiveActivitiesNotice()
-        #expect(!model.isShowingLiveActivitiesNotice)
+        model.dismissDictationNotice()
+        #expect(model.dictationNotice == nil)
+    }
+
+    /// Settings has no switch for a restricted iPhone, so only the other notices offer it.
+    @Test func onlyARestrictedPermissionCantBeFixedInSettings() {
+        #expect(DictationNotice.liveActivitiesOff.canOpenSettings)
+        #expect(DictationNotice.microphoneOff.canOpenSettings)
+        #expect(DictationNotice.speechRecognitionOff.canOpenSettings)
+        #expect(!DictationNotice.restricted.canOpenSettings)
     }
 
     /// A session Buffer ended asks in the list, with no full-screen takeover.

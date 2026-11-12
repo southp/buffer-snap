@@ -37,8 +37,8 @@ public final class AppModel {
     public private(set) var isSignedIn: Bool
     public private(set) var signInNotice: SignInNotice?
     public private(set) var isSigningIn = false
-    /// A press couldn't listen because there was no Live Activity to show it on, so the app has to say why.
-    public private(set) var isShowingLiveActivitiesNotice = false
+    /// Why a press of Dictate an Idea that opened the app couldn't listen, until the alert is dismissed.
+    public private(set) var dictationNotice: DictationNotice?
     /// How many ideas a sign-in that just finished asks about ("Send N ideas to this account?"), until answered.
     /// `nil` means there's no question: `docs/decisions/68-ideas-at-sign-in.md`.
     public private(set) var ideasToConfirm: Int?
@@ -137,13 +137,14 @@ public final class AppModel {
         }
     }
 
-    /// Says that dictating needs Live Activities.
-    public func showLiveActivitiesNotice() {
-        isShowingLiveActivitiesNotice = true
+    /// A press of Dictate an Idea opened the app: says why it couldn't listen, if there's anything to say. An
+    /// undecided permission needs nothing: the app asks for it as it comes to the foreground.
+    public func showDictationNotice(for reason: HandsFreeDictationSession.NeedsTheAppReason) {
+        dictationNotice = DictationNotice(reason)
     }
 
-    public func dismissLiveActivitiesNotice() {
-        isShowingLiveActivitiesNotice = false
+    public func dismissDictationNotice() {
+        dictationNotice = nil
     }
 
     /// Asks about what's held, once, after a sign-in. Whatever is held at this moment goes into the count, including

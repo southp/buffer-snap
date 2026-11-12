@@ -16,7 +16,8 @@ struct DictateIdeaIntent: AudioRecordingIntent, LiveActivityIntent {
     // As in the #57 spike, which ran it from a control on the Lock Screen too.
     static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
 
-    /// Stays out of the way, unless there's no Live Activity to say why it couldn't listen.
+    /// Stays out of the way, unless only the app can say why it couldn't listen: no Live Activity, or a permission
+    /// that isn't granted.
     @available(iOS 26.0, *)
     static var supportedModes: IntentModes {
         [.background, .foreground(.dynamic)]
@@ -32,7 +33,7 @@ struct DictateIdeaIntent: AudioRecordingIntent, LiveActivityIntent {
             return .result()
         }
         let result = await onRun()
-        if result == .needsTheApp(.liveActivitiesOff), #available(iOS 26.0, *) {
+        if case .needsTheApp = result, #available(iOS 26.0, *) {
             try await continueInForeground(alwaysConfirm: false)
         }
         return .result()
