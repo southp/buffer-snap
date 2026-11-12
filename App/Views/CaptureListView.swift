@@ -82,8 +82,8 @@ struct CaptureListView: View {
                     }
                 }
             }
-            // Signed out, the row above would run into it if it floated over the middle of the screen.
-            if batches.isEmpty && problem == nil && !isSignedIn {
+            // Under any row above it, which it would run into if it floated over the middle of the screen.
+            if showsEmptyState && hasRowsAboveEmptyState {
                 Section {
                     emptyState
                         .listRowInsets(EdgeInsets(top: 12, leading: 22, bottom: 12, trailing: 22))
@@ -112,7 +112,7 @@ struct CaptureListView: View {
             }
         }
         .overlay {
-            if batches.isEmpty && problem == nil && isSignedIn {
+            if showsEmptyState && !hasRowsAboveEmptyState {
                 emptyState
                     .padding(.horizontal, 22)
             }
@@ -148,6 +148,16 @@ struct CaptureListView: View {
 
     private var showsSyncStatus: Bool {
         syncStatus != .nothingYet && isSignedIn
+    }
+
+    private var showsEmptyState: Bool {
+        batches.isEmpty && problem == nil
+    }
+
+    /// The sign-in and permission rows: the empty state goes under them, and floats only on its own. The sync status
+    /// never shows with it: with no captures, it's `nothingYet`.
+    private var hasRowsAboveEmptyState: Bool {
+        signInPrompt != nil || permissionNotice != nil
     }
 
     /// How to start, the same signed in or not: the offline row already says where ideas go. The name is the control's
