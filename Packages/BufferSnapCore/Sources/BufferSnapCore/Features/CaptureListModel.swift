@@ -28,6 +28,8 @@ public final class CaptureListModel {
     public private(set) var batches: [CaptureBatch] = []
     /// Whether the queue's last pass couldn't reach Buffer, as of the last load.
     public private(set) var isOffline = false
+    /// Until when Buffer asked the queue to wait, as of the last load, or `nil` if it didn't.
+    public private(set) var rateLimitedUntil: Date?
     /// Whether a Sync now is running.
     public private(set) var isSyncing = false
     /// What went wrong last, until the next try of the same kind works.
@@ -48,12 +50,13 @@ public final class CaptureListModel {
 
     /// Whether everything reached Buffer, at `now`.
     public func syncStatus(at now: Date) -> SyncStatus {
-        SyncStatus(batches: batches, isOffline: isOffline, now: now)
+        SyncStatus(batches: batches, isOffline: isOffline, rateLimitedUntil: rateLimitedUntil, now: now)
     }
 
-    /// Reads every capture from the store, and whether the queue is offline.
+    /// Reads every capture from the store, and whether the queue is offline or rate limited.
     public func load() async {
         isOffline = await submissions.isOffline
+        rateLimitedUntil = await submissions.rateLimitedUntil
         do {
             captures = try await store.all().sorted { $0.createdAt > $1.createdAt }
             if problem == .couldNotLoad {
@@ -91,9 +94,10 @@ public final class CaptureListModel {
     }
 
     /// Sends everything that can go, without waiting for any window, and returns once that pass is over. Failed batches
-    /// stay as they are, each with its own Resend.
+    /// stay as they are, each with its own Resend. While Buffer has asked to wait, it does nothing, so "Syncing…"
+    /// doesn't flash up for a pass that can't start.
     public func syncNow() async {
-        guard !isSyncing else {
+        guard !isSyncing, !isRateLimited else {
             return
         }
         isSyncing = true
@@ -125,6 +129,14 @@ public final class CaptureListModel {
             try await store.deleteSubmitted()
             await submissions.replan()
         }
+    }
+
+    /// Whether the rate limit from the last load is still on, by the queue's clock.
+    private var isRateLimited: Bool {
+        guard let rateLimitedUntil else {
+            return false
+        }
+        return submissions.clock.now < rateLimitedUntil
     }
 
     /// Runs `action`, then reloads. If it throws, nothing changed, and `failure` says so.

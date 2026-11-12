@@ -1,7 +1,8 @@
 ---
 date: 2026-11-08
 issue: 46
-status: accepted
+status: superseded
+superseded_by: 105-say-when-buffer-asks-to-wait.md
 ---
 
 # Sync now sends what's waiting, not what failed
