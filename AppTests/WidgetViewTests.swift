@@ -25,6 +25,13 @@ struct WidgetViewTests {
         assertScreenSnapshot(of: framed(tinted, background: Color(white: 0.9)), named: "dictate-tinted")
     }
 
+    /// StandBy and the Lock Screen draw the face vibrant: one color by opacity too, so it takes the same outline path.
+    @Test func dictateVibrant() {
+        let vibrant = DictateWidgetView()
+            .environment(\.widgetRenderingMode, .vibrant)
+        assertScreenSnapshot(of: framed(vibrant, background: Color(white: 0.9)), named: "dictate-vibrant")
+    }
+
     private var widget: some View {
         framed(DictateWidgetView(), background: DictateWidgetBackground())
     }
