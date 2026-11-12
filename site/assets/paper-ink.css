@@ -181,7 +181,8 @@ strong {
 .chip {
   display: inline-block;
   flex-shrink: 0;
-  padding: 7px 14px;
+  /* 18px of text + 22px of padding + 4px of border = a 44px touch target. */
+  padding: 11px 16px;
   background: var(--surface);
   color: var(--ink);
   border: var(--border-width) solid var(--ink);
@@ -199,6 +200,7 @@ strong {
   box-shadow: none;
 }
 
+/* Overrides the 4px radius a:focus-visible sets, so the focus ring keeps the chip's pill shape. */
 .chip:focus-visible {
   border-radius: 999px;
 }
