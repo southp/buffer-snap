@@ -13,10 +13,14 @@ Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `
   A view with no state of its own (`SignInPromptRow`) is just the view, with its action as a closure.
 - **No logic in views.** Routing, loading, deleting and every other state change belong to a Core model and its unit
   tests. A view may only map values to pixels (a kind's SF Symbol, a status's color).
-- **Draw with the Paper & Ink theme** (`Shared/Theme.swift`, `Shared/ThemeStyles.swift`): `Theme`'s colors, `.inter(_:)`
-  and `.caveat(_:)` fonts, `.cardRow(_:)` for a list row in a card, `PaperInkButtonStyle`, `Pill` and `Badge`. Never a
-  hard-coded color or the system font. A screen is a grouped `List` with `.paperInkScreen(title:)` and a `ScreenTitle`
-  row (`docs/decisions/84-paper-and-ink.md`).
+- **Draw with the Paper & Ink theme** (`Shared/Theme.swift`, `Shared/ThemeStyles.swift`): `Theme`'s colors, the
+  `.inter(_:)` font and the `.caveat(_:)` view modifier, `.cardRow(_:)` for a list row in a card, `PaperInkButtonStyle`,
+  `Pill` and `Badge`. Never a hard-coded color or the system font. A screen is a grouped `List` with
+  `.paperInkScreen(title:)` and a `ScreenTitle` row (`docs/decisions/84-paper-and-ink.md`).
+  - **Caveat draws past its frame.** Its handwritten letters reach past their own width, and SwiftUI clips a `Text`
+    at its frame, which cut off the last "s" of "Captures" (#97). Set Caveat only with `ScreenTitle` or
+    `.caveat(_:)`, which give it room to draw (`docs/decisions/97-caveat-draws-past-its-frame.md`), and never clip
+    its frame (`.clipped()`, a clip shape, `.drawingGroup()`).
 - **Never read the clock or the locale in a view.** Take `now: Date` as a parameter (the screen feeds it from a
   `TimelineView`), and read `locale`/`calendar` from the environment. That's what keeps snapshots identical on every
   machine and every day. Snapshot tests count from `Capture.samplesReferenceDate`, the date `Capture.samples()` is
@@ -49,6 +53,9 @@ Each view gets a snapshot test in `AppTests/` that renders it, full-screen, in e
   in `AppTests/__Snapshots__/` and the new rendering in `build/snapshot-failures/`. Read both.
 - **Never re-record just to make a failing test pass.** Look at the diff first. Re-record only when the change is
   the one you intended, and list each re-recorded PNG and why in the PR's "Snapshot changes".
+- **A snapshot can bake a rendering bug into its reference.** Then the test passes on the bug: the clipped "Captures"
+  title was the reference image until #97. Read each new reference PNG closely, at full size, edges included, before
+  committing it.
 
 ### Whole app: XcodeBuildMCP
 
