@@ -36,16 +36,7 @@ struct BufferSnapApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(appModel: appModel, environment: environment)
-                .liveActivitiesNotice(
-                    isPresented: Binding(
-                        get: { appModel.isShowingLiveActivitiesNotice },
-                        set: { isShowing in
-                            if !isShowing {
-                                appModel.dismissLiveActivitiesNotice()
-                            }
-                        }
-                    )
-                )
+                .dictationNotice(appModel.dictationNotice, onDismiss: appModel.dismissDictationNotice)
                 .task {
                     await removeMockCaptures()
                 }
@@ -88,8 +79,8 @@ struct BufferSnapApp: App {
         )
         DictateIdeaIntent.onRun = {
             let result = await session.press()
-            if result == .needsTheApp(.liveActivitiesOff) {
-                appModel.showLiveActivitiesNotice()
+            if case .needsTheApp(let reason) = result {
+                appModel.showDictationNotice(for: reason)
             }
             return result
         }
