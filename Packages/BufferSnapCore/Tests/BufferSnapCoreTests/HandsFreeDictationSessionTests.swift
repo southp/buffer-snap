@@ -299,6 +299,19 @@ struct HandsFreeDictationSessionTests {
         #expect(fixture.display.shown.map(\.phase) == [.needsPermission])
         #expect(await fixture.speech.startCount == 0)
     }
+
+    /// The Live Activity still says "Can't listen yet", for a locked iPhone, but only the app can say which permission
+    /// is off, or ask for one that hasn't been decided.
+    @Test(arguments: [SpeechPermission.undetermined, .microphoneDenied, .speechRecognitionDenied, .restricted])
+    func aPermissionThatIsntGrantedNeedsTheApp(permission: SpeechPermission) async {
+        let fixture = HandsFreeDictationSessionTests(speech: MockSpeechTranscriber(permission: permission))
+        let session = fixture.makeSession()
+
+        let result = await session.press()
+
+        #expect(result == .needsTheApp(.permission(permission)))
+        #expect(fixture.display.shown.map(\.phase) == [.needsPermission])
+    }
 }
 
 /// Counts calls from any task.
