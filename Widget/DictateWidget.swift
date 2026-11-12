@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-/// A small Home Screen widget that's one mic button: a press starts listening without opening the app.
+/// A small Home Screen widget that's one dictate button: a press starts listening without opening the app.
 struct DictateWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "DictateWidget", provider: DictateWidgetProvider()) { _ in
