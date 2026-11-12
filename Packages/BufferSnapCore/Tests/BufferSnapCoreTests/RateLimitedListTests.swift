@@ -60,6 +60,28 @@ struct RateLimitedListTests {
         #expect(model.syncStatus(at: clock.now) == .rateLimited(count: 1, until: until))
     }
 
+    /// A wait that starts after the list last loaded still stops Sync now: it asks the queue, not the loaded state.
+    @Test func syncNowChecksTheQueueNotTheLastLoad() async {
+        let queue = fixture.makeQueue(store: store)
+        let model = CaptureListModel(store: store, submissions: queue)
+        await model.load()
+        await server.failIdeas(.answer(.tooManyRequests(retryAfter: Int(Self.retryAfter))))
+        await queue.run()
+        #expect(model.rateLimitedUntil == nil)
+        let isSyncingChanged = Mutex(false)
+        withObservationTracking {
+            _ = model.isSyncing
+        } onChange: {
+            isSyncingChanged.withLock { $0 = true }
+        }
+
+        await model.syncNow()
+
+        #expect(isSyncingChanged.withLock { $0 } == false)
+        #expect(await server.ideaRequests == 1)
+        #expect(model.syncStatus(at: clock.now) == .rateLimited(count: 1, until: until))
+    }
+
     /// Once the time has passed, the status says waiting again, even before the queue wakes up.
     @Test func theWaitEndsOnTime() async {
         let (queue, model) = await rateLimitedList()
