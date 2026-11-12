@@ -1,0 +1,15 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- The Dictate an Idea symbol (#103): the Doodle Bulb of app-icon.svg as a one-color SF Symbol, for the control and
+       the Home Screen widget. A filled bulb with its sound-wave filament cut out, on two base bars. Regenerate the
+       asset with `just control-symbol`.
+
+       control-symbol.swift reads only the <path> elements, in order, each adding to the glyph or, with class="cut",
+       cutting out of it. Each path takes its fill (anything but "none" fills it) and its stroke-width, a round-capped,
+       round-joined stroke, from its own attributes. Paths use absolute M, L, H, V, C, A (circular only) and Z. The
+       stroke widths are the Regular weight's: other weights scale an added stroke and, more gently, a cut one. Viewed on
+       its own, this file shows the Regular glyph. -->
+  <path d="M50 14 A25 25 0 0 0 35 59 C38 61 40 64 40 68 V71 H60 V68 C60 64 62 61 65 59 A25 25 0 0 0 50 14 Z" fill="#1A1A1A" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round"/>
+  <path class="cut" d="M36 42 L40 36 L44 48 L48 30 L52 50 L56 34 L60 46 L64 40" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42 78.5 H58" fill="none" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M45 86 H55" fill="none" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
+</svg>

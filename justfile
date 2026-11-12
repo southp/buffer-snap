@@ -288,6 +288,12 @@ app-icon:
         ffmpeg -hide_banner -loglevel error -y -i "$tmp/icon.png" -frames:v 1 -update 1 -pix_fmt rgb24 "$icons/$file"
     done
 
+# Render the Dictate an Idea symbol's source, docs/design/control-symbol.svg, to the custom SF Symbol the control and
+# the Home Screen widget draw: an SF Symbols template with nine weights at three scales, in Shared/Theme.xcassets.
+control-symbol:
+    swift docs/design/control-symbol.swift docs/design/control-symbol.svg \
+        Shared/Theme.xcassets/bufsnap.dictate.symbolset/bufsnap.dictate.svg
+
 # App Store screenshots at both sizes App Store Connect takes, into build/store-screenshots/. Needs Google Chrome,
 # ffmpeg and AXe. What each one shows and how to upload: docs/app-store/screenshots.md.
 store-screenshots: build
