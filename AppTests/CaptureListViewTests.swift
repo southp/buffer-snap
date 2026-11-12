@@ -243,6 +243,13 @@ struct CaptureListViewTests {
         }
     }
 
+    /// Signed in with no captures, the empty state goes under the row rather than floating over it.
+    @Test func permissionRowEmpty() {
+        let screen = listScreen([], permissionNotice: .microphoneOff)
+        assertScreenSnapshot(of: screen, named: "permissionRowEmpty")
+        assertScreenSnapshot(of: screen, named: "permissionRowEmpty-dark", appearance: .dark)
+    }
+
     /// Signed out too, it goes under the sign-in row.
     @Test func permissionRowSignedOut() {
         assertScreenSnapshot(
