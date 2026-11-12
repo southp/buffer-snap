@@ -1,0 +1,6 @@
+# Blank issues stay on for planned work. People with a question go to the support page, which also offers email.
+blank_issues_enabled: true
+contact_links:
+  - name: Ask a question
+    url: https://southp.github.io/buffer-snap/support/
+    about: How BufSnap works, common questions, and how to reach us by email.
