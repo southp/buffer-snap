@@ -21,6 +21,17 @@ Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `
     at its frame, which cut off the last "s" of "Captures" (#97). Set Caveat only with `ScreenTitle` or
     `.caveat(_:)`, which give it room to draw (`docs/decisions/97-caveat-draws-past-its-frame.md`), and never clip
     its frame (`.clipped()`, a clip shape, `.drawingGroup()`).
+- **The toolbar's `person` chip opens one menu**, `AccountMenuItems`, in sections. Add an item to the section it
+  belongs in, never a second menu:
+  1. The account header: who is signed in (#92).
+  2. Settings and guides: Batching, then How to Add Dictate an Idea (#98).
+  3. Help: Report a Problem (the support page's `#report`, never GitHub directly: most users have no GitHub account)
+     and Source Code on GitHub.
+  4. Sign Out, only while signed in.
+  5. The version and build ("BufSnap 1.1 (42)"), not tappable, so people can quote it in a report.
+
+  The screen passes the URLs (`ProjectLinks`) and the version (`AppVersion`, read from `Bundle.main`); the view builds
+  neither.
 - **Never read the clock or the locale in a view.** Take `now: Date` as a parameter (the screen feeds it from a
   `TimelineView`), and read `locale`/`calendar` from the environment. That's what keeps snapshots identical on every
   machine and every day. Snapshot tests count from `Capture.samplesReferenceDate`, the date `Capture.samples()` is
