@@ -97,6 +97,11 @@ public final class CaptureListModel {
     /// stay as they are, each with its own Resend. While Buffer has asked to wait, it does nothing, so "Syncing…"
     /// doesn't flash up for a pass that can't start.
     public func syncNow() async {
+        guard !isSyncing else {
+            return
+        }
+        // Ask the queue: a wait may have started since the last load, before its event reached the list.
+        rateLimitedUntil = await submissions.rateLimitedUntil
         guard !isSyncing, !isRateLimited else {
             return
         }
