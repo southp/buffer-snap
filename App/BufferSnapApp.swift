@@ -139,8 +139,16 @@ struct BufferSnapApp: App {
     private static func makeBufferClient() -> any BufferClient {
         #if DEBUG
             if UserDefaults.standard.string(forKey: "mockAuth") != nil {
-                let rejectsFirst = UserDefaults.standard.string(forKey: "mockBuffer") == "rejectFirst"
-                return MockBufferClient(failures: rejectsFirst ? [.rejected(reason: "Mock")] : [])
+                let failures: [BufferError] =
+                    switch UserDefaults.standard.string(forKey: "mockBuffer") {
+                    case "rejectFirst":
+                        [.rejected(reason: "Mock")]
+                    case "rateLimitFirst":
+                        [.rateLimited(retryAfter: 120)]
+                    default:
+                        []
+                    }
+                return MockBufferClient(failures: failures)
             }
         #endif
         return GraphQLBufferClient(transport: URLSession.forBufferAPI())
