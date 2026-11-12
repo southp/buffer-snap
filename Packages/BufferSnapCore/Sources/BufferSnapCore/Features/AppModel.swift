@@ -1,7 +1,8 @@
 import OSLog
 import Observation
 
-/// App-wide state: whether anyone is signed in to Buffer, and what the app has to ask or say about it.
+/// App-wide state: whether anyone is signed in to Buffer, whether Dictate an Idea may listen, and what the app has to
+/// ask or say about either.
 @Observable
 @MainActor
 public final class AppModel {
@@ -39,25 +40,40 @@ public final class AppModel {
     public private(set) var isSigningIn = false
     /// Why a press of Dictate an Idea that opened the app couldn't listen, until the alert is dismissed.
     public private(set) var dictationNotice: DictationNotice?
+    /// The microphone and speech recognition, as last read. Undecided until the first read.
+    public private(set) var speechPermission = SpeechPermission.undetermined
     /// How many ideas a sign-in that just finished asks about ("Send N ideas to this account?"), until answered.
     /// `nil` means there's no question: `docs/decisions/68-ideas-at-sign-in.md`.
     public private(set) var ideasToConfirm: Int?
 
     private let auth: any AuthService
     private let ideas: any IdeasAtSignIn
+    private let speech: any SpeechTranscriber
 
     /// Reads the saved session without waiting for anything, so the first frame already shows the right state.
     ///
-    /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen.
-    public init(auth: any AuthService, ideas: any IdeasAtSignIn = NoIdeasAtSignIn()) {
+    /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen. `speech` is only
+    /// asked for its permission.
+    public init(
+        auth: any AuthService,
+        ideas: any IdeasAtSignIn = NoIdeasAtSignIn(),
+        speech: any SpeechTranscriber = MockSpeechTranscriber()
+    ) {
         self.auth = auth
         self.ideas = ideas
+        self.speech = speech
         isSignedIn = auth.hasSavedSession()
     }
 
     /// What the list's sign-in row shows, or `nil` while someone is signed in.
     public var signInPrompt: SignInPrompt? {
         isSignedIn ? nil : SignInPrompt(notice: signInNotice, isSigningIn: isSigningIn)
+    }
+
+    /// What the list's permission row says while Dictate an Idea can't listen, or `nil` while there's nothing to fix.
+    /// Never `.liveActivitiesOff`: only a press finds that out.
+    public var permissionNotice: DictationNotice? {
+        DictationNotice(speechPermission)
     }
 
     /// Signs in, and asks about whatever was waiting. If it doesn't work out, says why in the list's row.
@@ -140,11 +156,20 @@ public final class AppModel {
     /// A press of Dictate an Idea opened the app: says why it couldn't listen, if there's anything to say. An
     /// undecided permission needs nothing: the app asks for it as it comes to the foreground.
     public func showDictationNotice(for reason: HandsFreeDictationSession.NeedsTheAppReason) {
+        if case .permission(let permission) = reason {
+            speechPermission = permission
+        }
         dictationNotice = DictationNotice(reason)
     }
 
     public func dismissDictationNotice() {
         dictationNotice = nil
+    }
+
+    /// Reads the permission again, for when the app becomes active, as it may have changed in Settings meanwhile, and
+    /// once the app has asked for it.
+    public func refreshSpeechPermission() async {
+        speechPermission = await speech.permission()
     }
 
     /// Asks about what's held, once, after a sign-in. Whatever is held at this moment goes into the count, including

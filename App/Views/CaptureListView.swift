@@ -43,6 +43,8 @@ struct CaptureListView: View {
     let onSignIn: () -> Void
     /// Called when the user signs out.
     let onSignOut: () -> Void
+    /// What the permission row says while Dictate an Idea can't listen, or `nil` while there's nothing to fix.
+    let permissionNotice: DictationNotice?
 
     private var isSignedIn: Bool {
         signInPrompt == nil
@@ -56,6 +58,12 @@ struct CaptureListView: View {
             if let signInPrompt {
                 Section {
                     SignInPromptRow(prompt: signInPrompt, onSignIn: onSignIn)
+                        .cardRow(verticalPadding: 14)
+                }
+            }
+            if let permissionNotice {
+                Section {
+                    PermissionRow(notice: permissionNotice)
                         .cardRow(verticalPadding: 14)
                 }
             }

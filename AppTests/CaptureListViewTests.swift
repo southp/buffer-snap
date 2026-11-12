@@ -226,6 +226,34 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen([], signInPrompt: prompt), named: name)
     }
 
+    // MARK: - Permission row
+
+    /// Dictate an Idea can't listen: the row says which permission is off, above the sync status, with Open Settings
+    /// except when the iPhone doesn't allow it.
+    @Test func permissionRow() {
+        let notices: [(DictationNotice, String)] = [
+            (.microphoneOff, "microphoneOff"),
+            (.speechRecognitionOff, "speechRecognitionOff"),
+            (.restricted, "restricted"),
+        ]
+        for (notice, name) in notices {
+            let screen = listScreen(waitingCaptures, permissionNotice: notice)
+            assertScreenSnapshot(of: screen, named: name)
+            assertScreenSnapshot(of: screen, named: "\(name)-dark", appearance: .dark)
+        }
+    }
+
+    /// Signed out too, it goes under the sign-in row.
+    @Test func permissionRowSignedOut() {
+        assertScreenSnapshot(
+            of: listScreen([], signInPrompt: signedOut, permissionNotice: .microphoneOff),
+            named: "permissionRowSignedOut"
+        )
+    }
+}
+
+/// Shared fixtures, out of the struct's body so the tests themselves stay within its length limit.
+extension CaptureListViewTests {
     private var signedOut: AppModel.SignInPrompt {
         AppModel.SignInPrompt(notice: nil, isSigningIn: false)
     }
@@ -260,7 +288,8 @@ struct CaptureListViewTests {
         isSyncing: Bool = false,
         problem: CaptureListModel.Problem? = nil,
         signInPrompt: AppModel.SignInPrompt? = nil,
-        clearableIdeaCount: Int = 0
+        clearableIdeaCount: Int = 0,
+        permissionNotice: DictationNotice? = nil
     ) -> some View {
         let batches = Array(CaptureBatch.batches(of: captures, window: 5 * 60).reversed())
         let now = Capture.samplesReferenceDate
@@ -288,7 +317,8 @@ struct CaptureListViewTests {
                 sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
                 onSignIn: {},
-                onSignOut: {}
+                onSignOut: {},
+                permissionNotice: permissionNotice
             )
         }
     }

@@ -18,6 +18,8 @@ struct CaptureListScreen: View {
     private let onSignOut: () -> Void
     /// Read once: the bundle's version doesn't change while the app runs.
     private let appVersion = AppVersion(infoDictionary: Bundle.main.infoDictionary)
+    /// What the permission row shows, or `nil` while there's nothing to fix.
+    private let permissionNotice: DictationNotice?
 
     init(
         store: any CaptureStore,
@@ -25,7 +27,8 @@ struct CaptureListScreen: View {
         batchWindow: any BatchWindowSetting,
         signInPrompt: AppModel.SignInPrompt?,
         onSignIn: @escaping () -> Void,
-        onSignOut: @escaping () -> Void
+        onSignOut: @escaping () -> Void,
+        permissionNotice: DictationNotice?
     ) {
         _model = State(initialValue: CaptureListModel(store: store, submissions: submissions))
         self.submissions = submissions
@@ -33,6 +36,7 @@ struct CaptureListScreen: View {
         self.signInPrompt = signInPrompt
         self.onSignIn = onSignIn
         self.onSignOut = onSignOut
+        self.permissionNotice = permissionNotice
     }
 
     var body: some View {
@@ -79,7 +83,8 @@ struct CaptureListScreen: View {
                 sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
                 onSignIn: onSignIn,
-                onSignOut: onSignOut
+                onSignOut: onSignOut,
+                permissionNotice: permissionNotice
             )
         }
         .navigationDestination(isPresented: $isShowingBatchingSettings) {
