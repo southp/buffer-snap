@@ -266,6 +266,9 @@ struct CaptureListViewTests {
                 clearableIdeaCount: clearableIdeaCount,
                 onClearSubmitted: {},
                 onShowBatchingSettings: {},
+                appVersion: AppVersion(version: "1.1", build: "42"),
+                reportProblemURL: ProjectLinks.reportProblem,
+                sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
                 onSignIn: {},
                 onSignOut: {}

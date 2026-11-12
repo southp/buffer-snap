@@ -31,6 +31,12 @@ struct CaptureListView: View {
     let onClearSubmitted: () -> Void
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
+    /// The version and build at the bottom of the account menu.
+    let appVersion: AppVersion
+    /// Where the account menu's Report a Problem goes.
+    let reportProblemURL: URL
+    /// Where the account menu's Source Code on GitHub goes.
+    let sourceCodeURL: URL
     /// What the sign-in row shows while nobody is signed in, or `nil` while someone is.
     let signInPrompt: AppModel.SignInPrompt?
     /// Called when the user asks to sign in.
@@ -109,14 +115,15 @@ struct CaptureListView: View {
                 }
             }
             ChipToolbarItem(placement: .topBarTrailing) {
-                // In a menu, so one stray tap can't sign anyone out: coming back takes a full sign-in.
                 Menu {
-                    Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
-                    if isSignedIn {
-                        Button(
-                            "Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive,
-                            action: onSignOut)
-                    }
+                    AccountMenuItems(
+                        appVersion: appVersion,
+                        reportProblemURL: reportProblemURL,
+                        sourceCodeURL: sourceCodeURL,
+                        isSignedIn: isSignedIn,
+                        onShowBatchingSettings: onShowBatchingSettings,
+                        onSignOut: onSignOut
+                    )
                 } label: {
                     Label("Account", systemImage: "person")
                         .labelStyle(.iconOnly)

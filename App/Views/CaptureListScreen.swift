@@ -16,6 +16,8 @@ struct CaptureListScreen: View {
     private let signInPrompt: AppModel.SignInPrompt?
     private let onSignIn: () -> Void
     private let onSignOut: () -> Void
+    /// Read once: the bundle's version doesn't change while the app runs.
+    private let appVersion = AppVersion(infoDictionary: Bundle.main.infoDictionary)
 
     init(
         store: any CaptureStore,
@@ -72,6 +74,9 @@ struct CaptureListScreen: View {
                 onShowBatchingSettings: {
                     isShowingBatchingSettings = true
                 },
+                appVersion: appVersion,
+                reportProblemURL: ProjectLinks.reportProblem,
+                sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
                 onSignIn: onSignIn,
                 onSignOut: onSignOut
