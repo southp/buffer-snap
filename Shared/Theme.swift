@@ -107,6 +107,8 @@ private struct OverhangingText: TextRenderer {
         EdgeInsets(top: 0, leading: overhang, bottom: 0, trailing: overhang)
     }
 
+    /// Draws each line unchanged. Caveat text is plain; if it ever gets inline attachments or per-run effects, draw the
+    /// runs instead.
     func draw(layout: Text.Layout, in context: inout GraphicsContext) {
         for line in layout {
             context.draw(line)
