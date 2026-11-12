@@ -24,7 +24,8 @@ struct RootView: View {
                     Task {
                         await appModel.signOut()
                     }
-                }
+                },
+                permissionNotice: appModel.permissionNotice
             )
         }
         // Ink for the system's own controls, such as the back button. Accents are set where they're drawn.

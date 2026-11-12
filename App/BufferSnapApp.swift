@@ -20,13 +20,17 @@ struct BufferSnapApp: App {
             batchWindow: UserDefaultsBatchWindowSetting()
         )
         self.environment = environment
+        // One for the app's model, which only reads its permission, and for the session, which listens.
+        let speech = AppleSpeechTranscriber()
         // Whoever signs in next may not be whoever made what's pending.
         let appModel = AppModel(
             auth: environment.auth,
-            ideas: environment.submissions
+            ideas: environment.submissions,
+            speech: speech
         )
         _appModel = State(initialValue: appModel)
         handsFreeDictation = Self.makeHandsFreeDictation(
+            speech: speech,
             store: environment.captureStore,
             submissions: environment.submissions,
             appModel: appModel
@@ -49,11 +53,17 @@ struct BufferSnapApp: App {
         }
         // `initial`, as the scene is already active the first time this reads it: without it, a first launch won't ask.
         .onChange(of: scenePhase, initial: true) { _, phase in
-            // A press can't ask for the mic with the app closed, so opening the app does. Then the first press works.
-            if phase == .active && Self.asksForPermission {
-                Task {
+            guard phase == .active else {
+                return
+            }
+            Task {
+                // A press can't ask for the mic with the app closed, so opening the app does. Then the first press
+                // works.
+                if Self.asksForPermission {
                     await handsFreeDictation.askForPermissionIfNeeded()
                 }
+                // It may have changed in Settings while the app was away, or just now, in the prompts.
+                await appModel.refreshSpeechPermission()
             }
         }
     }
@@ -61,12 +71,13 @@ struct BufferSnapApp: App {
     /// The one session the intents reach, set before any of them can run: an intent's `perform()` is main-actor, so it
     /// waits for this `init`, even when the intent is what launched the app.
     private static func makeHandsFreeDictation(
+        speech: any SpeechTranscriber,
         store: any CaptureStore,
         submissions: SubmissionQueue,
         appModel: AppModel
     ) -> HandsFreeDictationSession {
         let session = HandsFreeDictationSession(
-            speech: AppleSpeechTranscriber(),
+            speech: speech,
             store: store,
             display: LiveActivityDictationDisplay(),
             keepAlive: BackgroundTaskKeepAlive(),

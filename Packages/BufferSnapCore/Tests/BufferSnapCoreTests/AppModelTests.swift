@@ -151,6 +151,48 @@ struct AppModelTests {
         #expect(model.dictationNotice == nil)
     }
 
+    // MARK: The permission row
+
+    /// The row shows only while there's something to fix: not while it's allowed, nor before it's been asked for.
+    @Test(arguments: [
+        (SpeechPermission.granted, DictationNotice?.none),
+        (.undetermined, nil),
+        (.microphoneDenied, .microphoneOff),
+        (.speechRecognitionDenied, .speechRecognitionOff),
+        (.restricted, .restricted),
+    ])
+    func thePermissionRowFollowsThePermission(permission: SpeechPermission, notice: DictationNotice?) async {
+        let model = AppModel(auth: MockAuthService(), speech: MockSpeechTranscriber(permission: permission))
+        #expect(model.permissionNotice == nil)
+
+        await model.refreshSpeechPermission()
+
+        #expect(model.speechPermission == permission)
+        #expect(model.permissionNotice == notice)
+    }
+
+    /// Turned back on in Settings: the next time the app is active, the row is gone.
+    @Test func thePermissionRowGoesOnceItsAllowed() async {
+        let speech = MockSpeechTranscriber(permission: .microphoneDenied, answer: .granted)
+        let model = AppModel(auth: MockAuthService(), speech: speech)
+        await model.refreshSpeechPermission()
+        #expect(model.permissionNotice == .microphoneOff)
+
+        _ = await speech.requestPermission()
+        await model.refreshSpeechPermission()
+
+        #expect(model.permissionNotice == nil)
+    }
+
+    /// A press that opened the app already knows the permission, so the row is there under the alert.
+    @Test func aPressThatOpenedTheAppShowsTheRowAtOnce() {
+        let model = AppModel(auth: MockAuthService(), speech: MockSpeechTranscriber(permission: .granted))
+
+        model.showDictationNotice(for: .permission(.speechRecognitionDenied))
+
+        #expect(model.permissionNotice == .speechRecognitionOff)
+    }
+
     /// Settings has no switch for a restricted iPhone, so only the other notices offer it.
     @Test func onlyARestrictedPermissionCantBeFixedInSettings() {
         #expect(DictationNotice.liveActivitiesOff.canOpenSettings)
