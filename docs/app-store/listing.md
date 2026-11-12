@@ -60,6 +60,20 @@ Capturing works without an account, and sending ideas to Buffer needs a Buffer a
 
 1547 characters. The "Free and open source" section ships with 1.1, since the description belongs to a version.
 
+## What's New in This Version (version page, ≤4000, from 1.1)
+
+```
+• Show Me How: a guide to adding Dictate an Idea to Control Center, the Action button, the Lock Screen or a widget, with a sketch of each step. It's on the empty list and in the account menu.
+• If the microphone or speech recognition is off, the list says which one, with a button to Settings.
+• When Buffer asks BufSnap to wait, the list says so and when it will try again, instead of showing a failure.
+• A new bulb on the control and the widget. The widget is now just the bulb, so nothing gets cut off.
+• The account menu adds Report a Problem, a link to the source code, and the app's version.
+• Handwritten titles are no longer clipped, and the empty list no longer overlaps the notices above it.
+```
+
+For 1.1 (#107), from the Polishing milestone's closed issues. Write a new one for each version, about what users will
+notice, not how it's built.
+
 ## Keywords (version page, ≤100, comma-separated, no spaces after commas)
 
 ```
@@ -92,7 +106,7 @@ The support page goes live once this branch merges, as the privacy page did. Unt
 | Field | Value |
 |---|---|
 | Copyright | `2026 <your name>` |
-| Version | `1.0.0`, the version the build carries |
-| What's New | Not shown for a first version |
+| Version | The version the build carries: `1.0.0` for the first version, `1.1` now |
+| What's New | Not shown for a first version. From 1.1, see "What's New in This Version" above |
 | Content Rights | No third-party content |
 | Primary language | English (U.S.) |
