@@ -30,6 +30,25 @@ press runs in the app's process, with the app closed. Nothing here reads or writ
 - **Check it on an iPhone** (`just device`): listening with the app closed, the background audio and the Lock Screen
   are what the #57 spike proved there, and none of it is something the simulator can show.
 
+## The dictate symbol
+
+The control and the widget's face draw `bufsnap.dictate`, a custom SF Symbol: the Doodle Bulb filled, with its
+sound-wave filament cut out, on two base bars. Controls only take one-color template symbols, which the system tints,
+so it's a symbol rather than the app icon. The Live Activity keeps its system symbols: they describe a state, not the
+brand (`docs/decisions/103-filled-bulb-dictate-symbol.md`).
+
+- **Source:** `docs/design/control-symbol.svg`, a 100×100 drawing whose comment says which SVG it accepts.
+- **Regenerate:** edit the SVG, run `just control-symbol`, and commit both the SVG and
+  `Shared/Theme.xcassets/bufsnap.dictate.symbolset/bufsnap.dictate.svg`. Then re-record the widget's snapshots
+  (`just snapshots-record`) and read them. Never edit the generated template by hand.
+- **How:** `docs/design/control-symbol.swift` outlines the strokes with CoreGraphics into all nine weights at all three
+  scales of an SF Symbols template (`docs/decisions/103-generated-symbol-template.md`). Weights scale the stroke
+  widths; scale sizes and side bearings match `lightbulb.fill`.
+- To check it compiled: `xcrun assetutil --info <app>/PlugIns/BufferSnapWidget.appex/Assets.car` lists 27
+  `Vector Glyph` renditions of `bufsnap.dictate`.
+- Draw it with `Image(decorative:)` next to text that says what it does. A plain `Image("bufsnap.dictate")` makes
+  VoiceOver read the asset's name.
+
 ## Gotchas
 
 - **Don't use XcodeGen's `entitlements:` key without `properties`:** `just gen` then overwrites the file with an empty
