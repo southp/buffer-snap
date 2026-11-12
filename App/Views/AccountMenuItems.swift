@@ -3,7 +3,7 @@ import SwiftUI
 
 /// What the toolbar's `person` chip menu holds, one section per group, top to bottom:
 /// 1. The account header (#92 adds it here).
-/// 2. Settings and guides: Batching (#98 adds How to Add Dictate an Idea after it).
+/// 2. Settings and guides: Batching, then How to Add Dictate an Idea, which opens the guide.
 /// 3. Help: Report a Problem, which opens the support page's report section, and Source Code on GitHub.
 /// 4. Sign Out, only while someone is signed in. In a menu, so one stray tap can't sign anyone out: coming back
 ///    takes a full sign-in.
@@ -21,12 +21,15 @@ struct AccountMenuItems: View {
     let isSignedIn: Bool
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
+    /// Called when the user asks how to add Dictate an Idea.
+    let onShowAddDictationGuide: () -> Void
     /// Called when the user signs out.
     let onSignOut: () -> Void
 
     var body: some View {
         Section {
             Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
+            Button("How to Add Dictate an Idea", systemImage: "questionmark.circle", action: onShowAddDictationGuide)
         }
         Section {
             Link(destination: reportProblemURL) {

@@ -11,7 +11,8 @@ import Testing
 /// that changes the menu shows the real one in its screenshots.
 @MainActor
 struct AccountMenuItemsTests {
-    /// Batching, then Report a Problem and Source Code on GitHub, then Sign Out, then the version.
+    /// Batching and How to Add Dictate an Idea, then Report a Problem and Source Code on GitHub, then Sign Out, then
+    /// the version.
     @Test func signedIn() {
         assertScreenSnapshot(of: items(isSignedIn: true), named: "signedIn")
     }
@@ -29,6 +30,7 @@ struct AccountMenuItemsTests {
                 sourceCodeURL: ProjectLinks.sourceCode,
                 isSignedIn: isSignedIn,
                 onShowBatchingSettings: {},
+                onShowAddDictationGuide: {},
                 onSignOut: {}
             )
         }
