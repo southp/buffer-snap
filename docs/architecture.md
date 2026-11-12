@@ -15,7 +15,8 @@ SwiftUI shells over it.
   `AVAudioSession` doesn't exist on macOS, where Core's tests run.
 - **`AppEnvironment`** bundles the services. `BufferSnapApp` builds it once, as the composition root, and is the
   only place that picks which implementations run.
-- **Models** are plain `Sendable` values (`Capture`).
+- **Models** are plain `Sendable` values (`Capture`, `AppVersion`). `ProjectLinks` holds where the app's help and code
+  live.
 - **Views** (`App/Views/`) only render. `RootView` shows the capture list, signed in or not, and it's the only screen.
   Signing in is a row on the list. A screen feeds a stateless view (`CaptureListView`) plain values and closures, and
   `CaptureListScreen` owns its feature model. Conventions: [`App/CLAUDE.md`](../App/CLAUDE.md).
