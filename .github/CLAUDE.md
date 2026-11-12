@@ -78,26 +78,42 @@ UI automation can time out right after a clean boot, while the machine is satura
 **Host** the files on the `pr-media` branch, in `pr-<N>/`. Never commit media to your issue branch: with rebase merges,
 the binaries would stay in `main`'s history forever. Hosting needs the PR's number, so open the PR as a draft first and
 mark it ready once the media is in: drafts aren't reviewed, so the review then sees the media. These steps use a
-temporary index, so they don't touch your worktree:
+temporary index, so they don't touch your worktree. Set `files` to only the files you have:
 
 ```sh
 N=<PR number>
-git fetch origin pr-media
+files=(shot.png flow.gif flow.mp4)
+failed="" tree="" commit=""
 export GIT_INDEX_FILE="$(mktemp -u)"
-git read-tree FETCH_HEAD
-files=(shot.png flow.gif flow.mp4)   # Only the files you have
-for f in "${files[@]}"; do
-    git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),pr-$N/$(basename "$f")"
-done
-tree="$(git write-tree)"
+if git fetch origin pr-media && git read-tree FETCH_HEAD; then
+    for f in "${files[@]}"; do
+        if ! blob="$(git hash-object -w "$f")" ||
+            ! git update-index --add --cacheinfo "100644,${blob},pr-${N}/$(basename "$f")"; then
+            failed=1
+            break
+        fi
+    done
+    if [[ -z "$failed" ]]; then
+        tree="$(git write-tree)"
+    fi
+fi
 rm -f "$GIT_INDEX_FILE"; unset GIT_INDEX_FILE
-commit="$(git commit-tree "$tree" -p FETCH_HEAD -m "Docs: Add the media for PR #$N")"
-git push origin "$commit:refs/heads/pr-media"
-echo "https://raw.githubusercontent.com/southp/buffer-snap/$commit/pr-$N/"
+if [[ -n "$tree" ]]; then
+    commit="$(git commit-tree "$tree" -p FETCH_HEAD -m "Docs: Add the media for PR #${N}")"
+fi
+if [[ -n "$commit" ]]; then
+    git push origin "${commit}:refs/heads/pr-media" &&
+        echo "https://raw.githubusercontent.com/southp/buffer-snap/${commit}/pr-${N}/"
+else
+    echo "Stopped: a step above failed, so nothing was pushed." >&2
+fi
 ```
 
 - Link that commit-pinned URL with `<img src="..." width="300" alt="...">`. A link to the branch would move with it.
-- If the push is rejected, another PR got there first: start again from `git fetch`.
+- If the push is rejected, another PR got there first: run the snippet again.
+- If a step fails, the snippet prints `Stopped: ...` and pushes nothing. Keep it that way when you edit it: pushing an
+  empty `$commit` deletes `pr-media`. Write `${commit}`, never `$commit:...` (zsh reads `:r` as a modifier), and use
+  no `set -e`, `exit` or `#` comments: it's pasted into an interactive shell, and zsh runs `#` as a command by default.
 - Only edit the PR body once the push has succeeded. New URLs can return 404 for about a minute, so then open the PR
   page and check that everything displays.
 - Never delete `pr-media`. Merged PRs still link to it.
