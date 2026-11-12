@@ -58,9 +58,59 @@ extension Font {
         .custom("Inter", size: style.paperInkSize, relativeTo: style).weight(weight)
     }
 
-    /// Caveat Bold, the handwritten face, for large titles and big headings only. Grows with Dynamic Type like `style`.
-    static func caveat(_ style: Font.TextStyle) -> Font {
+    /// Caveat Bold. Only `View.caveat(_:)` sets it, since text in Caveat needs room to draw past its frame.
+    /// `.weight(.bold)` picks the font's own Bold instance (wght 700), not a synthesized one.
+    fileprivate static func caveat(_ style: Font.TextStyle) -> Font {
         .custom("Caveat", size: style.caveatSize, relativeTo: style).weight(.bold)
+    }
+}
+
+extension View {
+    /// Sets text in Caveat Bold, the handwritten face, for large titles and big headings only. Grows with Dynamic Type
+    /// like `style`.
+    ///
+    /// Caveat's letters reach past their advance width (the last "s" of "Captures" by 0.09 em), and SwiftUI clips a
+    /// `Text`'s drawing at its frame, which cut that "s" off (#97). So this also lets the text draw past its frame on
+    /// both sides, without changing its layout.
+    func caveat(_ style: Font.TextStyle) -> some View {
+        modifier(CaveatText(style: style))
+    }
+}
+
+/// Caveat, with room to draw its overhang.
+private struct CaveatText: ViewModifier {
+    /// How far any of Caveat Bold's glyphs reaches past its advance width, in ems: its widest is the fraction slash's
+    /// 0.326 em on the trailing side. Measured from `Shared/Fonts/Caveat.ttf` at wght 700 with fontTools.
+    private static let overhangInEms: CGFloat = 1.0 / 3.0
+
+    let style: Font.TextStyle
+    /// The overhang at this style's size, scaled with Dynamic Type like the font.
+    @ScaledMetric private var overhang: CGFloat
+
+    init(style: Font.TextStyle) {
+        self.style = style
+        _overhang = ScaledMetric(wrappedValue: style.caveatSize * Self.overhangInEms, relativeTo: style)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .font(.caveat(style))
+            .textRenderer(OverhangingText(overhang: overhang))
+    }
+}
+
+/// Draws text as SwiftUI would, but may draw `overhang` past the text's leading and trailing edges.
+private struct OverhangingText: TextRenderer {
+    let overhang: CGFloat
+
+    var displayPadding: EdgeInsets {
+        EdgeInsets(top: 0, leading: overhang, bottom: 0, trailing: overhang)
+    }
+
+    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        for line in layout {
+            context.draw(line)
+        }
     }
 }
 

@@ -138,7 +138,7 @@ struct CaptureListView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("No captures yet")
-                .font(.caveat(.title))
+                .caveat(.title)
                 .foregroundStyle(Theme.ink)
                 .accessibilityAddTraits(.isHeader)
             EmptyStateStep(
