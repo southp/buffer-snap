@@ -1,0 +1,225 @@
+/* Paper & Ink for the public pages (docs/decisions/84-paper-and-ink.md), shared by every page and every language.
+   The colors are Shared/Theme.xcassets' light and dark values; the shapes are Shared/Theme.swift's and
+   Shared/ThemeStyles.swift's. Change them there first, then here. Nothing in this file is English: a page in another
+   language links the same file and, if it needs other fallback fonts, sets --font-text and --font-hand for its
+   :lang() (Inter and Caveat cover Latin only). */
+
+/* ---------- Fonts: Latin subsets of Shared/Fonts/, how they were made in docs/decisions/101-site-fonts.md ---------- */
+
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Caveat";
+  src: url("fonts/Caveat-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- Tokens ---------- */
+
+:root {
+  color-scheme: light dark;
+
+  --paper: #FBF7EE;
+  --surface: #FFFFFF;
+  --ink: #1A1A1A;
+  --muted: #57534C;
+  --divider: #E4DDCD;
+  --tomato: #FF4D2E;
+  --tomato-text: #B8260C;
+  --sun: #FFE45C;
+  --on-color: #1A1A1A;
+
+  --corner-radius: 14px;
+  --border-width: 2px;
+  --card-shadow: 3px;
+  --chip-shadow: 2px;
+  --card-padding: 20px;
+
+  --font-text: "Inter", -apple-system, system-ui, sans-serif;
+  --font-hand: "Caveat", "Inter", -apple-system, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #15140F;
+    --surface: #24221C;
+    --ink: #FBF7EE;
+    --muted: #B9B2A3;
+    --divider: #3D3A31;
+    --tomato-text: #FF6B4F;
+  }
+}
+
+/* ---------- Page ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0 auto;
+  max-width: 680px;
+  padding: 20px 16px 64px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.55 var(--font-text);
+}
+
+a {
+  color: var(--tomato-text);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
+a:focus-visible {
+  outline: var(--border-width) solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+h1 {
+  margin: 32px 0 8px;
+  font-family: var(--font-hand);
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+p,
+ul {
+  margin: 0 0 12px;
+}
+
+ul {
+  padding-left: 22px;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+li::marker {
+  color: var(--tomato);
+}
+
+strong {
+  font-weight: 700;
+}
+
+/* Secondary text, such as a date under the title. */
+.meta {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ---------- Header: the Doodle Bulb, the name and the App Store chip ---------- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-hand);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* The icon as a tile, like on the Home Screen, with the ink outline. */
+.brand img {
+  width: 44px;
+  height: 44px;
+  border: var(--border-width) solid var(--ink);
+  border-radius: 11px;
+}
+
+/* ---------- Cards and chips, like CardBackground and PaperInkButtonStyle(kind: .chip) ---------- */
+
+/* White, with an ink outline and an ink shadow offset right and down, with no blur. */
+.card {
+  margin: 0 0 calc(18px + var(--card-shadow));
+  padding: var(--card-padding);
+  background: var(--surface);
+  border: var(--border-width) solid var(--ink);
+  border-radius: var(--corner-radius);
+  box-shadow: var(--card-shadow) var(--card-shadow) 0 var(--ink);
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+.chip {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border: var(--border-width) solid var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--chip-shadow) var(--chip-shadow) 0 var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+/* Pressed: the chip moves onto its shadow. */
+.chip:active {
+  transform: translate(var(--chip-shadow), var(--chip-shadow));
+  box-shadow: none;
+}
+
+.chip:focus-visible {
+  border-radius: 999px;
+}
+
+/* ---------- Intro: the paragraphs between the title and the first card ---------- */
+
+.intro {
+  margin-bottom: 24px;
+}
+
+@media (min-width: 600px) {
+  body {
+    padding-top: 32px;
+  }
+
+  h1 {
+    margin-top: 48px;
+    font-size: 56px;
+  }
+
+  .card {
+    --card-padding: 24px;
+  }
+}
