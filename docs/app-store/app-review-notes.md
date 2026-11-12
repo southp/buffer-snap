@@ -31,7 +31,7 @@ BufSnap sends ideas to a Buffer account. Capturing works without one, but sendin
 The app opens on its list of captures. Ideas are captured from outside the app, by pressing a control or a widget, so there is no capture screen inside it.
 
 FIRST LAUNCH
-1. Open BufSnap. iOS asks for the microphone and then for speech recognition: please allow both. This comes first because iOS only lets an app ask while it's on screen.
+1. Open BufSnap. iOS asks for the microphone and then for speech recognition: please allow both. This comes first because iOS only lets an app ask while it's on screen. If either is refused, the top of the list says which, with Open Settings.
 
 SIGNING IN
 2. In the first row of the list, tap "Authenticate using your Buffer account". iOS asks to use "buffer.com" to sign in: tap Continue.
