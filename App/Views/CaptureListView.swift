@@ -31,6 +31,8 @@ struct CaptureListView: View {
     let onClearSubmitted: () -> Void
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
+    /// Called when the user asks how to add Dictate an Idea, from the menu or the empty state.
+    let onShowAddDictationGuide: () -> Void
     /// The version and build at the bottom of the account menu.
     let appVersion: AppVersion
     /// Where the account menu's Report a Problem goes.
@@ -130,6 +132,7 @@ struct CaptureListView: View {
                         sourceCodeURL: sourceCodeURL,
                         isSignedIn: isSignedIn,
                         onShowBatchingSettings: onShowBatchingSettings,
+                        onShowAddDictationGuide: onShowAddDictationGuide,
                         onSignOut: onSignOut
                     )
                 } label: {
@@ -149,7 +152,7 @@ struct CaptureListView: View {
 
     /// How to start, the same signed in or not: the offline row already says where ideas go. The name is the control's
     /// and the widget's own, as the system lists it (`Widget/`). Each step is one literal, so it's a localized key and
-    /// the Markdown renders.
+    /// the Markdown renders. Show Me How, under the first step, opens the How to Add guide.
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("No captures yet")
@@ -158,6 +161,10 @@ struct CaptureListView: View {
                 .accessibilityAddTraits(.isHeader)
             EmptyStateStep(
                 number: 1, text: Text("Add **Dictate an Idea** to Control Center, the Action button or a widget."))
+            Button("Show Me How", action: onShowAddDictationGuide)
+                .buttonStyle(.paperInkSecondary)
+                // Under the step's text, past its number.
+                .padding(.leading, 38)
             EmptyStateStep(number: 2, text: Text("Then press it and speak."))
         }
         .frame(maxWidth: .infinity, alignment: .leading)

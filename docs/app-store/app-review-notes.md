@@ -44,6 +44,7 @@ DICTATING WITHOUT OPENING THE APP
    - Action button (iPhone 15 Pro and later): Settings → Action Button → Controls → Choose a Control → "Dictate an Idea".
    - Lock Screen: touch and hold the Lock Screen → Customize → Lock Screen, remove a bottom button, tap +, and choose "Dictate an Idea".
    Or add a widget: touch and hold the Home Screen → Edit → Add Widget → BufSnap → "Dictate an Idea".
+   The app shows these steps too, with a sketch of each: account menu (person icon) → "How to Add Dictate an Idea", or "Show Me How" on the empty list.
 6. Press the control or the widget and speak. The app stays closed: a Live Activity shows the words on the Lock Screen and in the Dynamic Island. It stops when you press again, tap Stop, pause for 3 seconds, or after 60 seconds, then shows "Saved".
 
 SEEING IT REACH BUFFER

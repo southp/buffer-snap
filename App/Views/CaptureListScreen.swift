@@ -8,6 +8,7 @@ import SwiftUI
 struct CaptureListScreen: View {
     @State private var model: CaptureListModel
     @State private var isShowingBatchingSettings = false
+    @State private var isShowingAddDictationGuide = false
     @Environment(\.scenePhase) private var scenePhase
 
     private let submissions: SubmissionQueue
@@ -78,6 +79,9 @@ struct CaptureListScreen: View {
                 onShowBatchingSettings: {
                     isShowingBatchingSettings = true
                 },
+                onShowAddDictationGuide: {
+                    isShowingAddDictationGuide = true
+                },
                 appVersion: appVersion,
                 reportProblemURL: ProjectLinks.reportProblem,
                 sourceCodeURL: ProjectLinks.sourceCode,
@@ -89,6 +93,9 @@ struct CaptureListScreen: View {
         }
         .navigationDestination(isPresented: $isShowingBatchingSettings) {
             BatchingSettingsScreen(setting: batchWindow, submissions: submissions)
+        }
+        .sheet(isPresented: $isShowingAddDictationGuide) {
+            AddDictationGuideScreen()
         }
         .task {
             await model.loadAndFollowChanges()
