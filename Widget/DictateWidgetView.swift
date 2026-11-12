@@ -1,10 +1,13 @@
 import AppIntents
 import SwiftUI
+import WidgetKit
 
 /// The dictation widget's face: one button, all of it, that starts listening. BufSnap's dictate symbol, the Doodle
 /// Bulb, in a Tomato circle on Sun, with ink outlines. Sun stays Sun in dark mode, so everything on it is
 /// `Theme.onColor`, never `Theme.ink`, which turns cream.
 struct DictateWidgetView: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
     var body: some View {
         Button(intent: DictateIdeaIntent()) {
             VStack(spacing: 12) {
@@ -14,8 +17,9 @@ struct DictateWidgetView: View {
                     .foregroundStyle(Theme.onColor)
                     .frame(width: 62, height: 62)
                     .background {
-                        OutlinedShape(shape: Circle(), fill: Theme.tomato, ink: Theme.onColor, shadow: Theme.chipShadow)
+                        badge
                     }
+                    .widgetAccentable()
                 Text("Dictate an Idea")
                     .font(.inter(.headline, weight: .bold))
                     .foregroundStyle(Theme.onColor)
@@ -25,6 +29,17 @@ struct DictateWidgetView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+    }
+
+    /// The circle behind the symbol. A tinted or clear Home Screen draws the widget in one color, where a filled circle
+    /// would hide the symbol on it, so there it's only an outline, in the accent color like the symbol.
+    @ViewBuilder private var badge: some View {
+        if renderingMode == .fullColor {
+            OutlinedShape(shape: Circle(), fill: Theme.tomato, ink: Theme.onColor, shadow: Theme.chipShadow)
+        } else {
+            Circle()
+                .strokeBorder(Theme.onColor, lineWidth: Theme.borderWidth)
+        }
     }
 }
 
