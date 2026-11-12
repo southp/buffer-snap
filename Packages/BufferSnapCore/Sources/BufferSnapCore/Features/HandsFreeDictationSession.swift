@@ -11,8 +11,17 @@ public final class HandsFreeDictationSession {
     /// What a press needs from whoever made it.
     public enum PressResult: Sendable, Equatable {
         case done
-        /// There's no Live Activity to say what happened on, so only the app on screen can.
-        case needsTheApp
+        /// Only the app on screen can say what went wrong, or fix it.
+        case needsTheApp(NeedsTheAppReason)
+    }
+
+    /// Why a press needs the app on screen.
+    public enum NeedsTheAppReason: Sendable, Equatable {
+        /// There was no Live Activity to say what happened on: Live Activities are off, or iOS refused one.
+        case liveActivitiesOff
+        /// Listening needs a permission that isn't granted. The Live Activity says so too, if there is one, but only
+        /// the app can ask for an undecided permission or say which one is refused.
+        case permission(SpeechPermission)
     }
 
     public private(set) var dictation = HandsFreeDictation()
@@ -31,7 +40,8 @@ public final class HandsFreeDictationSession {
     /// Reasons the process must stay awake: the end of a dictation, and each send.
     private var keepAliveHolds = 0
     private var isHoldingForDictation = false
-    private var hadNowhereToShow = false
+    /// Why the press being handled needs the app, if it does.
+    private var needsTheAppReason: NeedsTheAppReason?
     /// The system's prompts are up. Answering one brings the app back to the foreground while the next is to come.
     private var isAskingForPermission = false
 
@@ -63,9 +73,9 @@ public final class HandsFreeDictationSession {
     /// Returns once listening has started or the dictation has stopped, not when it ends.
     @discardableResult
     public func press() async -> PressResult {
-        hadNowhereToShow = false
+        needsTheAppReason = nil
         await perform(dictation.press(at: clock.now))
-        return hadNowhereToShow ? .needsTheApp : .done
+        return needsTheAppReason.map { .needsTheApp($0) } ?? .done
     }
 
     /// The Live Activity's Stop button.
@@ -107,6 +117,8 @@ public final class HandsFreeDictationSession {
     private func start() async {
         let permission = await speech.permission()
         guard permission == .granted else {
+            // The permission is what to fix first, even if there's no Live Activity either.
+            needsTheAppReason = .permission(permission)
             couldNotStart(.needsPermission)
             return
         }
@@ -217,8 +229,8 @@ public final class HandsFreeDictationSession {
             return true
         }
         let isShowing = display.show(status)
-        if !isShowing {
-            hadNowhereToShow = true
+        if !isShowing && needsTheAppReason == nil {
+            needsTheAppReason = .liveActivitiesOff
         }
         return isShowing
     }

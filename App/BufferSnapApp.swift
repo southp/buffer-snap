@@ -88,7 +88,7 @@ struct BufferSnapApp: App {
         )
         DictateIdeaIntent.onRun = {
             let result = await session.press()
-            if result == .needsTheApp {
+            if result == .needsTheApp(.liveActivitiesOff) {
                 appModel.showLiveActivitiesNotice()
             }
             return result

@@ -25,7 +25,7 @@ struct HandsFreeDictationLiveActivityTests {
 
         let result = await session.press()
 
-        #expect(result == .needsTheApp)
+        #expect(result == .needsTheApp(.liveActivitiesOff))
         #expect(await speech.startCount == 0)
         #expect(session.dictation.phase == .ended(.couldNotListen))
     }
@@ -40,14 +40,15 @@ struct HandsFreeDictationLiveActivityTests {
         #expect(await speech.startCount == 1)
     }
 
-    @Test func aRefusedPermissionWithoutALiveActivityNeedsTheApp() async {
+    /// The permission is what to fix first: with it on, the next press says Live Activities are off.
+    @Test func aRefusedPermissionWithoutALiveActivityNeedsTheAppForThePermission() async {
         let speech = MockSpeechTranscriber(permission: .microphoneDenied)
         display.canShow = false
         let session = makeSession(speech: speech)
 
         let result = await session.press()
 
-        #expect(result == .needsTheApp)
+        #expect(result == .needsTheApp(.permission(.microphoneDenied)))
         #expect(await speech.startCount == 0)
     }
 

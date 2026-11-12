@@ -32,7 +32,7 @@ struct DictateIdeaIntent: AudioRecordingIntent, LiveActivityIntent {
             return .result()
         }
         let result = await onRun()
-        if result == .needsTheApp, #available(iOS 26.0, *) {
+        if result == .needsTheApp(.liveActivitiesOff), #available(iOS 26.0, *) {
             try await continueInForeground(alwaysConfirm: false)
         }
         return .result()
