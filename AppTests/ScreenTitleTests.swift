@@ -15,7 +15,7 @@ struct ScreenTitleTests {
         let textWidth = try #require(render(title)).width
         // The same title with room on its right: any ink there is the overhang.
         let padded = try #require(render(title.padding(.trailing, 40)))
-        #expect(padded.hasInk(fromColumn: textWidth))
+        #expect(padded.hasInk(inColumns: textWidth..<padded.width))
     }
 
     /// Renders `view` at its ideal size the way the screen draws it: as the layers of a hosting controller, where a
@@ -41,8 +41,12 @@ struct ScreenTitleTests {
 }
 
 extension CGImage {
-    /// Whether any pixel from `column` rightwards is drawn at all.
-    fileprivate func hasInk(fromColumn column: Int) -> Bool {
+    /// A quarter of full alpha: solid enough to be part of a letter, not just its antialiased edge.
+    fileprivate static let inkAlpha: UInt8 = 64
+
+    /// Whether any pixel in `columns` is drawn more than faintly. The threshold keeps a stray antialiasing pixel from
+    /// counting as a letter.
+    fileprivate func hasInk(inColumns columns: Range<Int>) -> Bool {
         let bytesPerRow = width * 4
         var pixels = [UInt8](repeating: 0, count: bytesPerRow * height)
         let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
@@ -61,7 +65,7 @@ extension CGImage {
             return false
         }
         for row in 0..<height {
-            for pixelColumn in column..<width where pixels[row * bytesPerRow + pixelColumn * 4 + 3] > 0 {
+            for pixelColumn in columns where pixels[row * bytesPerRow + pixelColumn * 4 + 3] > Self.inkAlpha {
                 return true
             }
         }
