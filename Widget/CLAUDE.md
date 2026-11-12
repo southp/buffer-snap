@@ -48,6 +48,9 @@ brand (`docs/decisions/103-filled-bulb-dictate-symbol.md`).
   `Vector Glyph` renditions of `bufsnap.dictate`.
 - Draw it with `Image(decorative:)` next to text that says what it does. A plain `Image("bufsnap.dictate")` makes
   VoiceOver read the asset's name.
+- **Tinted and clear Home Screens** draw a widget in one color, by opacity alone, so a symbol on a filled shape
+  disappears. `DictateWidgetView` checks `widgetRenderingMode` and draws its circle as an outline there;
+  `WidgetViewTests.dictateTinted` snapshots that branch.
 
 ## Gotchas
 
