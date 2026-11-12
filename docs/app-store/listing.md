@@ -25,10 +25,12 @@ Hands-free ideas for Buffer
 ## Promotional text (version page, ≤170, can change without a review)
 
 ```
-Press once, say the idea, and it's in Buffer. BufSnap turns your voice into Buffer ideas from Control Center, the Action button or a widget, without opening the app.
+BufSnap is free, with no in-app purchases, and its code is open (MIT). Take a look, report a problem or suggest an idea: github.com/southp/buffer-snap
 ```
 
-165 characters.
+150 characters: the description's "Free and open source" section, so it shows before 1.1 ships (#95). The 1.0 text was
+`Press once, say the idea, and it's in Buffer. BufSnap turns your voice into Buffer ideas from Control Center, the
+Action button or a widget, without opening the app.` (165).
 
 ## Description (version page, ≤4000)
 
@@ -50,8 +52,13 @@ Open the app to see everything you've captured and whether it has reached Buffer
 PRIVATE BY DESIGN
 No account of ours, no servers, no analytics, no ads, no tracking. BufSnap talks only to Buffer, and speech is recognized by Apple. Audio is never recorded or kept.
 
+FREE AND OPEN SOURCE
+BufSnap is free, with no in-app purchases, and its code is open (MIT). Take a look, report a problem or suggest an idea: github.com/southp/buffer-snap
+
 Capturing works without an account, and sending ideas to Buffer needs a Buffer account. BufSnap isn't made by Buffer.
 ```
+
+1547 characters. The "Free and open source" section ships with 1.1, since the description belongs to a version.
 
 ## Keywords (version page, ≤100, comma-separated, no spaces after commas)
 
