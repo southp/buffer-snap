@@ -19,6 +19,18 @@ Run `just --list`. Each recipe's comment in `justfile` is its documentation, so 
 | A target's sources, settings and dependencies | That target's `target.yml` (e.g. `App/target.yml`). Only project-wide settings and the scheme go in `project.yml` |
 | A new Swift folder | Nothing to register: `just lint` covers every Swift file git knows about. A new target needs its `target.yml` added to `include:` in `project.yml` |
 
+## Docs that describe behavior
+
+When a change alters one of these, update its doc in the same PR, and list it under "Docs updated" in the PR.
+
+| If the change alters… | Update |
+|---|---|
+| What the app reads, sends or stores | `site/privacy/index.html` and `docs/app-store/app-privacy.md` |
+| A step a user takes, or what they see when something fails | `site/support/index.html` |
+| A model, service or data flow | `docs/architecture.md` |
+| CI or deploy behavior | `.github/CLAUDE.md` |
+| Anything App Review sees: sign-in, permissions, the main flows | `docs/app-store/app-review-notes.md` |
+
 ## Working in parallel
 
 Several agents work at once, one per issue, each in its own git worktree.
