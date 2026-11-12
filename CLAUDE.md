@@ -15,7 +15,7 @@ Run `just --list`. Each recipe's comment in `justfile` is its documentation, so 
 | What | Where |
 |---|---|
 | Notes for one area (conventions, gotchas) | That area's `CLAUDE.md`, e.g. `App/CLAUDE.md`. Claude Code loads it when you work in that folder |
-| A decision and why it was made | A new `docs/decisions/<issue>-<slug>.md` (format in [`docs/decisions/README.md`](docs/decisions/README.md)) |
+| A decision and why it was made | A new `docs/decisions/<issue>-<slug>.md` (format in [`docs/decisions/README.md`](docs/decisions/README.md)). Decisions are append-only: never edit an accepted one; add a new one that supersedes it |
 | A target's sources, settings and dependencies | That target's `target.yml` (e.g. `App/target.yml`). Only project-wide settings and the scheme go in `project.yml` |
 | A new Swift folder | Nothing to register: `just lint` covers every Swift file git knows about. A new target needs its `target.yml` added to `include:` in `project.yml` |
 
