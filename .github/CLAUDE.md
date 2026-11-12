@@ -113,7 +113,8 @@ fi
 - If the push is rejected, another PR got there first: run the snippet again.
 - If a step before the push fails, the snippet prints `Stopped: ...` and pushes nothing. Keep it that way when you
   edit it: pushing an empty `$commit` deletes `pr-media`. Write `${commit}`, never `$commit:...` (zsh reads `:r` as a
-  modifier), and use no `set -e`, `exit` or `#` comments: it's pasted into an interactive shell, and zsh runs `#` as a command by default.
+  modifier), and use no `set -e`, `exit` or `#` comments: it's pasted into an interactive shell, and zsh runs `#` as
+  a command by default.
 - Only edit the PR body once the push has succeeded. New URLs can return 404 for about a minute, so then open the PR
   page and check that everything displays.
 - Never delete `pr-media`. Merged PRs still link to it.
