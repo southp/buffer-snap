@@ -2,13 +2,16 @@
 
 ## CI (`workflows/ci.yml`)
 
-- Every PR and every push to `main` runs one job, `ci`: `just bootstrap`, `just lint`, `just test`, the same
-  recipes you run locally. Branch protection on `main` requires it to pass. A newer push to a PR cancels its older run; runs on `main` never
-  cancel each other.
-- **Fast path:** a PR whose changed files are all on the safe list (`*.md`, `docs/*`, `LICENSE`,
-  `workflows/claude.yml`, `workflows/claude-code-review.yml`) runs lint and Core tests only, in about 90s. Everything
-  else takes the full path, as does every push to `main`. The "Choose the path" step prints its decision and the file
-  list. The list is an allowlist in that step: add to it only what can't affect the app or its snapshots.
+- Every PR and every push to `main` first runs `changes`, a quick Linux job that lists the changed files. Then the
+  `ci` job runs `just bootstrap`, `just lint`, `just test`, the same recipes you run locally. Branch protection on
+  `main` requires `ci` to pass. A newer push to a PR cancels its older run; runs on `main` never cancel each other.
+- **Docs-only skip:** when every changed file is on the safe list (`*.md`, `docs/*`, `site/*`, `LICENSE`,
+  `workflows/claude.yml`, `workflows/claude-code-review.yml`), `ci` and `deploy` are skipped, so no macOS runner
+  starts, on a PR or on `main`. A skipped `ci` counts as passed, so the PR stays mergeable. A PR diffs its merge
+  commit against the base; a push to `main` diffs against the commit `main` was at before. Everything else takes the
+  full path, as does any case where the changed files are unknown. The "Choose the path" step in `changes` prints
+  its decision and the file list. The list is an allowlist in that step: add to it only what can't affect the app or
+  its snapshots (`docs/decisions/102-docs-only-skips-ci.md`).
 - It runs on the `xcode-27` image with Xcode 27.2 and, if the image has no runtime for the pinned simulator,
   downloads iOS runtime build `SIM_RUNTIME_BUILD` (`docs/decisions/6-*.md`). When you bump the pin, change `SIM_OS` and
   `SIM_RUNTIME_BUILD` in `justfile` and the Xcode path in `ci.yml` together (`xcrun simctl runtime list` shows your
@@ -20,13 +23,15 @@
   (`manifest.json` there names each file).
 - The full path's cost is the simulator's first boot, which saturates the runner for minutes
   (`docs/decisions/27-no-early-simulator-boot.md`). Don't run other work alongside it.
-- Don't add a matrix, or per-change test selection beyond the fast path. Caching is out of scope so far (#27).
+- Don't add a matrix, or per-change test selection beyond the docs-only skip. Caching is out of scope so far (#27).
 - Renaming the `ci` job breaks the required check; change the branch rule with it.
 
 ## Deploy (`deploy` job in `workflows/ci.yml`)
 
-- Each push to `main` that passes `ci` runs `just deploy`, so every merge reaches TestFlight, docs-only ones included.
-  PRs never run this job and never see its secrets.
+- Each push to `main` that passes `ci` runs `just deploy`, so every merge that changes more than the safe list reaches
+  TestFlight. A docs-only merge skips `ci`, and so skips `deploy` too. PRs never run this job and never see its secrets.
+- If a code merge's run on `main` is dropped (see below) and the merge after it is docs-only, nothing deploys the
+  code until the next full-path merge. Re-run the dropped commit's workflow from the Actions tab to ship it sooner.
 - The recipe archives unsigned, so CI needs no certificate of its own (`docs/decisions/9-unsigned-archive.md`).
 - It needs the repo secrets `ASC_KEY_P8` (the `.p8` file's contents), `ASC_KEY_ID`, `ASC_ISSUER_ID` and `DEVELOPMENT_TEAM`.
 - Runs on `main` go one at a time, in order. GitHub keeps only one waiting run per group, so with three quick merges the
