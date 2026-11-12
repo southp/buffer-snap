@@ -57,7 +57,7 @@ struct HandsFreeDictationLiveActivityTests {
         display.canShow = false
         let session = makeSession(speech: speech)
         await session.press()
-        clock.advance(by: 4)
+        await clock.advance(by: 4)
         await waitFor { session.dictation.phase == .idle }
 
         display.canShow = true

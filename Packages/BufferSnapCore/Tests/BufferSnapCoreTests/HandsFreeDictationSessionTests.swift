@@ -142,10 +142,10 @@ struct HandsFreeDictationSessionTests {
         let session = makeSession()
         await listen(session, hearing: "An idea")
 
-        clock.advance(by: 2.9)
+        await clock.advance(by: 2.9)
         try? await Task.sleep(for: .milliseconds(20))
         #expect(session.dictation.phase == .listening)
-        clock.advance(by: 0.1)
+        await clock.advance(by: 0.1)
 
         await waitFor { session.dictation.phase == .ended(.saved) }
         #expect(try await store.all().map(\.text) == ["An idea"])
@@ -155,7 +155,7 @@ struct HandsFreeDictationSessionTests {
         let session = makeSession()
         await session.press()
 
-        clock.advance(by: HandsFreeDictation.timeLimit)
+        await clock.advance(by: HandsFreeDictation.timeLimit)
 
         await waitFor { session.dictation.phase == .ended(.nothingHeard) }
     }
@@ -167,7 +167,7 @@ struct HandsFreeDictationSessionTests {
         await fixture.listen(session, hearing: "An idea")
         await session.press()
 
-        fixture.clock.advance(by: 3)
+        await fixture.clock.advance(by: 3)
 
         await waitFor { session.dictation.phase == .ended(.saved) }
         #expect(try await fixture.store.all().map(\.text) == ["An idea"])
@@ -252,7 +252,7 @@ struct HandsFreeDictationSessionTests {
         await waitFor { session.dictation.phase == .ended(.saved) }
         #expect(display.dismissCount == 0)
 
-        clock.advance(by: HandsFreeDictation.outcomeDuration)
+        await clock.advance(by: HandsFreeDictation.outcomeDuration)
 
         await waitFor { display.dismissCount == 1 }
         #expect(session.dictation.phase == .idle)
@@ -266,7 +266,7 @@ struct HandsFreeDictationSessionTests {
         await session.press()
         #expect(keepAlive.isHolding)
         await waitFor { session.dictation.phase == .ended(.saved) }
-        clock.advance(by: HandsFreeDictation.outcomeDuration)
+        await clock.advance(by: HandsFreeDictation.outcomeDuration)
 
         await waitFor { !keepAlive.isHolding }
         #expect(keepAlive.beginCount == 1)
@@ -277,7 +277,7 @@ struct HandsFreeDictationSessionTests {
         await session.press()
         await session.press()
         await waitFor { session.dictation.phase == .ended(.nothingHeard) }
-        clock.advance(by: HandsFreeDictation.outcomeDuration)
+        await clock.advance(by: HandsFreeDictation.outcomeDuration)
         await waitFor { session.dictation.phase == .idle }
 
         await session.press()

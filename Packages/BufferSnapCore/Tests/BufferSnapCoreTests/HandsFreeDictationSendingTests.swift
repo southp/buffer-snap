@@ -28,7 +28,7 @@ struct HandsFreeDictationSendingTests {
 
         await session.press()
         await waitFor { session.dictation.phase == .ended(.saved) }
-        clock.advance(by: HandsFreeDictation.outcomeDuration)
+        await clock.advance(by: HandsFreeDictation.outcomeDuration)
         await waitFor { session.dictation.phase == .idle }
         #expect(keepAlive.isHolding)
 
