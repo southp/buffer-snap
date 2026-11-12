@@ -1,7 +1,8 @@
 ---
 date: 2026-11-03
 issue: 27
-status: accepted
+status: superseded
+superseded_by: 102-docs-only-skips-ci.md
 ---
 
 # Skip the simulator for PRs that only change an allowlist of safe files
