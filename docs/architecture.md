@@ -117,7 +117,7 @@ A dictation saves what it heard as a pending text capture, and nothing if nothin
 goes through `CappedCaptureStore`, as a delete in the list does. It keeps at most 500 captures by dropping the oldest sent ones
 ([`46-storage-limit.md`](decisions/46-storage-limit.md)). When the list opens, or the app returns to the foreground, it
 reads every capture from the store and shows them newest first, under one sync status with Sync now
-([`46-sync-now.md`](decisions/46-sync-now.md)).
+([`105-say-when-buffer-asks-to-wait.md`](decisions/105-say-when-buffer-asks-to-wait.md)).
 
 ## Signing in
 
@@ -171,10 +171,15 @@ flowchart LR
     Send -->|"Submitted or Failed"| Store[("CaptureStore")]
     Send -.->|"capturesChanged"| List["CaptureListModel"]
     Send -.->|"sessionLost"| Check["AppModel.checkSession()"]
+    Send -.->|"rateLimitChanged"| List
     Planner -.->|"wait until"| Timer
 ```
 
 `SubmissionQueue` asks `validAccessToken()` for a token and reports a 401 with `accessTokenRejected(_:)`. Each pass looks up the organization once. A capture stays `pending` until Buffer has it (`submitted`) or it can't get there without someone stepping in (`failed`). What each failure leads to: [`44-what-gets-retried.md`](decisions/44-what-gets-retried.md). Why a lost response can leave a duplicate: [`44-duplicate-ideas.md`](decisions/44-duplicate-ideas.md).
+
+While Buffer rate limits the queue, `rateLimitedUntil` says until when, and no pass starts before then. The list says
+"Buffer asked BufSnap to wait. Trying again in 2 min" and turns Sync now off until then, so it doesn't flash "Syncing…"
+for a pass that can't start: [`105-say-when-buffer-asks-to-wait.md`](decisions/105-say-when-buffer-asks-to-wait.md).
 
 All of this runs in the app's process, on the one `AuthService`: [`44-background-sending.md`](decisions/44-background-sending.md). Signed out, the queue waits quietly without calling Buffer. Before any sign-in, pending captures are held, so they can't reach the next account by themselves, and it asks once what to do with them: [`68-ideas-at-sign-in.md`](decisions/68-ideas-at-sign-in.md).
 
