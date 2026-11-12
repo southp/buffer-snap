@@ -25,12 +25,11 @@ Hands-free ideas for Buffer
 ## Promotional text (version page, ≤170, can change without a review)
 
 ```
-BufSnap is free, with no in-app purchases, and its code is open (MIT). Take a look, report a problem or suggest an idea: github.com/southp/buffer-snap
+Press once, say the idea, and it's in Buffer. BufSnap turns your voice into Buffer ideas from Control Center, the Action button or a widget, without opening the app.
 ```
 
-150 characters: the description's "Free and open source" section, so it shows before 1.1 ships (#95). The 1.0 text was
-`Press once, say the idea, and it's in Buffer. BufSnap turns your voice into Buffer ideas from Control Center, the
-Action button or a widget, without opening the app.` (165).
+165 characters. It's the first thing under the screenshots, so it says what the app does. #95's "Free and open source"
+line was turned down here for not saying that, and it stays in the description.
 
 ## Description (version page, ≤4000)
 
@@ -106,7 +105,7 @@ The support page goes live once this branch merges, as the privacy page did. Unt
 | Field | Value |
 |---|---|
 | Copyright | `2026 <your name>` |
-| Version | The version the build carries: `1.0.0` for the first version, `1.1` now |
+| Version | The version the build carries (`MARKETING_VERSION`): `1.0` for the first version, `1.1` now |
 | What's New | Not shown for a first version. From 1.1, see "What's New in This Version" above |
 | Content Rights | No third-party content |
 | Primary language | English (U.S.) |
