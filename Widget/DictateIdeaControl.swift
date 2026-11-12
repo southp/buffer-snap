@@ -7,7 +7,7 @@ struct DictateIdeaControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "DictateIdeaControl") {
             ControlWidgetButton(action: DictateIdeaIntent()) {
-                Label("Dictate an Idea", systemImage: "mic.fill")
+                Label("Dictate an Idea", image: "bufsnap.dictate")
             }
         }
         .displayName("Dictate an Idea")

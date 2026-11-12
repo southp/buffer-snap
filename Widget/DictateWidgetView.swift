@@ -1,13 +1,15 @@
 import AppIntents
 import SwiftUI
 
-/// The dictation widget's face: one button, all of it, that starts listening. A Tomato mic on Sun, with ink outlines.
-/// Sun stays Sun in dark mode, so everything on it is `Theme.onColor`, never `Theme.ink`, which turns cream.
+/// The dictation widget's face: one button, all of it, that starts listening. BufSnap's dictate symbol, the Doodle
+/// Bulb, in a Tomato circle on Sun, with ink outlines. Sun stays Sun in dark mode, so everything on it is
+/// `Theme.onColor`, never `Theme.ink`, which turns cream.
 struct DictateWidgetView: View {
     var body: some View {
         Button(intent: DictateIdeaIntent()) {
             VStack(spacing: 12) {
-                Image(systemName: "mic.fill")
+                // Decorative: the button's text says what it does, and VoiceOver would read the asset's name.
+                Image(decorative: "bufsnap.dictate")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(Theme.onColor)
                     .frame(width: 62, height: 62)

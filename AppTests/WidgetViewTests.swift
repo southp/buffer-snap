@@ -5,7 +5,7 @@ import Testing
 /// own background with the Home Screen's corners. This shows the widget, not a whole Home Screen.
 @MainActor
 struct WidgetViewTests {
-    /// The dictation widget: one mic button that starts listening without opening the app.
+    /// The dictation widget: one button, with BufSnap's dictate symbol, that starts listening without opening the app.
     @Test func dictate() {
         assertScreenSnapshot(of: widget, named: "dictate")
     }
