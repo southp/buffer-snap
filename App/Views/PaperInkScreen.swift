@@ -29,7 +29,7 @@ struct ScreenTitle: View {
 
     var body: some View {
         Text(title)
-            .font(.caveat(.largeTitle))
+            .caveat(.largeTitle)
             .foregroundStyle(Theme.ink)
             .accessibilityAddTraits(.isHeader)
             .listRowInsets(EdgeInsets(top: 0, leading: Theme.cardMargin + 4, bottom: 0, trailing: Theme.cardMargin))
