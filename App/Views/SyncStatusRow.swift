@@ -4,6 +4,8 @@ import SwiftUI
 /// The top of the capture list: whether everything reached Buffer, and Sync now.
 struct SyncStatusRow: View {
     let status: SyncStatus
+    /// What a wait counts down from.
+    let now: Date
     /// Whether a Sync now is running, which the button says instead of offering another.
     let isSyncing: Bool
     /// Called when the user asks to send everything that can go.
@@ -42,6 +44,8 @@ struct SyncStatusRow: View {
             Text("\(count) waiting to send")
         case .offline:
             Text("Offline")
+        case .rateLimited(let count, _):
+            Text("\(count) waiting to send")
         case .failed(let count, _):
             Text("\(count) not sent")
         }
@@ -57,6 +61,8 @@ struct SyncStatusRow: View {
             Text("Sends as soon as it can")
         case .offline(let count):
             Text("\(count) will send when you're back online")
+        case .rateLimited(_, let until):
+            Text("Buffer asked BufSnap to wait. Trying again in \(timeLeft(until), format: Self.waitFormat)")
         case .failed(_, let waiting) where waiting > 0:
             Text("Tap Resend below. \(waiting) more waiting to send")
         case .failed:
@@ -72,6 +78,8 @@ struct SyncStatusRow: View {
             "clock"
         case .offline:
             "wifi.slash"
+        case .rateLimited:
+            "hourglass"
         case .failed:
             "exclamationmark"
         }
@@ -83,11 +91,23 @@ struct SyncStatusRow: View {
             Theme.mint
         case .waiting:
             Theme.sun
-        case .offline:
+        case .offline, .rateLimited:
             Theme.divider
         case .failed:
             Theme.tomato
         }
+    }
+
+    /// Roughly how long a wait has left, in whole minutes or hours rounded up, so it never reads "0 min".
+    private static let waitFormat = Duration.UnitsFormatStyle(
+        allowedUnits: [.hours, .minutes],
+        width: .abbreviated,
+        maximumUnitCount: 1,
+        fractionalPart: .hide(rounded: .up)
+    )
+
+    private func timeLeft(_ until: Date) -> Duration {
+        .seconds(max(until.timeIntervalSince(now), 0))
     }
 }
 

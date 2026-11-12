@@ -7,8 +7,18 @@ struct SyncStatusTests {
     private let window: TimeInterval = 300
     private let now = Date(timeIntervalSinceReferenceDate: 100)
 
-    private func status(_ captures: [Capture], isOffline: Bool = false) -> SyncStatus {
-        SyncStatus(batches: CaptureBatch.batches(of: captures, window: window), isOffline: isOffline, now: now)
+    private func status(
+        _ captures: [Capture],
+        isOffline: Bool = false,
+        rateLimitedUntil: Date? = nil,
+        at now: Date? = nil
+    ) -> SyncStatus {
+        SyncStatus(
+            batches: CaptureBatch.batches(of: captures, window: window),
+            isOffline: isOffline,
+            rateLimitedUntil: rateLimitedUntil,
+            now: now ?? self.now
+        )
     }
 
     private func capture(_ status: Capture.Status, at seconds: TimeInterval = 0, batch: UUID? = nil) -> Capture {
@@ -62,6 +72,37 @@ struct SyncStatusTests {
         #expect(status(captures, isOffline: true) == .failed(count: 2, waiting: 1))
     }
 
+    // MARK: - Rate limits
+
+    @Test func waitingWhileRateLimitedSaysUntilWhen() {
+        let until = now.addingTimeInterval(120)
+        let waiting = [capture(.pending, batch: UUID())]
+
+        #expect(status(waiting, rateLimitedUntil: until) == .rateLimited(count: 1, until: until))
+    }
+
+    /// Nothing moves until the wait ends, a Resend included, so that's what the top of the list says.
+    @Test func aRateLimitWithSomethingWaitingOutranksAFailure() {
+        let until = now.addingTimeInterval(120)
+        let captures = [capture(.failed, batch: UUID()), capture(.pending, at: 50)]
+
+        #expect(status(captures, isOffline: true, rateLimitedUntil: until) == .rateLimited(count: 1, until: until))
+    }
+
+    @Test func aRateLimitWithNothingWaitingIsntWorthAWord() {
+        let until = now.addingTimeInterval(120)
+
+        #expect(status([capture(.submitted, batch: UUID())], rateLimitedUntil: until) == .allSent)
+        #expect(status([capture(.failed, batch: UUID())], rateLimitedUntil: until) == .failed(count: 1, waiting: 0))
+    }
+
+    @Test func aRateLimitThatHasPassedIsWaiting() {
+        let until = now.addingTimeInterval(120)
+        let waiting = [capture(.pending, batch: UUID())]
+
+        #expect(status(waiting, rateLimitedUntil: until, at: until) == .waiting(count: 1, nextSendAt: nil))
+    }
+
     /// A picture can't go yet (`docs/decisions/10-capture-kinds.md`), so it isn't waiting for anything.
     @Test func whatCantBecomeAnIdeaIsntWaiting() {
         let photo = Capture(kind: .photo, createdAt: Date(timeIntervalSinceReferenceDate: 0))
@@ -81,6 +122,7 @@ struct SyncStatusTests {
         (.allSent, false),
         (.waiting(count: 1, nextSendAt: nil), true),
         (.offline(count: 1), true),
+        (.rateLimited(count: 1, until: Date(timeIntervalSinceReferenceDate: 200)), false),
         (.failed(count: 1, waiting: 0), false),
         (.failed(count: 1, waiting: 2), true),
     ])

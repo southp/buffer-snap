@@ -63,7 +63,7 @@ struct CaptureListView: View {
                 Section {
                     let rows = (showsSyncStatus ? 1 : 0) + (problem == nil ? 0 : 1)
                     if showsSyncStatus {
-                        SyncStatusRow(status: syncStatus, isSyncing: isSyncing, onSyncNow: onSyncNow)
+                        SyncStatusRow(status: syncStatus, now: now, isSyncing: isSyncing, onSyncNow: onSyncNow)
                             .cardRow(CardPart(index: 0, count: rows))
                     }
                     if let problem {

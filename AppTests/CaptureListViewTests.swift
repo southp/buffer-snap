@@ -113,6 +113,17 @@ struct CaptureListViewTests {
         assertScreenSnapshot(of: listScreen(waitingCaptures, isOffline: true), named: "offline")
     }
 
+    /// Buffer asked BufSnap to wait: it says roughly how long, and Sync now is off until then.
+    @Test func rateLimited() {
+        let until = Capture.samplesReferenceDate.addingTimeInterval(110)
+        assertScreenSnapshot(of: listScreen(waitingCaptures, rateLimitedUntil: until), named: "rateLimited")
+        assertScreenSnapshot(
+            of: listScreen(waitingCaptures, rateLimitedUntil: until),
+            named: "rateLimited-dark",
+            appearance: .dark
+        )
+    }
+
     @Test func syncing() {
         assertScreenSnapshot(of: listScreen(waitingCaptures, isSyncing: true), named: "syncing")
     }
@@ -245,6 +256,7 @@ struct CaptureListViewTests {
     private func listScreen(
         _ captures: [Capture],
         isOffline: Bool = false,
+        rateLimitedUntil: Date? = nil,
         isSyncing: Bool = false,
         problem: CaptureListModel.Problem? = nil,
         signInPrompt: AppModel.SignInPrompt? = nil,
@@ -256,7 +268,12 @@ struct CaptureListViewTests {
             CaptureListView(
                 batches: batches,
                 now: now,
-                syncStatus: SyncStatus(batches: batches, isOffline: isOffline, now: now),
+                syncStatus: SyncStatus(
+                    batches: batches,
+                    isOffline: isOffline,
+                    rateLimitedUntil: rateLimitedUntil,
+                    now: now
+                ),
                 isSyncing: isSyncing,
                 problem: problem,
                 onSyncNow: {},
