@@ -285,6 +285,11 @@ final class ManualDictationClock: DictationClock {
     /// The session reads the time, then starts its sleep on another executor. A sleep that starts after a change the
     /// test waited for may not have begun yet, and moving the clock first would push its deadline back by as much: it
     /// would never end. So this waits for a sleep to have begun, and records an issue if none does.
+    ///
+    /// "A sleep has begun" stands for "the sleep this advance should end has begun" only while the session sleeps on
+    /// one thing at a time: it cancels its silence deadline before stopping, the final-words timer once the words
+    /// end, and each deadline before it schedules the next, and a cancelled sleep leaves at once. A change that keeps
+    /// an older sleep going while a new one starts needs this to wait for that new sleep instead.
     func advance(by seconds: TimeInterval, sourceLocation: SourceLocation = #_sourceLocation) async {
         let clock = ContinuousClock()
         let deadline = clock.now + .seconds(5)
