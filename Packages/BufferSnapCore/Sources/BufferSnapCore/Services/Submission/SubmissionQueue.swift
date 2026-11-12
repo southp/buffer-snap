@@ -18,6 +18,8 @@ public actor SubmissionQueue {
         case sessionLost
         /// `isOffline` changed.
         case reachabilityChanged
+        /// Buffer asked to wait, or the wait is over: `rateLimitedUntil` changed.
+        case rateLimitChanged
     }
 
     /// How a pass through the queue goes on, or why it stops.
@@ -53,7 +55,8 @@ public actor SubmissionQueue {
     public private(set) var nextWindowEnd: Date?
     /// Whether the last pass stopped because Buffer couldn't be reached, until a pass gets an answer.
     public private(set) var isOffline = false
-    private var rateLimitedUntil: Date?
+    /// When Buffer said it can be asked again, set by a rate-limited answer and cleared when the wait ends.
+    private var rateLimitEnd: Date?
     private var failuresInARow = 0
     private var serverFailures: [Capture.ID: Int] = [:]
     /// Buffer has these, but saving that failed. Sending them again would be a sure duplicate, so nothing else goes
@@ -140,6 +143,15 @@ public actor SubmissionQueue {
         planner.batches(of: captures)
     }
 
+    /// Until when Buffer has asked BufSnap to wait, or `nil` if it hasn't or that time has passed. Nothing goes to
+    /// Buffer before then, whatever asks: Sync now, Send now and Resend only queue up for when it ends.
+    public var rateLimitedUntil: Date? {
+        guard let rateLimitEnd, clock.now < rateLimitEnd else {
+            return nil
+        }
+        return rateLimitEnd
+    }
+
     /// What's happening, from now until the stream's consumer goes away.
     public nonisolated func events() -> AsyncStream<Event> {
         subscribers.subscribe()
@@ -148,7 +160,7 @@ public actor SubmissionQueue {
     // MARK: - A pass through the queue
 
     private func startDrain() -> Task<Void, Never>? {
-        if let rateLimitedUntil, clock.now < rateLimitedUntil {
+        guard rateLimitedUntil == nil else {
             return nil
         }
         if let drainTask {
@@ -335,8 +347,9 @@ extension SubmissionQueue {
             failuresInARow += 1
             let wait = (retryAfter ?? backoff.delay(afterFailures: failuresInARow)) + jitter()
             Logger.submission.notice("Rate limited for \(wait, privacy: .public)s")
-            rateLimitedUntil = clock.now.addingTimeInterval(wait)
+            rateLimitEnd = clock.now.addingTimeInterval(wait)
             scheduleWake(after: wait)
+            subscribers.publish(.rateLimitChanged)
         case .sessionLost:
             failuresInARow = 0
             wakeTask?.cancel()
@@ -358,7 +371,10 @@ extension SubmissionQueue {
     }
 
     private func wake() {
-        rateLimitedUntil = nil
+        if rateLimitEnd != nil {
+            rateLimitEnd = nil
+            subscribers.publish(.rateLimitChanged)
+        }
         _ = startDrain()
     }
 }
