@@ -14,6 +14,12 @@ Closes #
 
   ```
 
+## Docs updated
+
+<!-- Each doc from "Docs that describe behavior" in CLAUDE.md that this PR changed, and why, or "None". -->
+
+None
+
 ## Snapshot changes
 
 <!-- List every re-recorded snapshot PNG and why it changed, or write "None". -->
