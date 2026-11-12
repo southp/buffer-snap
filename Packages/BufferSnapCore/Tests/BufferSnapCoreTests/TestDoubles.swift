@@ -267,20 +267,58 @@ func waitFor(_ condition: @MainActor () -> Bool, sourceLocation: SourceLocation 
 
 /// A `DictationClock` that only moves when a test says so. A sleep ends once the clock reaches its deadline.
 final class ManualDictationClock: DictationClock {
-    private let time = Mutex(Date(timeIntervalSinceReferenceDate: 1_000_000))
-
-    var now: Date {
-        time.withLock { $0 }
+    private struct State {
+        var now = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        /// The sleeps going on, by ticket. A cancelled one leaves as soon as it's cancelled.
+        var sleepers: Set<Int> = []
+        var nextTicket = 0
     }
 
-    func advance(by seconds: TimeInterval) {
-        time.withLock { $0 = $0.addingTimeInterval(seconds) }
+    private let state = Mutex(State())
+
+    var now: Date {
+        state.withLock { $0.now }
+    }
+
+    /// Moves the clock on, once something is asleep on it.
+    ///
+    /// The session reads the time, then starts its sleep on another executor. A sleep that starts after a change the
+    /// test waited for may not have begun yet, and moving the clock first would push its deadline back by as much: it
+    /// would never end. So this waits for a sleep to have begun, and records an issue if none does.
+    func advance(by seconds: TimeInterval, sourceLocation: SourceLocation = #_sourceLocation) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(5)
+        while !isAnyoneAsleep && clock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(isAnyoneAsleep, "Nothing was asleep on the clock to wake", sourceLocation: sourceLocation)
+        state.withLock { $0.now = $0.now.addingTimeInterval(seconds) }
+    }
+
+    private var isAnyoneAsleep: Bool {
+        state.withLock { !$0.sleepers.isEmpty }
     }
 
     func sleep(for seconds: TimeInterval) async throws {
-        let deadline = now.addingTimeInterval(seconds)
-        while now < deadline {
-            try await Task.sleep(for: .milliseconds(1))
+        let (ticket, deadline) = state.withLock { state in
+            let ticket = state.nextTicket
+            state.nextTicket += 1
+            state.sleepers.insert(ticket)
+            return (ticket, state.now.addingTimeInterval(seconds))
         }
+        defer {
+            wake(ticket)
+        }
+        try await withTaskCancellationHandler {
+            while now < deadline {
+                try await Task.sleep(for: .milliseconds(1))
+            }
+        } onCancel: {
+            wake(ticket)
+        }
+    }
+
+    private func wake(_ ticket: Int) {
+        _ = state.withLock { $0.sleepers.remove(ticket) }
     }
 }
