@@ -42,3 +42,25 @@ Commit. Review usually takes a day or two.
 
 Read the reason in App Store Connect → **App Review**, fix, merge, and pick the new build. Answers to the usual
 questions about the `audio` background mode and the demo account are in [app-review-notes.md](app-review-notes.md).
+
+## Submitting an update
+
+From 1.1 on, only these steps apply. App Information, age rating, pricing and export compliance carry over.
+
+1. **Smoke-test the newest build on TestFlight** on a real iPhone: dictate from the control with the app closed, sign
+   in, and send an idea that reaches Buffer.
+2. **Retake the screenshots** if what they show changed: `just store-screenshots` ([screenshots.md](screenshots.md)).
+3. **Sign in to the demo Buffer account** once from that build ([app-review-notes.md](app-review-notes.md)).
+4. **App Store Connect → BufSnap → + (next to iOS App) → the new version number.** It must match `MARKETING_VERSION`.
+5. **On the new version page:**
+   - **What's New in This Version**, and the description and promotional text if they changed:
+     [listing.md](listing.md).
+   - **Screenshots:** replace them only if step 2 retook them.
+   - **Build:** pick the newest build of that version.
+   - **App Review Information → Notes:** paste [app-review-notes.md](app-review-notes.md)'s, in case they changed.
+     The demo account's sign-in carries over.
+   - **Version release:** "Automatically release this version".
+6. **App Privacy:** change and **Publish** only if [app-privacy.md](app-privacy.md) changed.
+7. **Add for Review**, then **Submit to App Review**.
+8. **Once it's live,** raise `MARKETING_VERSION` in `project.yml` before the next merge: App Store Connect refuses more
+   builds of a version once it's approved.
