@@ -9,6 +9,8 @@ struct CaptureListScreen: View {
     @State private var model: CaptureListModel
     @State private var isShowingBatchingSettings = false
     @State private var isShowingAddDictationGuide = false
+    /// The account menu's appearance choice. `BufferSnapApp` reads the same key and applies it to the window.
+    @AppStorage(Appearance.storageKey) private var storedAppearance: String?
     @Environment(\.scenePhase) private var scenePhase
 
     private let submissions: SubmissionQueue
@@ -82,6 +84,10 @@ struct CaptureListScreen: View {
                 },
                 onShowBatchingSettings: {
                     isShowingBatchingSettings = true
+                },
+                appearance: Appearance(storedValue: storedAppearance),
+                onChooseAppearance: { appearance in
+                    storedAppearance = appearance.rawValue
                 },
                 onShowAddDictationGuide: {
                     isShowingAddDictationGuide = true

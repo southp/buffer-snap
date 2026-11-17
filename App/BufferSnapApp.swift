@@ -10,6 +10,8 @@ struct BufferSnapApp: App {
     /// Dictation from the control and the widget, with the app closed. The intents run in this process and call it.
     private let handsFreeDictation: HandsFreeDictationSession
     @Environment(\.scenePhase) private var scenePhase
+    /// The account menu's appearance choice, kept on this iPhone (`docs/decisions/144-appearance-setting.md`).
+    @AppStorage(Appearance.storageKey) private var storedAppearance: String?
 
     init() {
         let environment = AppEnvironment(
@@ -44,6 +46,9 @@ struct BufferSnapApp: App {
         WindowGroup {
             RootView(appModel: appModel, environment: environment)
                 .dictationNotice(appModel.dictationNotice, onDismiss: appModel.dismissDictationNotice)
+                // On the window's content, so the sheets and alerts it presents follow it too. Not on `RootView`,
+                // whose snapshot test sets its own appearance.
+                .preferredColorScheme(Appearance(storedValue: storedAppearance).colorScheme)
                 .task {
                     await removeMockCaptures()
                 }

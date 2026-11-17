@@ -31,6 +31,10 @@ struct CaptureListView: View {
     let onClearSubmitted: () -> Void
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
+    /// The appearance the account menu's Appearance submenu checks.
+    let appearance: Appearance
+    /// Called when the user chooses an appearance in the account menu.
+    let onChooseAppearance: (Appearance) -> Void
     /// Called when the user asks how to add Dictate an Idea, from the menu or the empty state.
     let onShowAddDictationGuide: () -> Void
     /// The version and build at the bottom of the account menu.
@@ -135,6 +139,8 @@ struct CaptureListView: View {
                         isSignedIn: isSignedIn,
                         account: account,
                         onShowBatchingSettings: onShowBatchingSettings,
+                        appearance: appearance,
+                        onChooseAppearance: onChooseAppearance,
                         onShowAddDictationGuide: onShowAddDictationGuide,
                         onSignOut: onSignOut
                     )

@@ -3,7 +3,8 @@ import SwiftUI
 
 /// What the toolbar's `person` chip menu holds, one section per group, top to bottom:
 /// 1. The account header: the name and email of who's signed in, not tappable. Only once Buffer has said who it is.
-/// 2. Settings and guides: Batching, then How to Add Dictate an Idea, which opens the guide.
+/// 2. Settings and guides: Batching, then Appearance, a submenu that checks System, Light or Dark, then How to Add
+///    Dictate an Idea, which opens the guide.
 /// 3. Help: Report a Problem, which opens the support page's report section, and Source Code on GitHub.
 /// 4. Sign Out, only while someone is signed in. In a menu, so one stray tap can't sign anyone out: coming back
 ///    takes a full sign-in.
@@ -23,6 +24,10 @@ struct AccountMenuItems: View {
     let account: BufferAccount?
     /// Called when the user asks for the batching setting.
     let onShowBatchingSettings: () -> Void
+    /// The appearance the Appearance submenu checks.
+    let appearance: Appearance
+    /// Called when the user chooses an appearance.
+    let onChooseAppearance: (Appearance) -> Void
     /// Called when the user asks how to add Dictate an Idea.
     let onShowAddDictationGuide: () -> Void
     /// Called when the user signs out.
@@ -36,6 +41,19 @@ struct AccountMenuItems: View {
         }
         Section {
             Button("Batching", systemImage: "square.stack", action: onShowBatchingSettings)
+            Picker(selection: Binding(get: { appearance }, set: onChooseAppearance)) {
+                ForEach(Appearance.allCases) { choice in
+                    Label {
+                        Text(choice.title)
+                    } icon: {
+                        Image(systemName: choice.symbolName)
+                    }
+                    .tag(choice)
+                }
+            } label: {
+                Label("Appearance", systemImage: "circle.lefthalf.filled")
+            }
+            .pickerStyle(.menu)
             Button("How to Add Dictate an Idea", systemImage: "questionmark.circle", action: onShowAddDictationGuide)
         }
         Section {
