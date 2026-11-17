@@ -1,5 +1,8 @@
 import BufferSnapCore
+import CoreGraphics
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// Made-up pictures and URLs: never a real account's.
 enum AvatarFixtures {
@@ -9,6 +12,24 @@ enum AvatarFixtures {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
     /// Another picture, told apart from `png` by its bytes.
     static let otherPNG = png + Data([0])
+
+    /// A gray PNG of `width` × `height` pixels, drawn here.
+    static func png(width: Int, height: Int) -> Data {
+        let data = NSMutableData()
+        guard
+            let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue
+            ),
+            let image = context.makeImage(),
+            let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil)
+        else {
+            return Data()
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationFinalize(destination)
+        return data as Data
+    }
 
     /// A made-up picture URL on Buffer's bucket.
     static func url(_ name: String) -> URL {
