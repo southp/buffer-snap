@@ -59,9 +59,7 @@ public final class CaptureListModel {
         rateLimitedUntil = await submissions.rateLimitedUntil
         do {
             captures = try await store.all().sorted { $0.createdAt > $1.createdAt }
-            if problem == .couldNotLoad {
-                problem = nil
-            }
+            clearProblem(.couldNotLoad)
         } catch {
             // Keep the last loaded list, and say it may be out of date.
             problem = .couldNotLoad
@@ -119,7 +117,7 @@ public final class CaptureListModel {
         do {
             try await store.delete(id: capture.id)
             captures.removeAll { $0.id == capture.id }
-            problem = nil
+            clearProblem(.couldNotDelete)
             await submissions.replan()
         } catch {
             // Keep it listed, since the store still has it.
@@ -144,14 +142,22 @@ public final class CaptureListModel {
         return submissions.clock.now < rateLimitedUntil
     }
 
-    /// Runs `action`, then reloads. If it throws, nothing changed, and `failure` says so.
+    /// Runs `action`, then reloads. If it throws, nothing changed, and `failure` says so. If it works, only `failure`
+    /// goes: a problem from another kind of action is still true until that kind works.
     private func attempt(failingWith failure: Problem, _ action: () async throws -> Void) async {
         do {
             try await action()
-            problem = nil
+            clearProblem(failure)
             await load()
         } catch {
             problem = failure
+        }
+    }
+
+    /// An action of `kind`'s kind just worked, so if that's what the list was showing, it's no longer true.
+    private func clearProblem(_ kind: Problem) {
+        if problem == kind {
+            problem = nil
         }
     }
 }
