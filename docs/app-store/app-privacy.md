@@ -22,7 +22,7 @@ Tick only this one:
 
 | Category | Type | Tick? | Why |
 |---|---|---|---|
-| Contact Info | all | No | The app never asks for a name, email or phone. Buffer's sign-in page does, on Buffer's side |
+| Contact Info | all | No | The app never asks for a name, email or phone. Buffer's sign-in page does, on Buffer's side. The app reads the account's name and email from Buffer to show who's signed in, but they stay on the iPhone, so they aren't collected |
 | Health & Fitness | all | No | None |
 | Financial Info | all | No | None |
 | Location | all | No | None |

@@ -55,6 +55,7 @@ flowchart TD
             BufferClient["BufferClient"]
             Connectivity["ConnectivityMonitor"]
             Window["BatchWindowSetting"]
+            AccountStore["AccountStore"]
         end
         Queue["SubmissionQueue (planner, back-off)"]
         subgraph impls["Implementations"]
@@ -67,6 +68,7 @@ flowchart TD
             GraphQL["GraphQLBufferClient, MockBufferClient"]
             Path["NetworkPathConnectivityMonitor, MockConnectivityMonitor"]
             Defaults["UserDefaultsBatchWindowSetting, InMemoryBatchWindowSetting"]
+            AccountImpls["KeychainAccountStore, InMemoryAccountStore"]
         end
         Capture["Models: Capture"]
     end
@@ -77,6 +79,8 @@ flowchart TD
     Widget --> Intent
     Env --> services
     AppModel --> AuthService
+    AppModel -->|"account: fetchAccount()"| Queue
+    AppModel --> AccountStore
     AppModel -->|permission only| SpeechTranscriber
     Session --> CaptureStore
     Session --> SpeechTranscriber
@@ -98,6 +102,7 @@ flowchart TD
     GraphQL -->|implements| BufferClient
     Path -->|implements| Connectivity
     Defaults -->|implements| Window
+    AccountImpls -->|implements| AccountStore
     App -->|"SystemWebAuthenticator (needs a window)"| OAuth
     MockSpeech -->|implements| SpeechTranscriber
     AppleSpeech -->|implements| SpeechTranscriber
@@ -132,6 +137,8 @@ sequenceDiagram
     participant Page as site/oauth/
     participant Buffer as auth.buffer.com
     participant Keychain
+    participant Queue as SubmissionQueue
+    participant API as api.buffer.com
     Model->>Auth: signIn()
     Auth->>Web: authenticate(url, "buffersnap")
     Web->>Buffer: Sign-in and consent, with state and the PKCE challenge
@@ -142,7 +149,13 @@ sequenceDiagram
     Buffer->>Auth: Access and refresh tokens
     Auth->>Keychain: Save, before anything uses them
     Auth->>Model: Done, signed in
-    Model->>Model: Ask "Send N ideas to this account?"
+    Model->>Keychain: Forget the last account
+    Model->>Queue: fetchAccount(), unless rate limited
+    Queue->>API: account { name email }
+    API->>Queue: Name and email
+    Queue->>Model: The account
+    Model->>Keychain: Save it, in its own item
+    Model->>Model: Ask "Send N ideas to <name>?"
 ```
 
 `AppModel` reads `hasSavedSession()` at launch, which reads the Keychain, so the first frame is already right, and the
@@ -153,6 +166,18 @@ A Keychain read at launch can fail, which looks like no session, so while signed
 session, as a failed sign-out leaves its tokens behind. Everything that needs a token calls `validAccessToken()`,
 and `OAuthAuthService` makes sure only one refresh ever runs, because reusing a refresh token revokes the session:
 [`43-single-use-refresh-tokens.md`](decisions/43-single-use-refresh-tokens.md).
+
+**Which account.** `AppModel.account` is who's signed in: its name and email, for the toolbar chip's initials, the
+menu's header and the question after sign-in. `AppModel` asks for it right after a sign-in, before that question, and
+then from `checkSession()`, once the session checks out, at most once an hour. It asks through `SubmissionQueue`
+(`fetchAccount()`), as the query counts toward the same rate limit as sending ideas: the queue doesn't ask while Buffer
+has asked to wait, and a 429 on it starts that wait for ideas too. A request that never reached Buffer, offline or held
+back by the limit, doesn't count toward the hour. The answer is saved, with when it came, in `KeychainAccountStore`, a
+Keychain item of its own with the session's accessibility, so the name shows from the first frame after a relaunch with
+no network. It's never part of the saved session: [`92-account-cache.md`](decisions/92-account-cache.md). A failed
+fetch keeps what's saved and never changes `isSignedIn`. The account is forgotten, here and in the Keychain, on
+sign-out, when Buffer ends the session, and when a sign-in succeeds, as that may be someone else; a fetch that finishes
+after any of those shows nothing.
 
 ## Sending to Buffer
 
