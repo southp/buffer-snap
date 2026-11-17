@@ -12,8 +12,9 @@ in [`docs/architecture.md`](../docs/architecture.md).
 | Lock Screen and Dynamic Island, while dictating | `DictationLiveActivity`, drawn by `DictationActivityView` | Stop: `StopDictationIntent` |
 
 `SnapperWidgetBundle` is the extension's `@main` and lists them all. Nothing captures in this extension's process: every
-press runs in the app's process, with the app closed. Nothing here reads or writes the captures either, and
-`DictateWidget`'s face never changes, so nothing needs to reload its timeline.
+press runs in the app's process, with the app closed. Nothing here reads or writes the captures either, so the
+extension isn't in the App Group (`docs/decisions/106-widget-without-app-group.md`), and `DictateWidget`'s face never
+changes, so nothing needs to reload its timeline.
 
 ## Dictating without opening the app
 

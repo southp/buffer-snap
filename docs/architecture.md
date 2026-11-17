@@ -215,7 +215,8 @@ stateDiagram-v2
 
 ## The capture file
 
-Only the app reads and writes the captures, in a file in the App Group container. The contract is in
+Only the app reads and writes the captures, in a file in the App Group container. The widget extension isn't in the
+App Group: [`106-widget-without-app-group.md`](decisions/106-widget-without-app-group.md). The contract is in
 [`App/CLAUDE.md`](../App/CLAUDE.md).
 
 Installs from before #40 have a `captures.json` holding only mock captures. The app deletes it at launch and nothing
