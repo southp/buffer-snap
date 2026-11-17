@@ -66,6 +66,8 @@ actor FakeIdeasServer: HTTPTransport {
     private(set) var ideas: [Idea] = []
     private(set) var organizationRequests = 0
     private(set) var ideaRequests = 0
+    private(set) var accountRequests = 0
+    private var accountFaults: [Fault] = []
     private var organizations = ["org-1", "org-2"]
     private var ideaFaults: [Fault] = []
     private var organizationFaults: [Fault] = []
@@ -85,6 +87,11 @@ actor FakeIdeasServer: HTTPTransport {
     /// Fails the next organization requests with these, in order.
     func failOrganizations(_ faults: Fault...) {
         organizationFaults += faults
+    }
+
+    /// Fails the next account requests with these, in order.
+    func failAccounts(_ faults: Fault...) {
+        accountFaults += faults
     }
 
     func setOrganizations(_ organizations: [String]) {
@@ -113,8 +120,15 @@ actor FakeIdeasServer: HTTPTransport {
 
     func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
         let body = try JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any]
-        if (body?["query"] as? String)?.contains("createIdea") == true {
+        let query = body?["query"] as? String ?? ""
+        if query.contains("createIdea") {
             return try await createIdea(body: body)
+        }
+        if query.contains("account { name email }") {
+            accountRequests += 1
+            let fault = accountFaults.isEmpty ? nil : accountFaults.removeFirst()
+            let success = #"{"data":{"account":{"name":"Ada Lovelace","email":"ada@example.com"}}}"#
+            return try respond(fault: fault, success: success)
         }
         organizationRequests += 1
         let fault = organizationFaults.isEmpty ? nil : organizationFaults.removeFirst()
