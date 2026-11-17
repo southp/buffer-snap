@@ -35,7 +35,8 @@ final class AccountCache {
     func restore() {
         let saved = store.load()
         account = saved?.account
-        askedAt = saved?.fetchedAt
+        // Saved without its picture, so worth asking again now.
+        askedAt = saved?.askedForAvatar == true ? saved?.fetchedAt : nil
     }
 
     /// Forgets the account, here and in the Keychain: someone signed out, Buffer ended the session, or another account

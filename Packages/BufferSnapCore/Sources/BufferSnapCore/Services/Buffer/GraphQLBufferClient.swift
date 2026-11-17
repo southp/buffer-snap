@@ -20,9 +20,13 @@ public struct GraphQLBufferClient: BufferClient {
     }
 
     public func account(accessToken: String) async throws -> BufferAccount {
-        let query = "query Account { account { name email } }"
+        let query = "query Account { account { name email avatar } }"
         let data: AccountProfileData = try await send(query, variables: NoVariables(), accessToken: accessToken)
-        return BufferAccount(name: data.account.name, email: data.account.email)
+        return BufferAccount(
+            name: data.account.name,
+            email: data.account.email,
+            avatarURL: BufferAccount.avatarURL(from: data.account.avatar)
+        )
     }
 
     public func createIdea(text: String, organizationID: String, accessToken: String) async throws {
@@ -194,6 +198,8 @@ private struct AccountProfileData: Decodable {
     struct Account: Decodable {
         let name: String?
         let email: String?
+        /// A URL, kept only if it's on Buffer's bucket (`BufferAccount.avatarHost`).
+        let avatar: String?
     }
 
     let account: Account

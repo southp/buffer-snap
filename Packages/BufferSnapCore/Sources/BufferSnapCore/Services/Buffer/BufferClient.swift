@@ -5,7 +5,7 @@ public protocol BufferClient: Sendable {
     /// `BufferError`.
     func firstOrganizationID(accessToken: String) async throws -> String
 
-    /// Who the account is: its name and email, to show which account ideas go to. Throws a `BufferError`.
+    /// Who the account is: its name, email and picture, to show which account ideas go to. Throws a `BufferError`.
     func account(accessToken: String) async throws -> BufferAccount
 
     /// Creates one idea. Throws a `BufferError`. `.connection` and `.serverTrouble` don't mean that no idea was

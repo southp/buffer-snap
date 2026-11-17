@@ -124,7 +124,7 @@ actor FakeIdeasServer: HTTPTransport {
         if query.contains("createIdea") {
             return try await createIdea(body: body)
         }
-        if query.contains("account { name email }") {
+        if query.contains("account { name email avatar }") {
             accountRequests += 1
             let fault = accountFaults.isEmpty ? nil : accountFaults.removeFirst()
             let success = #"{"data":{"account":{"name":"Ada Lovelace","email":"ada@example.com"}}}"#

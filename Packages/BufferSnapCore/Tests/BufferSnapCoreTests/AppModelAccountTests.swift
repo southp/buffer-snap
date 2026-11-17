@@ -155,6 +155,21 @@ struct AppModelAccountTests {
         #expect(await accounts.fetchCount == 1)
     }
 
+    /// An account 1.1 saved has no picture, so the first foreground after the update asks again within the hour.
+    @Test func anAccountSavedWithoutItsPictureIsAskedForAgain() async throws {
+        let fetchedAt = clock.now.timeIntervalSinceReferenceDate - 60
+        let json = #"{"account":{"name":"Ada Lovelace","email":"ada@example.com"},"fetchedAt":\#(fetchedAt)}"#
+        store.save(try JSONDecoder().decode(SavedAccount.self, from: Data(json.utf8)))
+        let accounts = StubAccountSource(.success(.mock))
+        let model = model(accounts: accounts)
+        #expect(model.account?.avatarURL == nil)
+
+        await model.checkSession()
+
+        #expect(await accounts.fetchCount == 1)
+        #expect(model.account == .mock)
+    }
+
     /// A request that never left the iPhone, or that Buffer's rate limit kept back, costs nothing, so the next
     /// foreground tries again. The saved account stays meanwhile.
     @Test(arguments: [BufferError.connection, .rateLimited(retryAfter: 60)])
