@@ -24,6 +24,11 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # `actions: read` lets a push to main find the last deployed commit. Only this job gets it, and it has none of
+    # `deploy`'s secrets. A job's `permissions` replace the workflow's, so `contents: read` is repeated here.
+    permissions:
+      contents: read
+      actions: read
     outputs:
       full: ${{ steps.path.outputs.full }}
     steps:
@@ -38,15 +43,55 @@ jobs:
         id: path
         # Skip `ci` (and so `deploy`) only when every changed file is on this allowlist: docs, the PR template,
         # the Claude workflows and the public site. Anything else, ci.yml and justfile included, takes the full path.
-        # A PR diffs its merge commit against the base; a push to main diffs against the commit main was at before.
+        # A PR diffs its merge commit against the base. A push to main diffs against the last commit that `deploy`
+        # shipped, so code whose run was dropped, failed or was cancelled still deploys with the next merge
+        # (docs/decisions/114-diff-against-last-deploy.md).
         # In a `case`, `*` also matches `/`, so `*.md`, `docs/*` and `site/*` match at any depth. That's on purpose,
         # to cover each area's CLAUDE.md, and safe because target specs exclude Markdown from bundles and nothing
         # but pages.yml reads site/. Don't make a Markdown or site/ file an input to the build without narrowing
         # these patterns.
         env:
           EVENT: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # How many successful runs on main to search for the last deploy, so a long run of docs-only merges
+          # can't slow this job down. With no deploy among them, the push takes the full path.
+          LOOKBACK: 20
         run: |
+          # Sets `deployed` to the newest commit whose `deploy` job succeeded, among the last $LOOKBACK successful
+          # push runs of this workflow on main. A docs-only run succeeds too, with `deploy` skipped, so the run's
+          # own conclusion isn't enough. Says why and fails when an API call fails or no run in the bound deployed.
+          find_last_deploy() {
+            local runs run sha conclusion
+            deployed=""
+            if ! runs="$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=$LOOKBACK" \
+              --jq '.workflow_runs[] | "\(.id) \(.head_sha)"')"; then
+              echo "Full path: couldn't list the earlier runs on main"
+              return 1
+            fi
+            while read -r run sha; do
+              if [[ -z "$run" ]]; then
+                continue
+              fi
+              if ! conclusion="$(gh api "repos/$REPO/actions/runs/$run/jobs?per_page=100" \
+                --jq '.jobs[] | select(.name == "deploy") | .conclusion' </dev/null)"; then
+                echo "Full path: couldn't list the jobs of run $run"
+                return 1
+              fi
+              if [[ "$conclusion" == "success" ]]; then
+                if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+                  echo "Full path: run $run has no valid commit ('$sha')"
+                  return 1
+                fi
+                echo "Last deploy: run $run, commit $sha"
+                deployed="$sha"
+                return 0
+              fi
+            done <<<"$runs"
+            echo "Full path: no deploy in the last $LOOKBACK successful runs on main"
+            return 1
+          }
+
           full=true
           base=""
           if [[ "$EVENT" == "pull_request" ]]; then
@@ -56,13 +101,16 @@ jobs:
               echo "Full path: HEAD isn't a PR merge commit, so the changed files are unknown"
             fi
           elif [[ "$EVENT" == "push" ]]; then
-            # Fetch only that one commit: `fetch-depth: 0` would also download the pr-media binaries.
-            if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
-              echo "Full path: the push has no previous commit to compare with"
-            elif ! git fetch --quiet --no-tags --depth=1 origin "$BEFORE"; then
-              echo "Full path: couldn't fetch the previous commit $BEFORE"
-            else
-              base="$BEFORE"
+            # Not `github.event.before`: if that commit's run was dropped from the queue, failed or was cancelled,
+            # its code never deployed, and a docs-only diff against it would skip it again.
+            if find_last_deploy; then
+              # Fetch only that one commit: `fetch-depth: 0` would also download the pr-media binaries.
+              if git fetch --quiet --no-tags --depth=1 origin "$deployed"; then
+                echo "Comparing with $deployed, the last commit deployed"
+                base="$deployed"
+              else
+                echo "Full path: couldn't fetch the last deployed commit $deployed"
+              fi
             fi
           else
             echo "Full path: '$EVENT' event"
