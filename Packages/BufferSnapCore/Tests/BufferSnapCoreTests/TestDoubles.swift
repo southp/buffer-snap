@@ -265,65 +265,22 @@ func waitFor(_ condition: @MainActor () -> Bool, sourceLocation: SourceLocation 
     #expect(condition(), sourceLocation: sourceLocation)
 }
 
-/// A `DictationClock` that only moves when a test says so. A sleep ends once the clock reaches its deadline.
+/// A `DictationClock` that only moves when a test says so. A sleep ends once the clock reaches its deadline, at once if
+/// it already has, so it doesn't matter whether a sleep begins before or after the advance that passes its deadline.
 final class ManualDictationClock: DictationClock {
-    private struct State {
-        var now = Date(timeIntervalSinceReferenceDate: 1_000_000)
-        /// The sleeps going on, by ticket. A cancelled one leaves as soon as it's cancelled.
-        var sleepers: Set<Int> = []
-        var nextTicket = 0
-    }
-
-    private let state = Mutex(State())
+    private let time = Mutex(Date(timeIntervalSinceReferenceDate: 1_000_000))
 
     var now: Date {
-        state.withLock { $0.now }
+        time.withLock { $0 }
     }
 
-    /// Moves the clock on, once something is asleep on it.
-    ///
-    /// The session reads the time, then starts its sleep on another executor. A sleep that starts after a change the
-    /// test waited for may not have begun yet, and moving the clock first would push its deadline back by as much: it
-    /// would never end. So this waits for a sleep to have begun, and records an issue if none does.
-    ///
-    /// "A sleep has begun" stands for "the sleep this advance should end has begun" only while the session sleeps on
-    /// one thing at a time: it cancels its silence deadline before stopping, the final-words timer once the words
-    /// end, and each deadline before it schedules the next, and a cancelled sleep leaves at once. A change that keeps
-    /// an older sleep going while a new one starts needs this to wait for that new sleep instead.
-    func advance(by seconds: TimeInterval, sourceLocation: SourceLocation = #_sourceLocation) async {
-        let clock = ContinuousClock()
-        let deadline = clock.now + .seconds(5)
-        while !isAnyoneAsleep && clock.now < deadline {
-            try? await Task.sleep(for: .milliseconds(1))
-        }
-        #expect(isAnyoneAsleep, "Nothing was asleep on the clock to wake", sourceLocation: sourceLocation)
-        state.withLock { $0.now = $0.now.addingTimeInterval(seconds) }
-    }
-
-    private var isAnyoneAsleep: Bool {
-        state.withLock { !$0.sleepers.isEmpty }
+    func advance(by seconds: TimeInterval) {
+        time.withLock { $0 = $0.addingTimeInterval(seconds) }
     }
 
     func sleep(until deadline: Date) async throws {
-        let ticket = state.withLock { state in
-            let ticket = state.nextTicket
-            state.nextTicket += 1
-            state.sleepers.insert(ticket)
-            return ticket
+        while now < deadline {
+            try await Task.sleep(for: .milliseconds(1))
         }
-        defer {
-            wake(ticket)
-        }
-        try await withTaskCancellationHandler {
-            while now < deadline {
-                try await Task.sleep(for: .milliseconds(1))
-            }
-        } onCancel: {
-            wake(ticket)
-        }
-    }
-
-    private func wake(_ ticket: Int) {
-        _ = state.withLock { $0.sleepers.remove(ticket) }
     }
 }
