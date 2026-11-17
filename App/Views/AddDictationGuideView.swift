@@ -2,13 +2,15 @@ import BufferSnapCore
 import SwiftUI
 
 /// How to put Dictate an Idea somewhere one press dictates: a picker of the places (`DictationPlacement`), then that
-/// place's numbered steps, each with a still sketch. iOS has no API that adds it for an app, so this shows how
-/// (`docs/decisions/98-show-how-to-add-the-control.md`).
+/// place's numbered steps, each with a sketch that acts out its gesture. iOS has no API that adds it for an app, so
+/// this shows how (`docs/decisions/98-show-how-to-add-the-control.md`).
 ///
-/// Stateless: `AddDictationGuideScreen` holds which place is picked.
+/// Stateless: `AddDictationGuideScreen` holds which place is picked, and whether the sketches move.
 struct AddDictationGuideView: View {
     /// The place whose steps show.
     let placement: DictationPlacement
+    /// Whether the sketches act out their gestures, or stay still: still with Reduce Motion on, and in snapshots.
+    let animatesSketches: Bool
     /// Called when the user picks another place.
     let onChoose: (DictationPlacement) -> Void
     /// Called when the user is done.
@@ -29,7 +31,7 @@ struct AddDictationGuideView: View {
             Section {
                 let steps = placement.steps
                 ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
-                    GuideStepRow(number: index + 1, step: step)
+                    GuideStepRow(number: index + 1, step: step, isAnimated: animatesSketches)
                         .cardRow(CardPart(index: index, count: steps.count))
                 }
             } header: {
@@ -49,15 +51,18 @@ struct AddDictationGuideView: View {
     }
 }
 
-/// The guide's container: holds which place is picked, starting with Control Center, and closes the sheet.
+/// The guide's container: holds which place is picked, starting with Control Center, keeps the sketches still with
+/// Reduce Motion on, and closes the sheet.
 struct AddDictationGuideScreen: View {
     @State private var placement = DictationPlacement.allCases[0]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             AddDictationGuideView(
                 placement: placement,
+                animatesSketches: !reduceMotion,
                 onChoose: { placement = $0 },
                 onDone: { dismiss() }
             )
@@ -147,11 +152,12 @@ private struct PlacementPicker: View {
 private struct GuideStepRow: View {
     let number: Int
     let step: DictationPlacementStep
+    let isAnimated: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             ZStack(alignment: .topLeading) {
-                DictationStepSketch(sketch: step.sketch)
+                DictationStepSketch(sketch: step.sketch, isAnimated: isAnimated)
                     .padding([.top, .leading], 8)
                 Badge(diameter: 26) {
                     Text(number, format: .number)
