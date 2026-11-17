@@ -41,6 +41,8 @@ struct CaptureListView: View {
     let sourceCodeURL: URL
     /// What the sign-in row shows while nobody is signed in, or `nil` while someone is.
     let signInPrompt: AppModel.SignInPrompt?
+    /// Who's signed in, for the chip's initials and the menu's header, or `nil` while nobody is or Buffer hasn't said.
+    let account: BufferAccount?
     /// Called when the user asks to sign in.
     let onSignIn: () -> Void
     /// Called when the user signs out.
@@ -131,13 +133,13 @@ struct CaptureListView: View {
                         reportProblemURL: reportProblemURL,
                         sourceCodeURL: sourceCodeURL,
                         isSignedIn: isSignedIn,
+                        account: account,
                         onShowBatchingSettings: onShowBatchingSettings,
                         onShowAddDictationGuide: onShowAddDictationGuide,
                         onSignOut: onSignOut
                     )
                 } label: {
-                    Label("Account", systemImage: "person")
-                        .labelStyle(.iconOnly)
+                    AccountChipLabel(account: isSignedIn ? account : nil)
                 }
                 // A menu styled as a button keeps the chip in the toolbar, where a custom label lost it.
                 .menuStyle(.button)

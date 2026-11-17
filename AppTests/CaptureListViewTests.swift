@@ -257,6 +257,21 @@ struct CaptureListViewTests {
             named: "permissionRowSignedOut"
         )
     }
+
+    // MARK: - Account chip
+
+    /// Signed in, the chip shows the account's initials, in light and dark.
+    @Test func accountInitials() {
+        let screen = listScreen(submittedCaptures, account: .mock)
+        assertScreenSnapshot(of: screen, named: "accountInitials")
+        assertScreenSnapshot(of: screen, named: "accountInitials-dark", appearance: .dark)
+    }
+
+    /// An account without a name has no initials, so the chip keeps the `person` glyph.
+    @Test func accountWithoutName() {
+        let account = BufferAccount(name: nil, email: "ada@example.com")
+        assertScreenSnapshot(of: listScreen(submittedCaptures, account: account), named: "accountWithoutName")
+    }
 }
 
 /// Shared fixtures, out of the struct's body so the tests themselves stay within its length limit.
@@ -295,6 +310,7 @@ extension CaptureListViewTests {
         isSyncing: Bool = false,
         problem: CaptureListModel.Problem? = nil,
         signInPrompt: AppModel.SignInPrompt? = nil,
+        account: BufferAccount? = nil,
         clearableIdeaCount: Int = 0,
         permissionNotice: DictationNotice? = nil
     ) -> some View {
@@ -324,6 +340,7 @@ extension CaptureListViewTests {
                 reportProblemURL: ProjectLinks.reportProblem,
                 sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
+                account: account,
                 onSignIn: {},
                 onSignOut: {},
                 permissionNotice: permissionNotice
