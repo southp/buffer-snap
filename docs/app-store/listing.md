@@ -114,15 +114,12 @@ other companies' names in keywords.
 | Support URL (version page) | `https://southp.github.io/buffer-snap/support/` |
 | Marketing URL (version page, optional) | `https://github.com/southp/buffer-snap` |
 
-The support page goes live once this branch merges, as the privacy page did. Until then, the repo's issues page works:
-`https://github.com/southp/buffer-snap/issues`.
-
 ## Other fields
 
 | Field | Value |
 |---|---|
 | Copyright | `2026 <your name>` |
-| Version | The version the build carries (`MARKETING_VERSION`): `1.0` for the first version, `1.1` now |
+| Version | The version the build carries (`MARKETING_VERSION`): `1.0` for the first version, `1.1.1` now |
 | What's New | Not shown for a first version. From 1.1, see "What's New in This Version" above |
 | Content Rights | No third-party content |
 | Primary language | English (U.S.) |
