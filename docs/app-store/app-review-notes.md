@@ -23,7 +23,7 @@ Your name, phone and email, which only Apple sees.
 
 ## Notes
 
-Paste this into **Notes**. It's under the 4,000-character limit.
+Paste this into **Notes**. It's 3,823 characters, under the 4,000-character limit.
 
 ```
 BufSnap sends ideas to a Buffer account. Capturing works without one, but sending needs one, so please use the demo account above.
@@ -51,15 +51,15 @@ SEEING IT REACH BUFFER
 7. Open BufSnap to see the idea in the list. Captures made within 5 minutes of each other are combined into one Buffer idea and sent once 5 minutes have passed since the last one. Tap "Send now" to send at once. The batching window is under the account menu → Batching.
 8. Sign in to https://buffer.com with the same account to see the ideas under Create → Ideas.
 
-HELP
-The account menu starts with the signed-in account's name and email. It also has Report a Problem, which opens the support page in Safari, Source Code on GitHub, and the app's version.
+ACCOUNT MENU
+The account menu starts with the signed-in account's name and email, then Batching, Appearance (System, Light or Dark, for the app only), How to Add Dictate an Idea, Report a Problem (the support page in Safari), Source Code on GitHub, Sign Out and the app's version.
 
 BACKGROUND MODES
 - audio: BufSnap uses the audio background mode only while dictating an idea. Dictation starts only when the user presses the "Dictate an Idea" control or widget, shows a Live Activity with the words being heard and a Stop button for as long as it listens, and stops after 3 seconds of silence or 60 seconds at most. No audio is recorded or kept: speech goes straight to Apple's speech recognition, and only the text is saved.
 - fetch (background app refresh): used only to send ideas to Buffer when a batch's 5-minute window ends while the app is closed.
 
 PRIVACY
-BufSnap has no server, analytics or third-party SDKs. It talks only to Buffer's API (OAuth with PKCE; tokens in the Keychain) and uses Apple's speech recognition.
+BufSnap has no server, analytics or third-party SDKs. It talks only to Buffer: its API (OAuth with PKCE; tokens in the Keychain) and its storage for the account's profile picture (buffer-account-avatars-bucket.s3.amazonaws.com). Speech goes to Apple's speech recognition.
 ```
 
 ## Attachment
