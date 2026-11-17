@@ -77,8 +77,8 @@ struct TouchPose {
 
 /// One cycle of `SketchGestureTouch`, 2.8 seconds: the touch lands (0–0.3 s), acts out the gesture (from 0.5 s), rests
 /// until 2 s, lifts by 2.3 s and stays away until the next cycle. Every track lasts the whole cycle and ends on
-/// `TouchPose.lifted`, where the next one starts, so the loop never jumps.
-private enum TouchKeyframes {
+/// `TouchPose.lifted`, where the next one starts, so the loop never jumps (`SketchGestureTouchTests`).
+enum TouchKeyframes {
     @KeyframesBuilder<TouchPose>
     static func cycle(_ gesture: DictationPlacementStep.Gesture) -> some Keyframes<TouchPose> {
         KeyframeTrack(\.opacity) {
