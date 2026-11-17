@@ -40,6 +40,12 @@ struct SignInPromptRow: View {
             }
             .buttonStyle(.paperInkPrimary)
             .disabled(prompt.isSigningIn)
+            // Shown before the tap too: once open, Buffer's sign-in page covers this row. Buffer emails the link
+            // when it doesn't recognize the sign-in, which the private sheet makes common (#56).
+            Text("Buffer may email you a link to confirm it's you. Open it, then come back to BufSnap to finish.")
+                .font(.inter(.footnote))
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
