@@ -458,6 +458,23 @@ store-screenshots: build
         return 1
     }
 
+    # The app's first launch on a new simulator can take longer than launch's pause: wait until the list's account chip
+    # shows, so the screenshot isn't a blank launch screen. The UI is read whole before matching: with pipefail, grep -q
+    # quitting early would fail the pipe.
+    wait_for_list() {
+        local attempt ui
+        for attempt in $(seq 1 60); do
+            ui="$("$axe" describe-ui --udid "$1" 2>/dev/null || true)"
+            if [[ "$ui" == *"Account: Ada Lovelace"* ]]; then
+                sleep 1
+                return 0
+            fi
+            sleep 1
+        done
+        echo "error: the capture list didn't show within a minute." >&2
+        return 1
+    }
+
     # The simulator leaves a few black pixels in the top-left corner: cover them with the pixels just to their right.
     shoot() {
         xcrun simctl io "$1" screenshot "$tmp/shot.png" > /dev/null 2>&1
@@ -505,6 +522,7 @@ store-screenshots: build
         seed "$(xcrun simctl get_app_container "$udid" {{bundle_id}} group.me.southp.buffersnap)"
 
         launch "$udid"
+        wait_for_list "$udid"
         shoot "$udid" "$dir/2-captures.png"
         tap "$udid" "Account: Ada Lovelace" PopUpButton
         tap "$udid" Batching
