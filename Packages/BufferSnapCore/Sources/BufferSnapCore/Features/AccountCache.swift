@@ -48,8 +48,7 @@ final class AccountCache {
             try store.clear()
         } catch {
             // The next sign-in clears it again, and until then nobody is signed in to show it.
-            let errorType = String(describing: type(of: error))
-            Logger.auth.error("Can't remove the saved account: \(errorType, privacy: .public)")
+            Logger.auth.error("Can't remove the saved account: \(Self.describe(error), privacy: .public)")
         }
     }
 
@@ -73,22 +72,37 @@ final class AccountCache {
                 fetchingGeneration = nil
             }
         }
+        let fetched: BufferAccount
         do {
-            let fetched = try await source.fetchAccount()
-            guard generation == self.generation else {
-                return
-            }
-            let saved = SavedAccount(account: fetched, fetchedAt: now())
-            account = fetched
-            askedAt = saved.fetchedAt
-            try store.save(saved)
+            fetched = try await source.fetchAccount()
         } catch {
             if generation == self.generation, Self.reachedBuffer(error) {
                 askedAt = now()
             }
             // Whatever was showing stays: the name is only a label.
-            Logger.auth.notice("Can't refresh the account: \(String(describing: error), privacy: .public)")
+            Logger.auth.notice("Can't fetch the account: \(Self.describe(error), privacy: .public)")
+            return
         }
+        guard generation == self.generation else {
+            return
+        }
+        let saved = SavedAccount(account: fetched, fetchedAt: now())
+        account = fetched
+        askedAt = saved.fetchedAt
+        do {
+            try store.save(saved)
+        } catch {
+            // It still shows until the app quits, and the next fetch saves it again.
+            Logger.auth.error("Can't save the account: \(Self.describe(error), privacy: .public)")
+        }
+    }
+
+    /// `BufferError` and `AuthError` are made to be logged whole. Anything else, only its type.
+    private static func describe(_ error: any Error) -> String {
+        if error is BufferError || error is AuthError {
+            return String(describing: error)
+        }
+        return String(describing: type(of: error))
     }
 
     /// Whether the request got to Buffer, so it counts toward the hour. Offline, or waiting out a rate limit, it

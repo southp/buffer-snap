@@ -5,9 +5,9 @@ import Security
 /// Keeps the signed-in account's name and email in the Keychain, as its own item, next to the session's but never in
 /// it (`docs/decisions/92-account-cache.md`).
 ///
-/// The same accessibility and access group as `KeychainSessionStore`: readable after first unlock, on this device only,
-/// in the app's own group, which the widget can't read. It's the same code on purpose rather than shared with that
-/// store, so this feature can't change how the session is saved.
+/// Stored like `KeychainSessionStore`'s item: readable after first unlock, on this device only, and with no access
+/// group, so it lands in the app's own default group, which the widget can't read. It's the same code on purpose rather
+/// than shared with that store, so this feature can't change how the session is saved.
 public struct KeychainAccountStore: AccountStore {
     /// The Keychain call failed with `status`.
     public struct Failure: Error, Equatable {
