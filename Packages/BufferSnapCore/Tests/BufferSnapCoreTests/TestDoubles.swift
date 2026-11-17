@@ -72,9 +72,15 @@ actor ControllableSignInAuthService: AuthService {
     private var nextError: (any Error)?
     private var isHolding = false
     private var held: CheckedContinuation<Void, Never>?
+    private let savedSession = Mutex(false)
 
     nonisolated func hasSavedSession() -> Bool {
-        false
+        savedSession.withLock { $0 }
+    }
+
+    /// What `hasSavedSession()` answers from now on, as when a sign-in has saved its session but not yet returned.
+    nonisolated func setHasSavedSession(_ hasSavedSession: Bool) {
+        savedSession.withLock { $0 = hasSavedSession }
     }
 
     func failNextSignIn(with error: any Error) {
