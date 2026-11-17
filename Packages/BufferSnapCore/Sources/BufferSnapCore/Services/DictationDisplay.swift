@@ -27,9 +27,9 @@ public protocol DictationClock: Sendable {
     var now: Date { get }
     /// Returns once `now` reaches `deadline`, at once if it already has. Throws if the task waiting is cancelled.
     ///
-    /// It takes the deadline, not a duration, so the caller reads the time once: a duration would have the clock read
-    /// it again when the sleep begins, on another executor, and anything that moved the time in between would move the
-    /// deadline too.
+    /// It takes the deadline, not a duration, so the deadline is fixed when the caller works it out. A duration would
+    /// be added to the time the clock reads when the sleep begins, on another executor, so anything that moved the time
+    /// in between would move the deadline too.
     func sleep(until deadline: Date) async throws
 }
 
