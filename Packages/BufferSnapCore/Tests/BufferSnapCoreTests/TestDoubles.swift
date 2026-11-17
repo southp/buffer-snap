@@ -304,12 +304,12 @@ final class ManualDictationClock: DictationClock {
         state.withLock { !$0.sleepers.isEmpty }
     }
 
-    func sleep(for seconds: TimeInterval) async throws {
-        let (ticket, deadline) = state.withLock { state in
+    func sleep(until deadline: Date) async throws {
+        let ticket = state.withLock { state in
             let ticket = state.nextTicket
             state.nextTicket += 1
             state.sleepers.insert(ticket)
-            return (ticket, state.now.addingTimeInterval(seconds))
+            return ticket
         }
         defer {
             wake(ticket)
