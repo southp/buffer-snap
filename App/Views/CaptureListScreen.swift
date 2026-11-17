@@ -15,6 +15,8 @@ struct CaptureListScreen: View {
     private let batchWindow: any BatchWindowSetting
     /// What the sign-in row shows, or `nil` while someone is signed in.
     private let signInPrompt: AppModel.SignInPrompt?
+    /// Who's signed in, if Buffer has said.
+    private let account: BufferAccount?
     private let onSignIn: () -> Void
     private let onSignOut: () -> Void
     /// Read once: the bundle's version doesn't change while the app runs.
@@ -27,6 +29,7 @@ struct CaptureListScreen: View {
         submissions: SubmissionQueue,
         batchWindow: any BatchWindowSetting,
         signInPrompt: AppModel.SignInPrompt?,
+        account: BufferAccount?,
         onSignIn: @escaping () -> Void,
         onSignOut: @escaping () -> Void,
         permissionNotice: DictationNotice?
@@ -35,6 +38,7 @@ struct CaptureListScreen: View {
         self.submissions = submissions
         self.batchWindow = batchWindow
         self.signInPrompt = signInPrompt
+        self.account = account
         self.onSignIn = onSignIn
         self.onSignOut = onSignOut
         self.permissionNotice = permissionNotice
@@ -86,6 +90,7 @@ struct CaptureListScreen: View {
                 reportProblemURL: ProjectLinks.reportProblem,
                 sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
+                account: account,
                 onSignIn: onSignIn,
                 onSignOut: onSignOut,
                 permissionNotice: permissionNotice

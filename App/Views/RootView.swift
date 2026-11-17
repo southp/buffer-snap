@@ -15,6 +15,7 @@ struct RootView: View {
                 submissions: environment.submissions,
                 batchWindow: environment.batchWindow,
                 signInPrompt: appModel.signInPrompt,
+                account: appModel.account,
                 onSignIn: {
                     Task {
                         await appModel.signIn()
