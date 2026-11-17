@@ -36,7 +36,7 @@ FIRST LAUNCH
 SIGNING IN
 2. In the first row of the list, tap "Authenticate using your Buffer account". iOS asks to use "buffer.com" to sign in: tap Continue.
 3. On Buffer's page, sign in with the demo account's email and password. Buffer may email the account a link to confirm the sign-in, for example from a new device or location. If it does, open the link, then come back to BufSnap: Buffer's page is still waiting there. The row under the button says so too.
-4. Approve BufSnap's access. The app returns to the list. If ideas were waiting from before you signed in, it asks "Send N ideas to this account?": tap Send.
+4. Approve BufSnap's access. The app returns to the list, and the round account button at the top right shows the account's initials. If ideas were waiting from before you signed in, it asks "Send N ideas to <account name>?": tap Send.
 
 DICTATING WITHOUT OPENING THE APP
 5. Add the "Dictate an Idea" control, in any of these places:
@@ -44,15 +44,15 @@ DICTATING WITHOUT OPENING THE APP
    - Action button (iPhone 15 Pro and later): Settings → Action Button → Controls → Choose a Control → "Dictate an Idea".
    - Lock Screen: touch and hold the Lock Screen → Customize → Lock Screen, remove a bottom button, tap +, and choose "Dictate an Idea".
    Or add a widget: touch and hold the Home Screen → Edit → Add Widget → BufSnap → "Dictate an Idea".
-   The app shows these steps too, with a sketch of each: account menu (person icon) → "How to Add Dictate an Idea", or "Show Me How" on the empty list.
+   The app shows these steps too, with a sketch of each: account menu (the round button at the top right) → "How to Add Dictate an Idea", or "Show Me How" on the empty list.
 6. Press the control or the widget and speak. The app stays closed: a Live Activity shows the words on the Lock Screen and in the Dynamic Island. It stops when you press again, tap Stop, pause for 3 seconds, or after 60 seconds, then shows "Saved".
 
 SEEING IT REACH BUFFER
-7. Open BufSnap to see the idea in the list. Captures made within 5 minutes of each other are combined into one Buffer idea and sent once 5 minutes have passed since the last one. Tap "Send now" to send at once. The batching window is under the account menu (person icon) → Batching.
+7. Open BufSnap to see the idea in the list. Captures made within 5 minutes of each other are combined into one Buffer idea and sent once 5 minutes have passed since the last one. Tap "Send now" to send at once. The batching window is under the account menu → Batching.
 8. Sign in to https://buffer.com with the same account to see the ideas under Create → Ideas.
 
 HELP
-The account menu (person icon) also has Report a Problem, which opens the support page in Safari, Source Code on GitHub, and the app's version.
+The account menu starts with the signed-in account's name and email. It also has Report a Problem, which opens the support page in Safari, Source Code on GitHub, and the app's version.
 
 BACKGROUND MODES
 - audio: BufSnap uses the audio background mode only while dictating an idea. Dictation starts only when the user presses the "Dictate an Idea" control or widget, shows a Live Activity with the words being heard and a Stop button for as long as it listens, and stops after 3 seconds of silence or 60 seconds at most. No audio is recorded or kept: speech goes straight to Apple's speech recognition, and only the text is saved.
