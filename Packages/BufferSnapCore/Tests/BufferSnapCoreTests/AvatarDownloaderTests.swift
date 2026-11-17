@@ -53,6 +53,24 @@ struct AvatarDownloaderTests {
         }
     }
 
+    /// A picture far bigger than a chip is turned down from its header, before it's decoded.
+    @Test(arguments: [(5000, 1), (1, 5000)])
+    func aHugePictureIsNoPicture(width: Int, height: Int) async {
+        let body = AvatarFixtures.png(width: width, height: height)
+        let downloader = HTTPAvatarDownloader(transport: CannedImageTransport(body: body))
+
+        await #expect(throws: AvatarError.notAnImage) {
+            try await downloader.image(at: AvatarFixtures.url("ada"))
+        }
+    }
+
+    @Test func aPictureUpTo4096PixelsIsKept() async throws {
+        let body = AvatarFixtures.png(width: 4096, height: 4096)
+        let downloader = HTTPAvatarDownloader(transport: CannedImageTransport(body: body))
+
+        #expect(try await downloader.image(at: AvatarFixtures.url("ada")) == body)
+    }
+
     /// `URLError`'s description names the URL, which holds the account's ID, so only its code is kept.
     @Test func aConnectionFailureKeepsOnlyItsCode() async {
         let transport = CannedImageTransport(failure: URLError(.notConnectedToInternet))

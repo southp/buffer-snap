@@ -10,7 +10,7 @@ public enum AvatarError: Error, Equatable, Sendable {
     case connection(code: Int)
     /// The bucket answered with something other than 200, including a redirect, which isn't followed.
     case status(Int)
-    /// What came back isn't an image the app can draw, or is too big to be a profile picture.
+    /// What came back isn't an image the app can draw, or is too big to be a profile picture, in bytes or in pixels.
     case notAnImage
 }
 
@@ -25,6 +25,8 @@ public protocol AvatarDownloader: Sendable {
 public struct HTTPAvatarDownloader: AvatarDownloader {
     /// Far bigger than any profile picture, and small enough that a wrong answer can't fill the iPhone.
     static let maxBytes = 5 * 1024 * 1024
+    /// Far wider and taller than a chip needs, and small enough that drawing it can't take much memory.
+    static let maxPixels = 4096
 
     private let transport: any HTTPTransport
 
@@ -57,9 +59,15 @@ public struct HTTPAvatarDownloader: AvatarDownloader {
         return data
     }
 
-    /// Whether ImageIO can draw `data`: a page of HTML or a cut-off file can't.
+    /// Whether ImageIO can draw `data`: a page of HTML or a cut-off file can't. Its size is read from its header first,
+    /// so a huge one is turned down without being decoded.
     static func isImage(_ data: Data) -> Bool {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            let width = properties[kCGImagePropertyPixelWidth] as? Int,
+            let height = properties[kCGImagePropertyPixelHeight] as? Int,
+            (1...maxPixels).contains(width), (1...maxPixels).contains(height)
+        else {
             return false
         }
         return CGImageSourceCreateImageAtIndex(source, 0, nil) != nil
