@@ -20,6 +20,8 @@ final class AvatarCache {
     @ObservationIgnored private var generation = 0
     /// The URLs asked for since launch, or since the last `forget()`: never one twice, even if it failed.
     @ObservationIgnored private var requested: Set<URL> = []
+    /// The picture the account has now, as of the last `update(to:)`. A download for any other URL finished too late.
+    @ObservationIgnored private var currentURL: URL?
 
     init(downloader: any AvatarDownloader, store: any AvatarImageStore) {
         self.downloader = downloader
@@ -36,12 +38,14 @@ final class AvatarCache {
         generation += 1
         image = nil
         requested = []
+        currentURL = nil
         removeSavedPicture()
     }
 
     /// Makes the picture the one at `url`: downloads it unless it's already saved or was already asked for, and
     /// removes the saved one if the account has no picture any more.
     func update(to url: URL?) async {
+        currentURL = url
         guard let url else {
             image = nil
             removeSavedPicture()
@@ -60,7 +64,8 @@ final class AvatarCache {
             Logger.auth.notice("Can't download the account's picture: \(Self.describe(error), privacy: .public)")
             return
         }
-        guard generation == self.generation else {
+        // Signed out meanwhile, or the account's picture changed again: this one isn't the account's any more.
+        guard generation == self.generation, currentURL == url else {
             return
         }
         image = downloaded

@@ -264,4 +264,31 @@ struct AppModelAvatarTests {
         #expect(model.avatarImage == nil)
         #expect(avatarStore.load() == nil)
     }
+
+    /// A slow download of the old picture doesn't overwrite the account's new one, or bring a picture back.
+    @Test(arguments: [AvatarFixtures.url("ada-new"), nil] as [URL?])
+    func aDownloadThatEndsAfterThePictureChangedShowsNothing(newPicture: URL?) async {
+        let newAccount = BufferAccount(name: "Ada Lovelace", email: "ada@example.com", avatarURL: newPicture)
+        let accounts = StubAccountSource(.success(.ada(picture: "ada")), .success(newAccount))
+        // The first answer goes to the second request, as the first is held until after it.
+        let avatars = StubAvatarDownloader(.success(AvatarFixtures.png), .success(AvatarFixtures.otherPNG))
+        let model = model(auth: StubAuthService(), accounts: accounts, avatars: avatars)
+        await avatars.holdNextDownload()
+
+        async let signIn: Void = model.signIn()
+        await avatars.waitForHeldDownload()
+        clock.advance(minutes: 61)
+        await model.checkSession()
+        await avatars.releaseDownload()
+        await signIn
+
+        if let newPicture {
+            #expect(model.avatarImage == AvatarFixtures.png)
+            #expect(avatarStore.holds(newPicture))
+        } else {
+            #expect(model.avatarImage == nil)
+            #expect(avatarStore.load() == nil)
+        }
+        #expect(!avatarStore.holds(AvatarFixtures.url("ada")))
+    }
 }
