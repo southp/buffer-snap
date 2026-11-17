@@ -17,7 +17,8 @@ struct BufferSnapApp: App {
             auth: Self.makeAuthService(),
             bufferClient: Self.makeBufferClient(),
             connectivity: NetworkPathConnectivityMonitor(),
-            batchWindow: UserDefaultsBatchWindowSetting()
+            batchWindow: UserDefaultsBatchWindowSetting(),
+            accountStore: Self.makeAccountStore()
         )
         self.environment = environment
         // One for the app's model, which only reads its permission, and for the session, which listens.
@@ -26,7 +27,9 @@ struct BufferSnapApp: App {
         let appModel = AppModel(
             auth: environment.auth,
             ideas: environment.submissions,
-            speech: speech
+            speech: speech,
+            accounts: environment.submissions,
+            accountStore: environment.accountStore
         )
         _appModel = State(initialValue: appModel)
         handsFreeDictation = Self.makeHandsFreeDictation(
@@ -134,6 +137,18 @@ struct BufferSnapApp: App {
             transport: URLSession.forOAuth(),
             store: KeychainSessionStore()
         )
+    }
+
+    /// The signed-in account's name and email, in their own Keychain item (`docs/decisions/92-account-cache.md`). A
+    /// mocked sign-in gets a made-up account, already saved when it starts signed in, so screenshots show it at once.
+    private static func makeAccountStore() -> any AccountStore {
+        #if DEBUG
+            if let mockAuth = UserDefaults.standard.string(forKey: "mockAuth") {
+                let saved = SavedAccount(account: .mock, fetchedAt: Date())
+                return InMemoryAccountStore(account: mockAuth == "signedIn" ? saved : nil)
+            }
+        #endif
+        return KeychainAccountStore()
     }
 
     /// Buffer's API. A mocked sign-in has no token to send, so it gets a mocked Buffer too, and nothing reaches the

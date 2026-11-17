@@ -1,3 +1,4 @@
+import Foundation
 import OSLog
 import Observation
 
@@ -46,6 +47,12 @@ public final class AppModel {
     /// `nil` means there's no question: `docs/decisions/68-ideas-at-sign-in.md`.
     public private(set) var ideasToConfirm: Int?
 
+    /// The account ideas go to, while someone is signed in and Buffer has said who it is. It's saved, so it shows after
+    /// a relaunch with no network, and it's forgotten on sign-out.
+    public var account: BufferAccount? {
+        accountCache.account
+    }
+
     /// Whether being signed out may only mean the launch couldn't read the saved session. A Keychain read can fail,
     /// and `init` takes that as no session, so `checkSession()` looks again. Once a sign-out or Buffer ends a session,
     /// a saved one found later is over (a sign-out that failed leaves its tokens behind), so nothing looks again until
@@ -55,22 +62,31 @@ public final class AppModel {
     private let auth: any AuthService
     private let ideas: any IdeasAtSignIn
     private let speech: any SpeechTranscriber
+    private let accountCache: AccountCache
 
     /// Reads the saved session without waiting for anything, so the first frame already shows the right state.
     ///
     /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen. `speech` is only
-    /// asked for its permission.
+    /// asked for its permission. `accounts` says who's signed in, `accountStore` keeps that between launches, and `now`
+    /// is the clock that spaces out asking.
     public init(
         auth: any AuthService,
         ideas: any IdeasAtSignIn = NoIdeasAtSignIn(),
-        speech: any SpeechTranscriber = MockSpeechTranscriber()
+        speech: any SpeechTranscriber = MockSpeechTranscriber(),
+        accounts: any AccountSource = NoAccountSource(),
+        accountStore: any AccountStore = InMemoryAccountStore(),
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.auth = auth
         self.ideas = ideas
         self.speech = speech
+        accountCache = AccountCache(source: accounts, store: accountStore, now: now)
         let hasSavedSession = auth.hasSavedSession()
         isSignedIn = hasSavedSession
         mayHaveMissedSavedSession = !hasSavedSession
+        if hasSavedSession {
+            accountCache.restore()
+        }
     }
 
     /// What the list's sign-in row shows, or `nil` while someone is signed in.
@@ -84,7 +100,8 @@ public final class AppModel {
         DictationNotice(speechPermission)
     }
 
-    /// Signs in, and asks about whatever was waiting. If it doesn't work out, says why in the list's row.
+    /// Signs in, asks Buffer who the account is, and then asks about whatever was waiting, naming the account. If it
+    /// doesn't work out, says why in the list's row.
     public func signIn() async {
         guard !isSignedIn, !isSigningIn else {
             return
@@ -103,7 +120,14 @@ public final class AppModel {
             return
         }
         isSignedIn = true
-        await askAboutHeldIdeas()
+        // It may not be the account that was signed in before.
+        accountCache.forget()
+        let heldIdeas = await holdIdeasToAskAbout()
+        await accountCache.refresh()
+        // They may have signed out while Buffer was answering, which released what was held.
+        if isSignedIn {
+            ideasToConfirm = heldIdeas
+        }
     }
 
     /// The person chose to send what was waiting to the account they just signed in to.
@@ -135,6 +159,7 @@ public final class AppModel {
         isSignedIn = false
         mayHaveMissedSavedSession = false
         ideasToConfirm = nil
+        accountCache.forget()
     }
 
     /// Checks that the session still works, refreshing the token if it's due, for when the app comes to the foreground.
@@ -147,6 +172,7 @@ public final class AppModel {
             Logger.auth.notice("Found the saved session the launch couldn't read")
             isSignedIn = true
             signInNotice = nil
+            accountCache.restore()
         }
         guard isSignedIn else {
             // A sign-in that never finished, such as a crash during it, may have left captures held.
@@ -164,10 +190,17 @@ public final class AppModel {
                 mayHaveMissedSavedSession = false
                 signInNotice = .sessionEnded
                 ideasToConfirm = nil
+                accountCache.forget()
                 await releaseHeldCaptures()
             }
+            return
         } catch {
             // Offline, or Buffer is having a bad moment. The next check, or the next upload, tries again.
+            return
+        }
+        // Not while a sign-in is finishing: it asks for itself.
+        if isSignedIn, !isSigningIn {
+            await accountCache.refreshIfDue()
         }
     }
 
@@ -190,16 +223,17 @@ public final class AppModel {
         speechPermission = await speech.permission()
     }
 
-    /// Asks about what's held, once, after a sign-in. Whatever is held at this moment goes into the count, including
-    /// anything saved while Buffer's page was open.
-    private func askAboutHeldIdeas() async {
+    /// How many ideas to ask about, once, after a sign-in, or `nil` for none. Whatever is held at this moment goes into
+    /// the count, including anything saved while Buffer's page was open.
+    private func holdIdeasToAskAbout() async -> Int? {
         do {
             try await ideas.holdPendingCaptures()
             let count = try await ideas.heldIdeaCount()
-            ideasToConfirm = count > 0 ? count : nil
+            return count > 0 ? count : nil
         } catch {
             // What's held stays held, with Resend, so nothing is lost by not asking.
             Logger.auth.error("Can't ask about what's held at sign-in: \(Self.describe(error), privacy: .public)")
+            return nil
         }
     }
 

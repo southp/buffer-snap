@@ -6,13 +6,16 @@ public struct AppEnvironment: Sendable {
     public let submissions: SubmissionQueue
     public let connectivity: any ConnectivityMonitor
     public let batchWindow: any BatchWindowSetting
+    /// The signed-in account between launches. It's asked for through `submissions`, which keeps Buffer's rate limit.
+    public let accountStore: any AccountStore
 
     public init(
         captureStore: any CaptureStore,
         auth: any AuthService,
         bufferClient: any BufferClient,
         connectivity: any ConnectivityMonitor,
-        batchWindow: any BatchWindowSetting
+        batchWindow: any BatchWindowSetting,
+        accountStore: any AccountStore = InMemoryAccountStore()
     ) {
         self.captureStore = captureStore
         self.auth = auth
@@ -24,10 +27,11 @@ public struct AppEnvironment: Sendable {
         )
         self.connectivity = connectivity
         self.batchWindow = batchWindow
+        self.accountStore = accountStore
     }
 
     /// An environment of mocks: an in-memory store that starts with `seed`, a sign-in that always succeeds, a
-    /// Buffer that accepts everything, a connection that never changes, and no batching.
+    /// Buffer that accepts everything, a connection that never changes, no batching and no saved account.
     public static func mock(seed: [Capture]) -> AppEnvironment {
         AppEnvironment(
             captureStore: InMemoryCaptureStore(seed: seed),
