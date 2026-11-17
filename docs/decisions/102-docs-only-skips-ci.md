@@ -1,7 +1,8 @@
 ---
 date: 2026-11-12
 issue: 102
-status: accepted
+status: superseded
+superseded_by: 114-diff-against-last-deploy.md
 ---
 
 # Skip `ci` and `deploy` for docs-only changes, on PRs and on `main`
