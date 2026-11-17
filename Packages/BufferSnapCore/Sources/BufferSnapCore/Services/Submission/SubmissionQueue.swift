@@ -11,17 +11,6 @@ import OSLog
 ///
 /// There's one of these, in the app's process, because it asks `AuthService` for tokens: see `AuthService`.
 public actor SubmissionQueue {
-    public enum Event: Sendable, Equatable {
-        /// A capture's status changed.
-        case capturesChanged
-        /// Buffer ended the session. Never having signed in doesn't count: that's a quiet wait.
-        case sessionLost
-        /// `isOffline` changed.
-        case reachabilityChanged
-        /// Buffer asked to wait, or the wait is over: `rateLimitedUntil` changed.
-        case rateLimitChanged
-    }
-
     /// How a pass through the queue goes on, or why it stops.
     fileprivate enum Step: Equatable {
         case keepGoing
@@ -41,8 +30,8 @@ public actor SubmissionQueue {
     private static let maxTokenRejections = 2
 
     let store: any CaptureStore
-    private let auth: any AuthService
-    private let client: any BufferClient
+    let auth: any AuthService
+    let client: any BufferClient
     let planner: SubmissionPlanner
     let clock: any SubmissionClock
     private let backoff: SubmissionBackoff
@@ -150,11 +139,6 @@ public actor SubmissionQueue {
             return nil
         }
         return rateLimitEnd
-    }
-
-    /// What's happening, from now until the stream's consumer goes away.
-    public nonisolated func events() -> AsyncStream<Event> {
-        subscribers.subscribe()
     }
 
     // MARK: - A pass through the queue
@@ -344,18 +328,23 @@ extension SubmissionQueue {
             failuresInARow += 1
             scheduleWake(after: backoff.delay(afterFailures: failuresInARow) + jitter())
         case .rateLimited(let retryAfter):
-            failuresInARow += 1
-            let wait = (retryAfter ?? backoff.delay(afterFailures: failuresInARow)) + jitter()
-            Logger.submission.notice("Rate limited for \(wait, privacy: .public)s")
-            rateLimitEnd = clock.now.addingTimeInterval(wait)
-            scheduleWake(after: wait)
-            subscribers.publish(.rateLimitChanged)
+            startRateLimit(retryAfter: retryAfter)
         case .sessionLost:
             failuresInARow = 0
             wakeTask?.cancel()
             wakeTask = nil
             subscribers.publish(.sessionLost)
         }
+    }
+
+    /// Buffer asked to wait, whatever was asking: nothing goes to Buffer until the wait ends, and then a pass starts.
+    func startRateLimit(retryAfter: TimeInterval?) {
+        failuresInARow += 1
+        let wait = (retryAfter ?? backoff.delay(afterFailures: failuresInARow)) + jitter()
+        Logger.submission.notice("Rate limited for \(wait, privacy: .public)s")
+        rateLimitEnd = clock.now.addingTimeInterval(wait)
+        scheduleWake(after: wait)
+        subscribers.publish(.rateLimitChanged)
     }
 
     private func scheduleWake(after delay: TimeInterval) {
