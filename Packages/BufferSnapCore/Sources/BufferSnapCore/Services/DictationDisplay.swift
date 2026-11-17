@@ -25,8 +25,12 @@ public protocol DictationKeepAlive: AnyObject {
 /// The time as `HandsFreeDictationSession` sees it, so tests don't have to wait out the silence or the time limit.
 public protocol DictationClock: Sendable {
     var now: Date { get }
-    /// Throws if the task waiting is cancelled.
-    func sleep(for seconds: TimeInterval) async throws
+    /// Returns once `now` reaches `deadline`, at once if it already has. Throws if the task waiting is cancelled.
+    ///
+    /// It takes the deadline, not a duration, so the caller reads the time once: a duration would have the clock read
+    /// it again when the sleep begins, on another executor, and anything that moved the time in between would move the
+    /// deadline too.
+    func sleep(until deadline: Date) async throws
 }
 
 /// The real clock.
@@ -37,8 +41,8 @@ public struct SystemDictationClock: DictationClock {
         Date()
     }
 
-    public func sleep(for seconds: TimeInterval) async throws {
-        try await Task.sleep(for: .seconds(max(0, seconds)))
+    public func sleep(until deadline: Date) async throws {
+        try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSince(now))))
     }
 }
 

@@ -157,7 +157,7 @@ public final class HandsFreeDictationSession {
         let giveUpAt = clock.now + finalWordsTimeout
         finalWordsDeadline = Task { [clock, speech] in
             do {
-                try await clock.sleep(for: giveUpAt.timeIntervalSince(clock.now))
+                try await clock.sleep(until: giveUpAt)
             } catch {
                 return
             }
@@ -244,7 +244,7 @@ public final class HandsFreeDictationSession {
         }
         deadline = Task { [clock] in
             do {
-                try await clock.sleep(for: next.timeIntervalSince(clock.now))
+                try await clock.sleep(until: next)
             } catch {
                 return
             }
