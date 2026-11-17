@@ -207,6 +207,9 @@ jobs:
 
   # Only pushes to main run this job, so PRs, forks included, never reach the secrets below.
   # It's skipped whenever `ci` is, so a docs-only merge ships no TestFlight build.
+  # The "Choose the path" step finds the last deploy by this job's name, `deploy`, among successful runs of `ci.yml`.
+  # Renaming it, giving it a `name:` or a matrix, renaming this file, or adding a job after it that can fail hides
+  # deploys from that lookup. That fails safe, as the full path, but costs a macOS run on every docs-only merge.
   deploy:
     needs: [ci]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
