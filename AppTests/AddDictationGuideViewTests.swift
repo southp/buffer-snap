@@ -8,7 +8,9 @@ import Testing
 /// AppTests/__Snapshots__/AddDictationGuideViewTests/: light, dark, and at xxxLarge, where the steps grow and the
 /// picker's names wrap.
 ///
-/// Wrapped in a `NavigationStack`, as `AddDictationGuideScreen` shows it, so Done renders.
+/// Wrapped in a `NavigationStack`, as `AddDictationGuideScreen` shows it, so Done renders. The sketches are still, as
+/// with Reduce Motion on: a moving sketch would make each PNG depend on when it was taken
+/// (`docs/decisions/109-snapshots-draw-the-still.md`).
 @MainActor
 struct AddDictationGuideViewTests {
     @Test func controlCenter() {
@@ -46,7 +48,7 @@ struct AddDictationGuideViewTests {
 
     private func guide(_ placement: DictationPlacement) -> some View {
         NavigationStack {
-            AddDictationGuideView(placement: placement, onChoose: { _ in }, onDone: {})
+            AddDictationGuideView(placement: placement, animatesSketches: false, onChoose: { _ in }, onDone: {})
         }
         .tint(Theme.ink)
     }
