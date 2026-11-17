@@ -75,3 +75,15 @@ actor StubAvatarDownloader: AvatarDownloader {
         return try answer.get()
     }
 }
+
+extension BufferAccount {
+    /// Ada, with a made-up picture named `picture` on Buffer's bucket.
+    static func ada(picture: String) -> BufferAccount {
+        BufferAccount(name: "Ada Lovelace", email: "ada@example.com", avatarURL: AvatarFixtures.url(picture))
+    }
+
+    /// Grace, with a made-up picture named `picture` on Buffer's bucket.
+    static func grace(picture: String) -> BufferAccount {
+        BufferAccount(name: "Grace Hopper", email: "grace@example.com", avatarURL: AvatarFixtures.url(picture))
+    }
+}

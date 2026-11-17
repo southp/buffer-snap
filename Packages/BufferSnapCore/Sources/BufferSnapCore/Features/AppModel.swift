@@ -53,6 +53,12 @@ public final class AppModel {
         accountCache.account
     }
 
+    /// The account's profile picture, as image bytes, for the toolbar's chip. `nil` shows initials: before it's
+    /// downloaded, if it couldn't be, or if the account has none. Saved and forgotten with the account.
+    public var avatarImage: Data? {
+        accountCache.avatarImage
+    }
+
     /// Whether being signed out may only mean the launch couldn't read the saved session. A Keychain read can fail,
     /// and `init` takes that as no session, so `checkSession()` looks again. Once a sign-out or Buffer ends a session,
     /// a saved one found later is over (a sign-out that failed leaves its tokens behind), so nothing looks again until
@@ -68,19 +74,26 @@ public final class AppModel {
     ///
     /// `ideas` holds what's waiting before each sign-in. If that throws, the sign-in doesn't happen. `speech` is only
     /// asked for its permission. `accounts` says who's signed in, `accountStore` keeps that between launches, and `now`
-    /// is the clock that spaces out asking.
+    /// is the clock that spaces out asking. `avatars` downloads the account's picture, and `avatarStore` keeps it.
     public init(
         auth: any AuthService,
         ideas: any IdeasAtSignIn = NoIdeasAtSignIn(),
         speech: any SpeechTranscriber = MockSpeechTranscriber(),
         accounts: any AccountSource = NoAccountSource(),
         accountStore: any AccountStore = InMemoryAccountStore(),
+        avatars: any AvatarDownloader = NoAvatarDownloader(),
+        avatarStore: any AvatarImageStore = InMemoryAvatarImageStore(),
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.auth = auth
         self.ideas = ideas
         self.speech = speech
-        accountCache = AccountCache(source: accounts, store: accountStore, now: now)
+        accountCache = AccountCache(
+            source: accounts,
+            store: accountStore,
+            avatars: AvatarCache(downloader: avatars, store: avatarStore),
+            now: now
+        )
         let hasSavedSession = auth.hasSavedSession()
         isSignedIn = hasSavedSession
         mayHaveMissedSavedSession = !hasSavedSession
@@ -101,11 +114,18 @@ public final class AppModel {
     }
 
     /// Signs in, asks Buffer who the account is, and then asks about whatever was waiting, naming the account. If it
-    /// doesn't work out, says why in the list's row.
+    /// doesn't work out, says why in the list's row. The account's picture comes last, so the question doesn't wait.
     public func signIn() async {
         guard !isSignedIn, !isSigningIn else {
             return
         }
+        await signInAndAsk()
+        if isSignedIn {
+            await accountCache.refreshAvatar()
+        }
+    }
+
+    private func signInAndAsk() async {
         isSigningIn = true
         signInNotice = nil
         defer {

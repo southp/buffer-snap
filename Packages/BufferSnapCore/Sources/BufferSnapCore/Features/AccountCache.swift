@@ -15,9 +15,15 @@ final class AccountCache {
 
     private(set) var account: BufferAccount?
 
+    /// The account's profile picture, or `nil` for initials.
+    var avatarImage: Data? {
+        avatars.image
+    }
+
     @ObservationIgnored private let source: any AccountSource
     @ObservationIgnored private let store: any AccountStore
     @ObservationIgnored private let now: @Sendable () -> Date
+    @ObservationIgnored private let avatars: AvatarCache
     /// When Buffer last answered the account query, with the account or a refusal.
     @ObservationIgnored private var askedAt: Date?
     /// Changes with each sign-in and sign-out, so a fetch that finishes after one can't show the account it was for.
@@ -25,23 +31,31 @@ final class AccountCache {
     /// The generation a fetch in flight is for, so the same session doesn't ask twice at once.
     @ObservationIgnored private var fetchingGeneration: Int?
 
-    init(source: any AccountSource, store: any AccountStore, now: @escaping @Sendable () -> Date) {
+    init(
+        source: any AccountSource,
+        store: any AccountStore,
+        avatars: AvatarCache,
+        now: @escaping @Sendable () -> Date
+    ) {
         self.source = source
         self.store = store
+        self.avatars = avatars
         self.now = now
     }
 
-    /// Shows the account saved by an earlier launch, for a session found in the Keychain.
+    /// Shows the account and picture saved by an earlier launch, for a session found in the Keychain.
     func restore() {
+        avatars.restore()
         let saved = store.load()
         account = saved?.account
         // Saved without its picture, so worth asking again now.
         askedAt = saved?.askedForAvatar == true ? saved?.fetchedAt : nil
     }
 
-    /// Forgets the account, here and in the Keychain: someone signed out, Buffer ended the session, or another account
-    /// may have just signed in.
+    /// Forgets the account, here and in the Keychain, and its picture, here and on disk: someone signed out, Buffer
+    /// ended the session, or another account may have just signed in.
     func forget() {
+        avatars.forget()
         generation += 1
         account = nil
         askedAt = nil
@@ -53,12 +67,22 @@ final class AccountCache {
         }
     }
 
-    /// Asks Buffer, unless it answered within the hour.
+    /// Asks Buffer, unless it answered within the hour, and then makes the picture match.
     func refreshIfDue() async {
-        if let askedAt, (0..<Self.refreshInterval).contains(now().timeIntervalSince(askedAt)) {
+        let isDue = askedAt.map { !(0..<Self.refreshInterval).contains(now().timeIntervalSince($0)) } ?? true
+        if isDue {
+            await refresh()
+        }
+        await refreshAvatar()
+    }
+
+    /// Downloads the account's picture if its URL changed, or removes it if there's none now. Not part of `refresh()`,
+    /// so the question after a sign-in doesn't wait for it. Without an account, the picture stays as it is.
+    func refreshAvatar() async {
+        guard let account else {
             return
         }
-        await refresh()
+        await avatars.update(to: account.avatarURL)
     }
 
     /// Asks Buffer who the account is, and saves the answer.
