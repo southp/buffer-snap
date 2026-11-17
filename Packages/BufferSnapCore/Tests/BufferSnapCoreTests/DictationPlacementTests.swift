@@ -84,6 +84,39 @@ struct DictationPlacementTests {
         #expect(used == Set(DictationPlacementStep.Sketch.allCases))
     }
 
+    /// Each sketch acts out the gesture its step names: the two swipes, the two touch and holds, and a tap for the
+    /// rest.
+    @Test func everySketchActsOutItsStepsGesture() {
+        let gestures = Dictionary(
+            uniqueKeysWithValues: DictationPlacementStep.Sketch.allCases.map { ($0, $0.gesture) })
+
+        #expect(
+            gestures == [
+                .swipeDownFromTopRight: .swipeDown,
+                .tapPlusAtTopLeft: .tap,
+                .tapAddAControl: .tap,
+                .searchForTheControl: .tap,
+                .touchAndHoldLockScreen: .touchAndHold,
+                .tapCustomizeThenLockScreen: .tap,
+                .removeABottomButton: .tap,
+                .addABottomButton: .tap,
+                .openActionButtonSettings: .tap,
+                .swipeToControls: .swipeLeft,
+                .tapChooseAControl: .tap,
+                .touchAndHoldHomeScreen: .touchAndHold,
+                .tapEditThenAddWidget: .tap,
+                .chooseBufSnap: .tap,
+                .addTheWidget: .tap,
+            ])
+    }
+
+    /// Every gesture is acted out by some sketch, so none is drawn for nothing.
+    @Test func everyGestureIsActedOut() {
+        let used = Set(DictationPlacementStep.Sketch.allCases.map(\.gesture))
+
+        #expect(used == Set(DictationPlacementStep.Gesture.allCases))
+    }
+
     private func texts(of placement: DictationPlacement) -> [String] {
         placement.steps.map { String(localized: $0.text) }
     }

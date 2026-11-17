@@ -91,8 +91,9 @@ public struct DictationPlacementStep: Sendable {
         self.sketch = sketch
     }
 
-    /// A still Paper & Ink drawing of a step, which the app draws in SwiftUI rather than showing a screenshot: a
-    /// screenshot would show iOS's own UI in one language and one version. Named after what it shows.
+    /// A Paper & Ink drawing of a step, which the app draws in SwiftUI rather than showing a screenshot: a
+    /// screenshot would show iOS's own UI in one language and one version. Named after what it shows. It acts out its
+    /// `gesture`, or stays still with Reduce Motion on.
     public enum Sketch: CaseIterable, Hashable, Sendable {
         case swipeDownFromTopRight
         case tapPlusAtTopLeft
@@ -110,5 +111,29 @@ public struct DictationPlacementStep: Sendable {
         case tapEditThenAddWidget
         case chooseBufSnap
         case addTheWidget
+
+        /// What the finger does in this step, which the sketch acts out unless Reduce Motion is on.
+        public var gesture: Gesture {
+            switch self {
+            case .swipeDownFromTopRight:
+                .swipeDown
+            case .swipeToControls:
+                .swipeLeft
+            case .touchAndHoldLockScreen, .touchAndHoldHomeScreen:
+                .touchAndHold
+            case .tapPlusAtTopLeft, .tapAddAControl, .searchForTheControl, .tapCustomizeThenLockScreen,
+                .removeABottomButton, .addABottomButton, .openActionButtonSettings, .tapChooseAControl,
+                .tapEditThenAddWidget, .chooseBufSnap, .addTheWidget:
+                .tap
+            }
+        }
+    }
+
+    /// A finger's gesture on the screen.
+    public enum Gesture: CaseIterable, Hashable, Sendable {
+        case tap
+        case touchAndHold
+        case swipeDown
+        case swipeLeft
     }
 }
