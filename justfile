@@ -443,7 +443,8 @@ store-screenshots: build
 
     # A physical tap: SwiftUI's buttons ignore AXe's simulated one (App/CLAUDE.md). Right after a first boot, AXe can time
     # out reaching the simulator, so it tries a few times. The element type is Button unless a third argument says
-    # otherwise: the Account menu's chip is a PopUpButton.
+    # otherwise: the Account menu's chip is a PopUpButton, labeled "Account: " and the mocked account's name
+    # (BufferAccount.mock).
     tap() {
         local attempt
         for attempt in 1 2 3 4 5; do
@@ -505,7 +506,7 @@ store-screenshots: build
 
         launch "$udid"
         shoot "$udid" "$dir/2-captures.png"
-        tap "$udid" Account PopUpButton
+        tap "$udid" "Account: Ada Lovelace" PopUpButton
         tap "$udid" Batching
         sleep 2
         shoot "$udid" "$dir/4-batching.png"

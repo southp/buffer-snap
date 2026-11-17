@@ -27,7 +27,7 @@ required for builds on the iOS 27.1 SDK or later from April 2027, not yet.
 | File | Shows | Taken from |
 |---|---|---|
 | `1-dictate.png` | "Press. Speak. Done.": the Live Activity listening, then saved | Snapshot-test renders on a plain background |
-| `2-captures.png` | The capture list, with a batch waiting to send and two sent | The app on the simulator, with sample captures |
+| `2-captures.png` | The capture list, with a batch waiting to send and two sent, and the account's picture on the chip | The app on the simulator, with sample captures |
 | `3-widget.png` | "One press away": the Dictate widget | Snapshot-test render on a plain background |
 | `4-batching.png` | The batching setting | The app on the simulator |
 
@@ -39,6 +39,9 @@ required for builds on the iOS 27.1 SDK or later from April 2027, not yet.
 - **The app runs its Debug build** with `-mockAuth signedIn`, so it's past sign-in without a Buffer account, and with
   the mocked Buffer that goes with it, so nothing is sent anywhere. Sample captures are written into the App Group
   file before launch, dated from the moment it runs.
+- **The account is made up too:** the chip shows the mocked account's picture, a sun over a hill drawn on the device
+  (`MockAvatarPicture`), and the recipe opens the menu by its label, "Account: Ada Lovelace" (`BufferAccount.mock`).
+  If the mocked name changes, change the recipe's `tap` too.
 - **Each size has its own simulator** (`iPhone 17 Pro Max (worktree: …)` in a worktree), in light mode, in English,
   with full bars and the status bar showing the real time, so it agrees with the list's "Sends at".
 - PNGs have no alpha channel, which App Store Connect rejects.
