@@ -1,7 +1,8 @@
 ---
 date: 2026-11-09
 issue: 81
-status: accepted
+status: superseded
+superseded_by: 106-widget-without-app-group.md
 ---
 
 # Dictate an Idea is the only widget

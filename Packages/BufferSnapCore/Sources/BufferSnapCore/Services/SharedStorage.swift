@@ -5,7 +5,7 @@ public enum SharedStorage {
     /// Thrown when the system has no container for `groupID`, which means the target lacks the App Groups entitlement.
     public struct ContainerUnavailable: Error {}
 
-    /// The App Group both targets' entitlements list.
+    /// The App Group the app's entitlements list. The widget extension isn't in it.
     public static let groupID = "group.me.southp.buffersnap"
 
     /// The JSON file `JSONFileCaptureStore` keeps the shared captures in.
