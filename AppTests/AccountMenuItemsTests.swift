@@ -11,8 +11,8 @@ import Testing
 /// that changes the menu shows the real one in its screenshots.
 @MainActor
 struct AccountMenuItemsTests {
-    /// The account's name and email, then Batching and How to Add Dictate an Idea, then Report a Problem and Source
-    /// Code on GitHub, then Sign Out, then the version.
+    /// The account's name and email, then Batching, Appearance (on System) and How to Add Dictate an Idea, then Report
+    /// a Problem and Source Code on GitHub, then Sign Out, then the version.
     @Test func signedIn() {
         assertScreenSnapshot(of: items(isSignedIn: true, account: .mock), named: "signedIn")
     }
@@ -33,7 +33,12 @@ struct AccountMenuItemsTests {
         assertScreenSnapshot(of: items(isSignedIn: false), named: "signedOut")
     }
 
-    private func items(isSignedIn: Bool, account: BufferAccount? = nil) -> some View {
+    /// Appearance shows the choice that's made, here Dark.
+    @Test func darkChosen() {
+        assertScreenSnapshot(of: items(isSignedIn: true, account: .mock, appearance: .dark), named: "darkChosen")
+    }
+
+    private func items(isSignedIn: Bool, account: BufferAccount? = nil, appearance: Appearance = .system) -> some View {
         List {
             AccountMenuItems(
                 appVersion: AppVersion(version: "1.1", build: "42"),
@@ -42,6 +47,8 @@ struct AccountMenuItemsTests {
                 isSignedIn: isSignedIn,
                 account: account,
                 onShowBatchingSettings: {},
+                appearance: appearance,
+                onChooseAppearance: { _ in },
                 onShowAddDictationGuide: {},
                 onSignOut: {}
             )

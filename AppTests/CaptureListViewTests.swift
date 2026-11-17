@@ -335,6 +335,8 @@ extension CaptureListViewTests {
                 clearableIdeaCount: clearableIdeaCount,
                 onClearSubmitted: {},
                 onShowBatchingSettings: {},
+                appearance: .system,
+                onChooseAppearance: { _ in },
                 onShowAddDictationGuide: {},
                 appVersion: AppVersion(version: "1.1", build: "42"),
                 reportProblemURL: ProjectLinks.reportProblem,
