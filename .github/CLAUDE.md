@@ -55,13 +55,20 @@ view with fixture data.
 **Capture** from the PR's head, after your last rebase, on your worktree's simulator. Recapture if a later push changes
 what's on screen. Each area's `CLAUDE.md` says how to drive its screens.
 
+This sets the status bar, takes `shot.png`, then records `flow.mp4` until you press Ctrl-C (SIGINT), which writes the
+file. Leave out the last line if you only need the screenshot.
+
 ```sh
 UDID="$(just _sim-udid)"
 xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
 xcrun simctl io "$UDID" screenshot shot.png
-xcrun simctl io "$UDID" recordVideo --codec=h264 --force flow.mp4   # Stop with Ctrl-C (SIGINT) to write the file
+xcrun simctl io "$UDID" recordVideo --codec=h264 --force flow.mp4
+```
 
-# GitHub only plays video uploaded through its web page, so make a GIF to show inline. Needs ffmpeg.
+GitHub only plays video uploaded through its web page, so once `flow.mp4` is written, make a GIF to show inline. This
+needs ffmpeg.
+
+```sh
 ffmpeg -i flow.mp4 -vf "fps=10,scale=300:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" flow.gif
 ```
 
@@ -112,9 +119,12 @@ fi
 - Link that commit-pinned URL with `<img src="..." width="300" alt="...">`. A link to the branch would move with it.
 - If the push is rejected, another PR got there first: run the snippet again.
 - If a step before the push fails, the snippet prints `Stopped: ...` and pushes nothing. Keep it that way when you
-  edit it: pushing an empty `$commit` deletes `pr-media`. Write `${commit}`, never `$commit:...` (zsh reads `:r` as a
-  modifier), and use no `set -e`, `exit` or `#` comments: it's pasted into an interactive shell, and zsh runs `#` as
-  a command by default.
+  edit it: pushing an empty `$commit` deletes `pr-media`.
+- Every snippet in this file is pasted into an interactive shell, usually the default zsh, so keep each one working in
+  both `zsh -f -i` and `bash --norc -i`. Use no `#` comments: zsh leaves `interactivecomments` off, so it runs a
+  comment line's `#` as a command and passes an end-of-line comment to the command as arguments. Put that guidance in
+  the prose around the snippet instead. Brace a variable that a `:` follows, as in `${commit}:...`, never
+  `$commit:...` (zsh reads `:r` as a modifier). Use no `set -e` or `exit`, which would close the shell.
 - Only edit the PR body once the push has succeeded. New URLs can return 404 for about a minute, so then open the PR
   page and check that everything displays.
 - Never delete `pr-media`. Merged PRs still link to it.
