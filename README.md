@@ -49,7 +49,7 @@ in Buffer Commit the same day.
    * Then submit to Buffer Commit no matter what by Nov. 13
    * Everything to paste into App Store Connect, and the steps in order: [`docs/app-store/`](docs/app-store/checklist.md)
 4. ✅ 1.1, [Polishing](https://github.com/southp/buffer-snap/milestone/4): fixes and guides from the first users' reports. Submitted to the App Store before Buffer Commit's judging (Nov. 16-20), and live on Nov. 17.
-5. 🚧 1.1.1, [Smoother](https://github.com/southp/buffer-snap/milestone/5): smoother signing in by magic link, showing which Buffer account is signed in, and small fixes.
+5. 🚧 1.1.1, [Smoother](https://github.com/southp/buffer-snap/milestone/5): smoother signing in by magic link, showing which Buffer account is signed in (with its picture), a Light or Dark appearance, animated How to Add sketches, and small fixes. Done and ready to submit to the App Store ([#134](https://github.com/southp/buffer-snap/issues/134)).
 6. After that: Capturing multiple pictures, and the [open issues](https://github.com/southp/buffer-snap/issues).
 
 ## Development
