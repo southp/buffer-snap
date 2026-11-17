@@ -61,6 +61,24 @@ Capturing works without an account, and sending ideas to Buffer needs a Buffer a
 
 ## What's New in This Version (version page, ≤4000, from 1.1)
 
+Write a new one for each version, about what users will notice, not how it's built. Paste the newest one.
+
+### 1.1.1
+
+```
+• See which Buffer account you're signed in to: the account button shows its profile picture, or its initials, and the account menu starts with its name and email.
+• "Send N ideas" now names the account they'll go to.
+• Appearance, in the account menu: keep BufSnap light or dark, or let it follow your iPhone.
+• When Buffer emails you a link to confirm it's you, the sign-in row says to open it, then come back to BufSnap to finish.
+• The sketches in How to Add Dictate an Idea now act out each tap, hold and swipe. With Reduce Motion on, they stay still.
+• A problem shown in the list no longer disappears when something unrelated works, and if BufSnap couldn't read your sign-in at launch, it finds it when you come back to the app.
+```
+
+735 characters. For 1.1.1 (#134), from the Smoother milestone's closed issues that users can notice: #92, #108, #144, #56,
+#109 and #106.
+
+### 1.1
+
 ```
 • Show Me How: a guide to adding Dictate an Idea to Control Center, the Action button, the Lock Screen or a widget, with a sketch of each step. It's on the empty list and in the account menu.
 • If the microphone or speech recognition is off, the list says which one, with a button to Settings.
@@ -70,8 +88,7 @@ Capturing works without an account, and sending ideas to Buffer needs a Buffer a
 • Handwritten titles are no longer clipped, and the empty list no longer overlaps the notices above it.
 ```
 
-For 1.1 (#107), from the Polishing milestone's closed issues. Write a new one for each version, about what users will
-notice, not how it's built.
+702 characters. For 1.1 (#107), from the Polishing milestone's closed issues. Already submitted: kept as an example.
 
 ## Keywords (version page, ≤100, comma-separated, no spaces after commas)
 
