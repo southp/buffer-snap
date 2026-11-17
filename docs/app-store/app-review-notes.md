@@ -36,7 +36,7 @@ FIRST LAUNCH
 SIGNING IN
 2. In the first row of the list, tap "Authenticate using your Buffer account". iOS asks to use "buffer.com" to sign in: tap Continue.
 3. On Buffer's page, sign in with the demo account's email and password. Buffer may email the account a link to confirm the sign-in, for example from a new device or location. If it does, open the link, then come back to BufSnap: Buffer's page is still waiting there. The row under the button says so too.
-4. Approve BufSnap's access. The app returns to the list, and the round account button at the top right shows the account's initials. If ideas were waiting from before you signed in, it asks "Send N ideas to <account name>?": tap Send.
+4. Approve BufSnap's access. The app returns to the list, and the round account button at the top right shows the account's profile picture, or its initials until the picture loads. If ideas were waiting from before you signed in, it asks "Send N ideas to <account name>?": tap Send.
 
 DICTATING WITHOUT OPENING THE APP
 5. Add the "Dictate an Idea" control, in any of these places:

@@ -25,6 +25,7 @@
   <li><strong>Your captures,</strong> as text, until you delete them or the app removes older ones to save space. They're kept in a file only BufSnap can read.</li>
   <li><strong>Your Buffer sign-in tokens,</strong> in the iOS Keychain, only on this iPhone, until you sign out. They never move to another device, even through a backup.</li>
   <li><strong>Your Buffer account's name and email,</strong> in the iOS Keychain in the same way, until you sign out, so the app can show which account your ideas go to, even offline.</li>
+  <li><strong>Your Buffer account's profile picture,</strong> in a file only BufSnap can read, left out of backups, until you sign out, so the app can show it even offline.</li>
   <li><strong>Your settings,</strong> such as how long BufSnap waits before combining captures into one idea, and whether it looks light or dark.</li>
 </ul>
 </section>
@@ -48,12 +49,13 @@
 <section class="card">
 <h2>What goes to Buffer</h2>
 <p>When you sign in, you approve BufSnap's access on Buffer's own sign-in page, and BufSnap never sees your password. Buffer may email you a sign-in link instead of asking for one. Buffer then hands the app a one-time code through a page hosted on GitHub Pages, which stores nothing. GitHub, like any web host, may keep standard request logs.</p>
-<p>Apart from speech recognition and that sign-in page, Buffer is the only place BufSnap connects to, always over an encrypted connection. It sends:</p>
+<p>Apart from speech recognition, that sign-in page and your profile picture (below), Buffer is the only place BufSnap connects to, always over an encrypted connection. It sends:</p>
 <ul>
   <li><strong>The text of your captures,</strong> as ideas in your Buffer account. Captures made close together are combined into one idea.</li>
   <li><strong>Your sign-in tokens,</strong> to prove it's allowed to, and to renew them.</li>
 </ul>
-<p>It reads only your account's name and email, to show which account your ideas go to, and its organizations, to know where to save ideas. The name and email are shown only on this iPhone and never sent anywhere. Buffer's <a href="https://buffer.com/legal#privacy-policy">privacy policy</a> covers what happens from there.</p>
+<p>It reads only your account's name, email and profile picture, to show which account your ideas go to, and its organizations, to know where to save ideas. The name, email and picture are shown only on this iPhone and never sent anywhere. Buffer's <a href="https://buffer.com/legal#privacy-policy">privacy policy</a> covers what happens from there.</p>
+<p>Buffer keeps profile pictures in its own storage on Amazon S3, so BufSnap downloads yours from there, from buffer-account-avatars-bucket.<wbr>s3.<wbr>amazonaws.<wbr>com and no other address, over an encrypted connection. It sends nothing but the request for the picture: no sign-in tokens and nothing you wrote. Like any web request, it shows Amazon your iPhone's network address. BufSnap downloads the picture again only when Buffer gives it a new one.</p>
 </section>
 
 <section class="card">
@@ -65,7 +67,7 @@
 <h2>Deleting your data</h2>
 <ul>
   <li><strong>Captures:</strong> delete them in the app, or delete the app to remove everything on your iPhone.</li>
-  <li><strong>Buffer access:</strong> sign out in the app, which removes the tokens and your account's name and email from the Keychain.</li>
+  <li><strong>Buffer access:</strong> sign out in the app, which removes the tokens and your account's name and email from the Keychain, and deletes the saved profile picture.</li>
   <li><strong>Ideas already sent:</strong> these are in your Buffer account, so delete them there.</li>
 </ul>
 </section>

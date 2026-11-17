@@ -57,6 +57,8 @@ flowchart TD
             Connectivity["ConnectivityMonitor"]
             Window["BatchWindowSetting"]
             AccountStore["AccountStore"]
+            AvatarStore["AvatarImageStore"]
+            AvatarDownloader["AvatarDownloader"]
         end
         Queue["SubmissionQueue (planner, back-off)"]
         subgraph impls["Implementations"]
@@ -70,6 +72,8 @@ flowchart TD
             Path["NetworkPathConnectivityMonitor, MockConnectivityMonitor"]
             Defaults["UserDefaultsBatchWindowSetting, InMemoryBatchWindowSetting"]
             AccountImpls["KeychainAccountStore, InMemoryAccountStore"]
+            AvatarStoreImpls["FileAvatarImageStore, InMemoryAvatarImageStore"]
+            AvatarDownloaderImpls["HTTPAvatarDownloader, MockAvatarDownloader"]
         end
         Capture["Models: Capture"]
     end
@@ -82,6 +86,8 @@ flowchart TD
     AppModel --> AuthService
     AppModel -->|"account: fetchAccount()"| Queue
     AppModel --> AccountStore
+    AppModel -->|"picture, from S3"| AvatarDownloader
+    AppModel --> AvatarStore
     AppModel -->|permission only| SpeechTranscriber
     Session --> CaptureStore
     Session --> SpeechTranscriber
@@ -104,6 +110,8 @@ flowchart TD
     Path -->|implements| Connectivity
     Defaults -->|implements| Window
     AccountImpls -->|implements| AccountStore
+    AvatarStoreImpls -->|implements| AvatarStore
+    AvatarDownloaderImpls -->|implements| AvatarDownloader
     App -->|"SystemWebAuthenticator (needs a window)"| OAuth
     MockSpeech -->|implements| SpeechTranscriber
     AppleSpeech -->|implements| SpeechTranscriber
@@ -140,6 +148,7 @@ sequenceDiagram
     participant Keychain
     participant Queue as SubmissionQueue
     participant API as api.buffer.com
+    participant S3 as Buffer's bucket on S3
     Model->>Auth: signIn()
     Auth->>Web: authenticate(url, "buffersnap")
     Web->>Buffer: Sign-in and consent, with state and the PKCE challenge
@@ -150,13 +159,16 @@ sequenceDiagram
     Buffer->>Auth: Access and refresh tokens
     Auth->>Keychain: Save, before anything uses them
     Auth->>Model: Done, signed in
-    Model->>Keychain: Forget the last account
+    Model->>Keychain: Forget the last account, and delete its picture
     Model->>Queue: fetchAccount(), unless rate limited
-    Queue->>API: account { name email }
-    API->>Queue: Name and email
+    Queue->>API: account { name email avatar }
+    API->>Queue: Name, email and picture URL
     Queue->>Model: The account
     Model->>Keychain: Save it, in its own item
     Model->>Model: Ask "Send N ideas to <name>?"
+    Model->>S3: GET the picture, if its URL is on the bucket
+    S3->>Model: The image
+    Model->>Model: Save it in Application Support
 ```
 
 `AppModel` reads `hasSavedSession()` at launch, which reads the Keychain, so the first frame is already right, and the
@@ -179,6 +191,21 @@ no network. It's never part of the saved session: [`92-account-cache.md`](decisi
 fetch keeps what's saved and never changes `isSignedIn`. The account is forgotten, here and in the Keychain, on
 sign-out, when Buffer ends the session, and when a sign-in succeeds, as that may be someone else; a fetch that finishes
 after any of those shows nothing.
+
+**The account's picture.** The account query also asks for `avatar`, which `BufferAccount` keeps as `avatarURL` only
+if it's `https` on exactly `buffer-account-avatars-bucket.s3.amazonaws.com` (`BufferAccount.avatarHost`), Buffer's own
+bucket on S3. Anything else is `nil`, and the chip shows initials. `AccountCache` hands the URL to `AvatarCache`, which
+downloads it through `AvatarDownloader` only when it differs from the saved picture's, and never asks for one URL twice
+in a launch, even if it failed. At sign-in that comes after the question, so the question never waits for a picture; at
+each foreground it comes after the hourly account check. `HTTPAvatarDownloader` checks the host again, sends no token
+or cookies, follows no redirect (`URLSession.forAvatars()`), and keeps only what ImageIO can draw. It's S3, not Buffer's
+API, so it doesn't go through `SubmissionQueue` or count toward the rate limit. `FileAvatarImageStore` keeps the
+picture as one file in the app's own Application Support, never the App Group or `URLCache`, named after a SHA-256 of
+its URL, readable after first unlock and out of backups. `AppModel.avatarImage` shows it from the first frame after a
+relaunch with no network. A failed download, or one that isn't an image, keeps the picture that was showing, or
+initials, and never changes `isSignedIn`. An account with no picture deletes the saved one, and the picture is deleted
+everywhere the account is forgotten; a download that ends after that shows nothing. The URL holds the account's ID, so
+it's never logged: [`108-avatar-from-buffers-s3.md`](decisions/108-avatar-from-buffers-s3.md).
 
 ## Sending to Buffer
 
