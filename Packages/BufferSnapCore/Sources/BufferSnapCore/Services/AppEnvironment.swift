@@ -8,6 +8,10 @@ public struct AppEnvironment: Sendable {
     public let batchWindow: any BatchWindowSetting
     /// The signed-in account between launches. It's asked for through `submissions`, which keeps Buffer's rate limit.
     public let accountStore: any AccountStore
+    /// Downloads the account's picture from Buffer's bucket on S3: not Buffer's API, so not through `submissions`.
+    public let avatarDownloader: any AvatarDownloader
+    /// The account's picture between launches.
+    public let avatarStore: any AvatarImageStore
 
     public init(
         captureStore: any CaptureStore,
@@ -15,7 +19,9 @@ public struct AppEnvironment: Sendable {
         bufferClient: any BufferClient,
         connectivity: any ConnectivityMonitor,
         batchWindow: any BatchWindowSetting,
-        accountStore: any AccountStore = InMemoryAccountStore()
+        accountStore: any AccountStore = InMemoryAccountStore(),
+        avatarDownloader: any AvatarDownloader = NoAvatarDownloader(),
+        avatarStore: any AvatarImageStore = InMemoryAvatarImageStore()
     ) {
         self.captureStore = captureStore
         self.auth = auth
@@ -28,10 +34,12 @@ public struct AppEnvironment: Sendable {
         self.connectivity = connectivity
         self.batchWindow = batchWindow
         self.accountStore = accountStore
+        self.avatarDownloader = avatarDownloader
+        self.avatarStore = avatarStore
     }
 
     /// An environment of mocks: an in-memory store that starts with `seed`, a sign-in that always succeeds, a
-    /// Buffer that accepts everything, a connection that never changes, no batching and no saved account.
+    /// Buffer that accepts everything, a connection that never changes, no batching, and no saved account or picture.
     public static func mock(seed: [Capture]) -> AppEnvironment {
         AppEnvironment(
             captureStore: InMemoryCaptureStore(seed: seed),
