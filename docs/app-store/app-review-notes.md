@@ -13,7 +13,7 @@ Tick **Sign-in required** and fill in the demo Buffer account. Never commit its 
 
 Before submitting, check the account on a phone that has never signed in to it:
 
-- It signs in with the password alone: no two-factor authentication, and no step that needs its inbox. Checked on 2026-11-10 (#67): the password alone signed in, both in a browser and in the app.
+- It signs in with the password: no two-factor authentication. Checked on 2026-11-10 (#67): the password alone signed in, both in a browser and in the app. Buffer can still email a link to confirm a sign-in it doesn't recognize, such as from a new device or location: a reviewer got one on 2026-11-12 (#56). Step 3 of the notes says what to do then.
 - It has one organization, where the ideas land.
 - It's on a Buffer plan that has Ideas and API access.
 
