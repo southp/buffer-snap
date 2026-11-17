@@ -212,6 +212,55 @@ struct UnreadableCaptureStore: CaptureStore {
     }
 }
 
+/// A `CaptureStore` whose reads or deletes fail while a test says so, so one kind of action can fail and another work.
+actor SwitchableCaptureStore: CaptureStore {
+    let base: InMemoryCaptureStore
+    private var isFailingReads = false
+    private var isFailingDeletes = false
+
+    init(seed: [Capture] = []) {
+        base = InMemoryCaptureStore(seed: seed)
+    }
+
+    func failReads(_ isFailing: Bool) {
+        isFailingReads = isFailing
+    }
+
+    func failDeletes(_ isFailing: Bool) {
+        isFailingDeletes = isFailing
+    }
+
+    func all() async throws -> [Capture] {
+        if isFailingReads {
+            throw TestError()
+        }
+        return await base.all()
+    }
+
+    func add(_ capture: Capture) async throws {
+        await base.add(capture)
+    }
+
+    func delete(id: Capture.ID) async throws {
+        if isFailingDeletes {
+            throw TestError()
+        }
+        await base.delete(id: id)
+    }
+
+    func deleteSubmitted() async throws {
+        await base.deleteSubmitted()
+    }
+
+    func setStatus(_ status: Capture.Status, failure: Capture.Failure?, ids: Set<Capture.ID>) async throws {
+        await base.setStatus(status, failure: failure, ids: ids)
+    }
+
+    func assignBatches(_ batchIDs: [Capture.ID: Capture.BatchID]) async throws {
+        await base.assignBatches(batchIDs)
+    }
+}
+
 extension Capture {
     /// A capture made `seconds` after a fixed reference date, so tests can order captures by age.
     static func at(_ seconds: TimeInterval, kind: Kind = .text) -> Capture {
