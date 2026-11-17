@@ -19,6 +19,8 @@ struct CaptureListScreen: View {
     private let signInPrompt: AppModel.SignInPrompt?
     /// Who's signed in, if Buffer has said.
     private let account: BufferAccount?
+    /// The account's picture, if it's been downloaded.
+    private let avatarImage: Data?
     private let onSignIn: () -> Void
     private let onSignOut: () -> Void
     /// Read once: the bundle's version doesn't change while the app runs.
@@ -32,6 +34,7 @@ struct CaptureListScreen: View {
         batchWindow: any BatchWindowSetting,
         signInPrompt: AppModel.SignInPrompt?,
         account: BufferAccount?,
+        avatarImage: Data?,
         onSignIn: @escaping () -> Void,
         onSignOut: @escaping () -> Void,
         permissionNotice: DictationNotice?
@@ -41,6 +44,7 @@ struct CaptureListScreen: View {
         self.batchWindow = batchWindow
         self.signInPrompt = signInPrompt
         self.account = account
+        self.avatarImage = avatarImage
         self.onSignIn = onSignIn
         self.onSignOut = onSignOut
         self.permissionNotice = permissionNotice
@@ -97,6 +101,7 @@ struct CaptureListScreen: View {
                 sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
                 account: account,
+                avatarImage: avatarImage,
                 onSignIn: onSignIn,
                 onSignOut: onSignOut,
                 permissionNotice: permissionNotice

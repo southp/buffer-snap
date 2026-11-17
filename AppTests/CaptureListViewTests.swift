@@ -272,6 +272,31 @@ struct CaptureListViewTests {
         let account = BufferAccount(name: nil, email: "ada@example.com")
         assertScreenSnapshot(of: listScreen(submittedCaptures, account: account), named: "accountWithoutName")
     }
+
+    /// With its picture downloaded, the chip shows it inside the same ink ring, in light and dark. The picture is the
+    /// mocked app's made-up one, never a real person's.
+    @Test func accountPicture() {
+        let screen = listScreen(submittedCaptures, account: .mock, avatarImage: MockAvatarPicture.png)
+        assertScreenSnapshot(of: screen, named: "accountPicture")
+        assertScreenSnapshot(of: screen, named: "accountPicture-dark", appearance: .dark)
+    }
+
+    /// Bytes UIKit can't draw fall back to the initials, as if there were no picture.
+    @Test func accountPictureUnreadable() {
+        let screen = listScreen(submittedCaptures, account: .mock, avatarImage: Data("<html>".utf8))
+        assertScreenSnapshot(of: screen, named: "accountPictureUnreadable")
+    }
+
+    /// Signed out, a picture left behind never shows: the chip is the `person` glyph.
+    @Test func accountPictureSignedOut() {
+        let screen = listScreen(
+            submittedCaptures,
+            signInPrompt: signedOut,
+            account: .mock,
+            avatarImage: MockAvatarPicture.png
+        )
+        assertScreenSnapshot(of: screen, named: "accountPictureSignedOut")
+    }
 }
 
 /// Shared fixtures, out of the struct's body so the tests themselves stay within its length limit.
@@ -311,6 +336,7 @@ extension CaptureListViewTests {
         problem: CaptureListModel.Problem? = nil,
         signInPrompt: AppModel.SignInPrompt? = nil,
         account: BufferAccount? = nil,
+        avatarImage: Data? = nil,
         clearableIdeaCount: Int = 0,
         permissionNotice: DictationNotice? = nil
     ) -> some View {
@@ -343,6 +369,7 @@ extension CaptureListViewTests {
                 sourceCodeURL: ProjectLinks.sourceCode,
                 signInPrompt: signInPrompt,
                 account: account,
+                avatarImage: avatarImage,
                 onSignIn: {},
                 onSignOut: {},
                 permissionNotice: permissionNotice

@@ -16,6 +16,7 @@ struct RootView: View {
                 batchWindow: environment.batchWindow,
                 signInPrompt: appModel.signInPrompt,
                 account: appModel.account,
+                avatarImage: appModel.avatarImage,
                 onSignIn: {
                     Task {
                         await appModel.signIn()
