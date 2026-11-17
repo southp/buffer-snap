@@ -24,7 +24,8 @@ Views live in `App/Views/`. `BufferSnapApp` is the composition root: it builds `
 - **The toolbar's `person` chip opens one menu**, `AccountMenuItems`, in sections. Add an item to the section it
   belongs in, never a second menu:
   1. The account header: who is signed in (#92).
-  2. Settings and guides: Batching, then How to Add Dictate an Idea (#98).
+  2. Settings and guides: Batching, then Appearance (System, Light or Dark, #144), then How to Add Dictate an Idea
+     (#98).
   3. Help: Report a Problem (the support page's `#report`, never GitHub directly: most users have no GitHub account)
      and Source Code on GitHub.
   4. Sign Out, only while signed in.
