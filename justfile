@@ -300,6 +300,8 @@ store-screenshots: build
     #!/usr/bin/env bash
     set -euo pipefail
     out="build/store-screenshots"
+    # The account chip's accessibility label: "Account: " and the mocked account's name (BufferAccount.mock).
+    chip="Account: Ada Lovelace"
     tmp="$(mktemp -d)"
     trap 'rm -rf "$tmp"' EXIT
     chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -443,8 +445,7 @@ store-screenshots: build
 
     # A physical tap: SwiftUI's buttons ignore AXe's simulated one (App/CLAUDE.md). Right after a first boot, AXe can time
     # out reaching the simulator, so it tries a few times. The element type is Button unless a third argument says
-    # otherwise: the Account menu's chip is a PopUpButton, labeled "Account: " and the mocked account's name
-    # (BufferAccount.mock).
+    # otherwise: the Account menu's chip is a PopUpButton.
     tap() {
         local attempt
         for attempt in 1 2 3 4 5; do
@@ -465,7 +466,7 @@ store-screenshots: build
         local attempt ui
         for attempt in $(seq 1 60); do
             ui="$("$axe" describe-ui --udid "$1" 2>/dev/null || true)"
-            if [[ "$ui" == *"Account: Ada Lovelace"* ]]; then
+            if [[ "$ui" == *"$chip"* ]]; then
                 sleep 1
                 return 0
             fi
@@ -524,7 +525,7 @@ store-screenshots: build
         launch "$udid"
         wait_for_list "$udid"
         shoot "$udid" "$dir/2-captures.png"
-        tap "$udid" "Account: Ada Lovelace" PopUpButton
+        tap "$udid" "$chip" PopUpButton
         tap "$udid" Batching
         sleep 2
         shoot "$udid" "$dir/4-batching.png"

@@ -40,8 +40,8 @@ required for builds on the iOS 27.1 SDK or later from April 2027, not yet.
   the mocked Buffer that goes with it, so nothing is sent anywhere. Sample captures are written into the App Group
   file before launch, dated from the moment it runs.
 - **The account is made up too:** the chip shows the mocked account's picture, a sun over a hill drawn on the device
-  (`MockAvatarPicture`), and the recipe opens the menu by its label, "Account: Ada Lovelace" (`BufferAccount.mock`).
-  If the mocked name changes, change the recipe's `tap` too.
+  (`MockAvatarPicture`). The recipe finds the chip by its label, "Account: Ada Lovelace" (its `chip`, from
+  `BufferAccount.mock`): if the mocked name changes, change `chip` too.
 - **Each size has its own simulator** (`iPhone 17 Pro Max (worktree: …)` in a worktree), in light mode, in English,
   with full bars and the status bar showing the real time, so it agrees with the list's "Sends at".
 - PNGs have no alpha channel, which App Store Connect rejects.
