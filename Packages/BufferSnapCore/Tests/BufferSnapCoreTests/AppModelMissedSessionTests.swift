@@ -45,6 +45,27 @@ struct AppModelMissedSessionTests {
         #expect(model.signInNotice == .sessionEnded)
     }
 
+    /// A sign-in in progress saves its session before it returns, and it finishes the job itself, asking about what's
+    /// held. Coming back from Buffer's page makes the scene active in the middle of it.
+    @Test func aForegroundDuringASignInDoesntLookAgain() async {
+        let auth = ControllableSignInAuthService()
+        let ideas = StubIdeasAtSignIn(heldIdeas: 2)
+        let model = AppModel(auth: auth, ideas: ideas)
+        await auth.holdNextSignIn()
+
+        async let signIn: Void = model.signIn()
+        await auth.waitForHeldSignIn()
+        auth.setHasSavedSession(true)
+        await model.checkSession()
+        #expect(!model.isSignedIn)
+        #expect(model.isSigningIn)
+
+        await auth.releaseSignIn()
+        await signIn
+        #expect(model.isSignedIn)
+        #expect(model.ideasToConfirm == 2)
+    }
+
     /// The tokens a failed sign-out left behind are still saved, but the person asked to be signed out.
     @Test func tokensAFailedSignOutLeftDontSignBackIn() async {
         let model = AppModel(auth: StubAuthService(hasSavedSession: true, signOutError: AuthError.storage))
