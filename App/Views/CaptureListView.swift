@@ -47,6 +47,8 @@ struct CaptureListView: View {
     let signInPrompt: AppModel.SignInPrompt?
     /// Who's signed in, for the chip's initials and the menu's header, or `nil` while nobody is or Buffer hasn't said.
     let account: BufferAccount?
+    /// The account's picture for the chip, as image bytes, or `nil` for its initials.
+    let avatarImage: Data?
     /// Called when the user asks to sign in.
     let onSignIn: () -> Void
     /// Called when the user signs out.
@@ -145,7 +147,10 @@ struct CaptureListView: View {
                         onSignOut: onSignOut
                     )
                 } label: {
-                    AccountChipLabel(account: isSignedIn ? account : nil)
+                    AccountChipLabel(
+                        account: isSignedIn ? account : nil,
+                        avatarImage: isSignedIn ? avatarImage : nil
+                    )
                 }
                 // A menu styled as a button keeps the chip in the toolbar, where a custom label lost it.
                 .menuStyle(.button)

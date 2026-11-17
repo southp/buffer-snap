@@ -10,6 +10,12 @@ import OSLog
 /// item, and its folder is out of backups, as the Keychain item is. It's named after a SHA-256 of the URL it came from,
 /// so the URL, which holds the account's ID, is never written down here.
 public struct FileAvatarImageStore: AvatarImageStore {
+    /// How the picture is written: whole or not at all, and readable after the first unlock.
+    public static let writingOptions: Data.WritingOptions = [
+        .atomic,
+        .completeFileProtectionUntilFirstUserAuthentication,
+    ]
+
     /// The folder the picture is in. Nothing else goes in it, as `clear()` removes it whole.
     public let directory: URL
 
@@ -43,7 +49,7 @@ public struct FileAvatarImageStore: AvatarImageStore {
         values.isExcludedFromBackup = true
         try folder.setResourceValues(values)
         let file = file(for: url)
-        try image.write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try image.write(to: file, options: Self.writingOptions)
         for other in savedFiles() where other.lastPathComponent != file.lastPathComponent {
             try FileManager.default.removeItem(at: other)
         }

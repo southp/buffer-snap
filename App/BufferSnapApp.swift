@@ -20,7 +20,9 @@ struct BufferSnapApp: App {
             bufferClient: Self.makeBufferClient(),
             connectivity: NetworkPathConnectivityMonitor(),
             batchWindow: UserDefaultsBatchWindowSetting(),
-            accountStore: Self.makeAccountStore()
+            accountStore: Self.makeAccountStore(),
+            avatarDownloader: Self.makeAvatarDownloader(),
+            avatarStore: Self.makeAvatarStore()
         )
         self.environment = environment
         // One for the app's model, which only reads its permission, and for the session, which listens.
@@ -31,7 +33,9 @@ struct BufferSnapApp: App {
             ideas: environment.submissions,
             speech: speech,
             accounts: environment.submissions,
-            accountStore: environment.accountStore
+            accountStore: environment.accountStore,
+            avatars: environment.avatarDownloader,
+            avatarStore: environment.avatarStore
         )
         _appModel = State(initialValue: appModel)
         handsFreeDictation = Self.makeHandsFreeDictation(
@@ -154,6 +158,31 @@ struct BufferSnapApp: App {
             }
         #endif
         return KeychainAccountStore()
+    }
+
+    /// The account's picture, from Buffer's bucket on S3 and nowhere else. A mocked sign-in gets a made-up picture
+    /// drawn on the iPhone, so nothing reaches the network (`docs/decisions/108-avatar-from-buffers-s3.md`).
+    private static func makeAvatarDownloader() -> any AvatarDownloader {
+        #if DEBUG
+            if UserDefaults.standard.string(forKey: "mockAuth") != nil {
+                return MockAvatarDownloader(picture: MockAvatarPicture.png)
+            }
+        #endif
+        return HTTPAvatarDownloader(transport: URLSession.forAvatars())
+    }
+
+    /// The account's picture between launches, in the app's own Application Support. A mocked sign-in that starts
+    /// signed in has its made-up picture already saved, so screenshots show it at once.
+    private static func makeAvatarStore() -> any AvatarImageStore {
+        #if DEBUG
+            if let mockAuth = UserDefaults.standard.string(forKey: "mockAuth") {
+                guard mockAuth == "signedIn", let url = BufferAccount.mock.avatarURL else {
+                    return InMemoryAvatarImageStore()
+                }
+                return InMemoryAvatarImageStore(image: MockAvatarPicture.png, from: url)
+            }
+        #endif
+        return FileAvatarImageStore()
     }
 
     /// Buffer's API. A mocked sign-in has no token to send, so it gets a mocked Buffer too, and nothing reaches the

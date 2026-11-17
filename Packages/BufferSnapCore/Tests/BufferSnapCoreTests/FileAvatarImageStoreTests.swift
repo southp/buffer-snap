@@ -66,4 +66,11 @@ struct FileAvatarImageStoreTests {
 
         #expect(values.isExcludedFromBackup == true)
     }
+
+    /// Readable after the first unlock, like the account's Keychain item. Neither macOS nor the simulator reports a
+    /// file's protection, so this checks what it's written with.
+    @Test func thePictureIsReadableAfterFirstUnlock() {
+        #expect(FileAvatarImageStore.writingOptions.contains(.completeFileProtectionUntilFirstUserAuthentication))
+        #expect(FileAvatarImageStore.writingOptions.contains(.atomic))
+    }
 }
