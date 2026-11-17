@@ -48,8 +48,9 @@ in Buffer Commit the same day.
 3. ✅ v1: Submit to the app store early enough that a rejection still leaves time. (~ Nov. 10)
    * Then submit to Buffer Commit no matter what by Nov. 13
    * Everything to paste into App Store Connect, and the steps in order: [`docs/app-store/`](docs/app-store/checklist.md)
-4. 🚧 1.1, [Polishing](https://github.com/southp/buffer-snap/milestone/4): fixes and guides from the first users' reports. Submitted to the App Store before Buffer Commit's judging (Nov. 16-20). Changes to signing in wait for the [next version](https://github.com/southp/buffer-snap/milestone/5), so judging isn't disturbed.
-5. After that: Capturing multiple pictures, and the [open issues](https://github.com/southp/buffer-snap/issues).
+4. ✅ 1.1, [Polishing](https://github.com/southp/buffer-snap/milestone/4): fixes and guides from the first users' reports. Submitted to the App Store before Buffer Commit's judging (Nov. 16-20), and live on Nov. 17.
+5. 🚧 1.1.1, [Smoother](https://github.com/southp/buffer-snap/milestone/5): smoother signing in by magic link, showing which Buffer account is signed in, and small fixes.
+6. After that: Capturing multiple pictures, and the [open issues](https://github.com/southp/buffer-snap/issues).
 
 ## Development
 Everything runs from the terminal through [`just`](https://github.com/casey/just) recipes, without opening the Xcode GUI.
