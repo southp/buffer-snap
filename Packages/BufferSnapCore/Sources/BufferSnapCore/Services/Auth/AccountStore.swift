@@ -6,10 +6,22 @@ public struct SavedAccount: Codable, Sendable, Equatable {
     public let account: BufferAccount
     /// When Buffer answered with it, so a relaunch doesn't ask again within the hour.
     public let fetchedAt: Date
+    /// Whether Buffer was asked for the picture too. An account saved by 1.1 wasn't, so the next foreground asks again
+    /// instead of waiting out the hour without a picture.
+    public let askedForAvatar: Bool
 
     public init(account: BufferAccount, fetchedAt: Date) {
         self.account = account
         self.fetchedAt = fetchedAt
+        askedForAvatar = true
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        account = try container.decode(BufferAccount.self, forKey: .account)
+        fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
+        // Missing from what 1.1 saved.
+        askedForAvatar = try container.decodeIfPresent(Bool.self, forKey: .askedForAvatar) ?? false
     }
 }
 
