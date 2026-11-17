@@ -19,6 +19,12 @@ public struct GraphQLBufferClient: BufferClient {
         return organizationID
     }
 
+    public func account(accessToken: String) async throws -> BufferAccount {
+        let query = "query Account { account { name email } }"
+        let data: AccountProfileData = try await send(query, variables: NoVariables(), accessToken: accessToken)
+        return BufferAccount(name: data.account.name, email: data.account.email)
+    }
+
     public func createIdea(text: String, organizationID: String, accessToken: String) async throws {
         // `__typename` tells success from each error, including types added later. The guide asks for the `message`.
         let query = """
@@ -179,6 +185,15 @@ private struct AccountData: Decodable {
 
     struct Organization: Decodable {
         let id: String
+    }
+
+    let account: Account
+}
+
+private struct AccountProfileData: Decodable {
+    struct Account: Decodable {
+        let name: String?
+        let email: String?
     }
 
     let account: Account

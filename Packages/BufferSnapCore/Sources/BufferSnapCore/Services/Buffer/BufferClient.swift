@@ -5,6 +5,9 @@ public protocol BufferClient: Sendable {
     /// `BufferError`.
     func firstOrganizationID(accessToken: String) async throws -> String
 
+    /// Who the account is: its name and email, to show which account ideas go to. Throws a `BufferError`.
+    func account(accessToken: String) async throws -> BufferAccount
+
     /// Creates one idea. Throws a `BufferError`. `.connection` and `.serverTrouble` don't mean that no idea was
     /// created: `docs/decisions/44-duplicate-ideas.md`.
     func createIdea(text: String, organizationID: String, accessToken: String) async throws
@@ -26,7 +29,7 @@ public enum BufferError: Error, Equatable, Sendable {
 }
 
 /// A `BufferClient` that never touches the network, for tests and the mocked app. Each call to `createIdea` throws the
-/// next of `failures`, and once they run out it succeeds.
+/// next of `failures`, and once they run out it succeeds. The account is always `BufferAccount.mock`.
 public actor MockBufferClient: BufferClient {
     public private(set) var createdIdeas: [String] = []
     private var failures: [BufferError]
@@ -37,6 +40,10 @@ public actor MockBufferClient: BufferClient {
 
     public func firstOrganizationID(accessToken: String) -> String {
         "mock-organization"
+    }
+
+    public func account(accessToken: String) -> BufferAccount {
+        .mock
     }
 
     public func createIdea(text: String, organizationID: String, accessToken: String) throws {
