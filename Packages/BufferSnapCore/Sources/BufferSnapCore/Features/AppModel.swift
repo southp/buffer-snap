@@ -46,6 +46,12 @@ public final class AppModel {
     /// `nil` means there's no question: `docs/decisions/68-ideas-at-sign-in.md`.
     public private(set) var ideasToConfirm: Int?
 
+    /// Whether being signed out may only mean the launch couldn't read the saved session. A Keychain read can fail,
+    /// and `init` takes that as no session, so `checkSession()` looks again. Once a sign-out or Buffer ends a session,
+    /// a saved one found later is over (a sign-out that failed leaves its tokens behind), so nothing looks again until
+    /// the next launch.
+    private var mayHaveMissedSavedSession: Bool
+
     private let auth: any AuthService
     private let ideas: any IdeasAtSignIn
     private let speech: any SpeechTranscriber
@@ -62,7 +68,9 @@ public final class AppModel {
         self.auth = auth
         self.ideas = ideas
         self.speech = speech
-        isSignedIn = auth.hasSavedSession()
+        let hasSavedSession = auth.hasSavedSession()
+        isSignedIn = hasSavedSession
+        mayHaveMissedSavedSession = !hasSavedSession
     }
 
     /// What the list's sign-in row shows, or `nil` while someone is signed in.
@@ -125,12 +133,21 @@ public final class AppModel {
             signInNotice = .signOutFailed
         }
         isSignedIn = false
+        mayHaveMissedSavedSession = false
         ideasToConfirm = nil
     }
 
     /// Checks that the session still works, refreshing the token if it's due, for when the app comes to the foreground.
     /// Only losing the session changes anything: failing to reach Buffer is no reason to interrupt someone offline.
+    ///
+    /// Signed out, it first looks again for a session the launch couldn't read, so the list doesn't stay in offline
+    /// mode while the queue sends with that session. A session it finds is checked like any other.
     public func checkSession() async {
+        if !isSignedIn, !isSigningIn, mayHaveMissedSavedSession, auth.hasSavedSession() {
+            Logger.auth.notice("Found the saved session the launch couldn't read")
+            isSignedIn = true
+            signInNotice = nil
+        }
         guard isSignedIn else {
             // A sign-in that never finished, such as a crash during it, may have left captures held.
             if !isSigningIn {
@@ -144,6 +161,7 @@ public final class AppModel {
             // They may have signed out during the check. That's not a session that ended on them.
             if isSignedIn {
                 isSignedIn = false
+                mayHaveMissedSavedSession = false
                 signInNotice = .sessionEnded
                 ideasToConfirm = nil
                 await releaseHeldCaptures()

@@ -147,7 +147,10 @@ sequenceDiagram
 
 `AppModel` reads `hasSavedSession()` at launch, which reads the Keychain, so the first frame is already right, and the
 list is the first screen either way. When the scene becomes active, `checkSession()` asks for a valid token, which
-refreshes it if it's due. Only Buffer rejecting the refresh token ends the session, and the list's row then says so. Everything that needs a token calls `validAccessToken()`,
+refreshes it if it's due. Only Buffer rejecting the refresh token ends the session, and the list's row then says so.
+A Keychain read at launch can fail, which looks like no session, so while signed out `checkSession()` reads
+`hasSavedSession()` again and signs in if it's there now. It stops looking once a sign-out or Buffer has ended a
+session, as a failed sign-out leaves its tokens behind. Everything that needs a token calls `validAccessToken()`,
 and `OAuthAuthService` makes sure only one refresh ever runs, because reusing a refresh token revokes the session:
 [`43-single-use-refresh-tokens.md`](decisions/43-single-use-refresh-tokens.md).
 

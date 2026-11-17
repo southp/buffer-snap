@@ -7,7 +7,7 @@ struct TestError: Error {}
 
 /// An `AuthService` that fails as a test says, for testing how models react.
 actor StubAuthService: AuthService {
-    private let savedSession: Bool
+    private let savedSession: Mutex<Bool>
     private var signInError: (any Error)?
     private var signOutError: (any Error)?
     private var tokenError: (any Error)?
@@ -19,14 +19,19 @@ actor StubAuthService: AuthService {
         signOutError: (any Error)? = nil,
         tokenError: (any Error)? = nil
     ) {
-        savedSession = hasSavedSession
+        savedSession = Mutex(hasSavedSession)
         self.signInError = signInError
         self.signOutError = signOutError
         self.tokenError = tokenError
     }
 
     nonisolated func hasSavedSession() -> Bool {
-        savedSession
+        savedSession.withLock { $0 }
+    }
+
+    /// What `hasSavedSession()` answers from now on, as when a Keychain that couldn't be read at launch can be.
+    nonisolated func setHasSavedSession(_ hasSavedSession: Bool) {
+        savedSession.withLock { $0 = hasSavedSession }
     }
 
     func setTokenError(_ error: (any Error)?) {
