@@ -43,7 +43,7 @@ public final class AppModel {
     public private(set) var dictationNotice: DictationNotice?
     /// The microphone and speech recognition, as last read. Undecided until the first read.
     public private(set) var speechPermission = SpeechPermission.undetermined
-    /// How many ideas a sign-in that just finished asks about ("Send N ideas to this account?"), until answered.
+    /// How many ideas a sign-in that just finished asks about ("Send N ideas to <name>?"), until answered.
     /// `nil` means there's no question: `docs/decisions/68-ideas-at-sign-in.md`.
     public private(set) var ideasToConfirm: Int?
 

@@ -78,8 +78,12 @@ struct RootView: View {
         Binding(get: { appModel.ideasToConfirm != nil }, set: { _ in })
     }
 
+    /// Names the account if Buffer has said who it is, as the sign-in sheet may have been for someone else's.
     private var ideasQuestion: Text {
         let count = appModel.ideasToConfirm ?? 0
-        return count == 1 ? Text("Send 1 idea to this account?") : Text("Send \(count) ideas to this account?")
+        guard let name = appModel.account?.displayName else {
+            return count == 1 ? Text("Send 1 idea to this account?") : Text("Send \(count) ideas to this account?")
+        }
+        return count == 1 ? Text("Send 1 idea to \(name)?") : Text("Send \(count) ideas to \(name)?")
     }
 }
