@@ -8,10 +8,13 @@
 - **Docs-only skip:** when every changed file is on the safe list (`*.md`, `docs/*`, `site/*`, `LICENSE`,
   `workflows/claude.yml`, `workflows/claude-code-review.yml`), `ci` and `deploy` are skipped, so no macOS runner
   starts, on a PR or on `main`. A skipped `ci` counts as passed, so the PR stays mergeable. A PR diffs its merge
-  commit against the base; a push to `main` diffs against the commit `main` was at before. Everything else takes the
-  full path, as does any case where the changed files are unknown. The "Choose the path" step in `changes` prints
-  its decision and the file list. The list is an allowlist in that step: add to it only what can't affect the app or
-  its snapshots (`docs/decisions/102-docs-only-skips-ci.md`).
+  commit against the base; a push to `main` diffs against the last commit whose `deploy` job succeeded, found through
+  the Actions API among the last 20 successful runs on `main` (`docs/decisions/114-diff-against-last-deploy.md`).
+  Everything else takes the full path, as does any case where the changed files are unknown, including a failed
+  lookup or fetch, or no deploy in those 20 runs. The "Choose the path" step in `changes` prints its decision, the
+  commit it compared against and the file list. The list is an allowlist in that step: add to it only what can't
+  affect the app or its snapshots (`docs/decisions/102-docs-only-skips-ci.md`). Only `changes` has `actions: read`,
+  for that lookup; keep it off the jobs that hold secrets.
 - It runs on the `xcode-27` image with Xcode 27.2 and, if the image has no runtime for the pinned simulator,
   downloads iOS runtime build `SIM_RUNTIME_BUILD` (`docs/decisions/6-*.md`). When you bump the pin, change `SIM_OS` and
   `SIM_RUNTIME_BUILD` in `justfile` and the Xcode path in `ci.yml` together (`xcrun simctl runtime list` shows your
@@ -30,9 +33,8 @@
 
 - Each push to `main` that passes `ci` runs `just deploy`, so every merge that changes more than the safe list reaches
   TestFlight. A docs-only merge skips `ci`, and so skips `deploy` too. PRs never run this job and never see its secrets.
-- If a code merge's run on `main` is dropped (see below) and the merge after it is docs-only, nothing deploys the
-  code until the next full-path merge. Re-run the dropped commit's workflow from the Actions tab to ship it sooner.
-  The same holds when a code merge's `ci` fails or is cancelled and the next merge is docs-only: re-run that run.
+- A docs-only merge is compared with the last deployed commit, so code that never deployed (its run was dropped, see
+  below, or its `ci` or `deploy` failed or was cancelled) sends the next merge down the full path, and it deploys then.
 - The recipe archives unsigned, so CI needs no certificate of its own (`docs/decisions/9-unsigned-archive.md`).
 - It needs the repo secrets `ASC_KEY_P8` (the `.p8` file's contents), `ASC_KEY_ID`, `ASC_ISSUER_ID` and `DEVELOPMENT_TEAM`.
 - Runs on `main` go one at a time, in order. GitHub keeps only one waiting run per group, so with three quick merges the
