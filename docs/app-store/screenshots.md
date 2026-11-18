@@ -54,3 +54,9 @@ the `store-screenshots` recipe in `justfile`, and the sample captures in its `se
 The recipe needs Google Chrome and ffmpeg, as `just app-icon` does, and AXe to tap through the app: the one
 XcodeBuildMCP bundles (`App/CLAUDE.md`), or `brew install cameroncooke/axe/axe`. Right after a simulator's first boot,
 AXe can time out: the recipe retries, and running it again works once the machine settles.
+
+The README shows the 6.3" ones too, scaled down in `docs/screenshots/`. Refresh them after a retake:
+
+```sh
+for f in build/store-screenshots/6.3-inch/*.png; do sips -Z 1200 "$f" --out docs/screenshots/; done
+```
