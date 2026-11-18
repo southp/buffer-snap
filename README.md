@@ -4,6 +4,13 @@ A minimal iOS app that gives you the most frictionless way to capture any inspir
 [Download on the App Store](https://apps.apple.com/app/id6830422547). It's free and open source under the [MIT license](LICENSE). Found a problem
 or have an idea? [Open an issue](https://github.com/southp/buffer-snap/issues).
 
+<p align="center">
+  <img src="docs/screenshots/1-dictate.png" width="200" alt="Press, speak, done: the Live Activity listening, then saved">
+  <img src="docs/screenshots/2-captures.png" width="200" alt="The capture list, with two ideas waiting to send and three sent">
+  <img src="docs/screenshots/3-widget.png" width="200" alt="The Dictate widget on the Home Screen">
+  <img src="docs/screenshots/4-batching.png" width="200" alt="The batching setting">
+</p>
+
 ## Context
 Inspiration is naughty. They come when you are lifting weights in a gym, eating the worst tofu in a fine dining, walking alongside a street carrying stuff with only one finger free, or being tripped over in a hike and seeing the most beautiful flower you've ever seen. 
 
