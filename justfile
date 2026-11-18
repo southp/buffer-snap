@@ -112,7 +112,7 @@ run: build
     xcrun simctl install "$udid" {{app_path}}
     xcrun simctl launch "$udid" {{bundle_id}}
 
-# The phone must be connected, unlocked, in Developer Mode and registered once: README, "Testing on your iPhone".
+# The phone must be connected, unlocked, in Developer Mode and registered once: docs/development.md, "Testing on your iPhone".
 # Build for the iPhone in DEVICE_ID, install and launch it: a fast loop with development signing, skipping TestFlight.
 device:
     #!/usr/bin/env bash
@@ -150,7 +150,7 @@ device:
     xcrun devicectl device install app --device "$DEVICE_ID" "{{derived_data}}/Build/Products/Debug-iphoneos/{{scheme}}.app"
     xcrun devicectl device process launch --device "$DEVICE_ID" {{bundle_id}}
 
-# Archive, sign and upload a build to TestFlight. One-time setup: README, "Deploying to TestFlight".
+# Archive, sign and upload a build to TestFlight. One-time setup: docs/development.md, "Deploying to TestFlight".
 deploy:
     #!/usr/bin/env bash
     set -euo pipefail
