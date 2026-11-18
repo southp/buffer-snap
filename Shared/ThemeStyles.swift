@@ -130,6 +130,10 @@ struct PaperInkButtonStyle: ButtonStyle {
                 .background {
                     OutlinedShape(shape: Circle(), shadow: Theme.chipShadow)
                 }
+                // The shadow is inside the chip's frame: a Menu's closing animation clips its label to the frame, which
+                // cut the shadow off for a second or two.
+                .padding(.trailing, Theme.chipShadow)
+                .padding(.bottom, Theme.chipShadow)
         case .primary, .secondary, .chip:
             label
                 .font(.inter(kind == .primary ? .body : .subheadline, weight: .bold))
