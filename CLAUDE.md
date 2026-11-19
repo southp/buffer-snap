@@ -42,6 +42,8 @@ Several agents work at once, one per issue, each in its own git worktree.
 - Edit only the area `CLAUDE.md` files your issue names. If another area needs a change, say so in the PR.
 - Your worktree has its own `build/` and its own simulator (`iPhone 16 (worktree: <dir>)`); `just` picks both
   automatically. If a tool needs the device, use `just _sim-udid`, never another worktree's simulator.
+- After `git worktree remove`, run `just sims-prune` from the main checkout. Removing a worktree leaves its
+  simulators behind, and git has no hook to delete them.
 
 ## Workflow
 
